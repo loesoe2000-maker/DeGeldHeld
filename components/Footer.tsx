@@ -16,7 +16,7 @@ export default function Footer() {
             <li><a href="#hoe-werkt-het" className="hover:text-brand-300">Hoe werkt het</a></li>
             <li><a href="#voorbeelden" className="hover:text-brand-300">Voorbeelden</a></li>
             <li><Link href="/faq" className="hover:text-brand-300">FAQ</Link></li>
-            <li><Link href="/api/proof" className="hover:text-brand-300">Track record</Link></li>
+            <li><Link href="/proof" className="hover:text-brand-300">Track record</Link></li>
           </ul>
         </div>
         <div>
