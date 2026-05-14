@@ -1,0 +1,205 @@
+// DeGeldHeld — Prisma schema
+// Run: pnpm prisma:generate && pnpm prisma:migrate
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ----- NextAuth core models -----
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  emailVerified DateTime?
+  name          String?
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // app data
+  accounts      Account[]
+  sessions      Session[]
+  bills         Bill[]
+  negotiations  Negotiation[]
+  payments      Payment[]
+  waitlistEntry WaitlistEntry?
+
+  @@index([email])
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ----- App models -----
+
+enum BillCategory {
+  TELECOM
+  ENERGIE
+  VERZEKERING
+  HYPOTHEEK
+  ABONNEMENT
+  OVERIG
+}
+
+enum NegotiationState {
+  NIEUW
+  BILL_UPLOAD
+  ANALYSE
+  EMAIL_GEN
+  AWAITING
+  SUCCESS
+  FAILED
+  BILLED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  REFUNDED
+  FAILED
+}
+
+model Bill {
+  id          String       @id @default(cuid())
+  userId      String
+  provider    String
+  category    BillCategory @default(OVERIG)
+  amountCents Int
+  plan        String?
+  period      String?
+  imageHash   String?      @unique
+  rawOcr      String?      @db.Text
+  createdAt   DateTime     @default(now())
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  negotiation Negotiation?
+
+  @@index([userId])
+  @@index([imageHash])
+}
+
+model Negotiation {
+  id              String           @id @default(cuid())
+  userId          String
+  billId          String           @unique
+  state           NegotiationState @default(NIEUW)
+  emailSubject    String?
+  emailBody       String?          @db.Text
+  strategy        String?
+  expectedSavingsCents Int?
+  actualSavingsCents   Int?
+  confidence      Float?
+  reasoning       String?          @db.Text
+  followUpAt      DateTime?
+  closedAt        DateTime?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bill    Bill     @relation(fields: [billId], references: [id], onDelete: Cascade)
+  payment Payment?
+
+  @@index([userId])
+  @@index([state])
+  @@index([followUpAt])
+}
+
+model Payment {
+  id                  String        @id @default(cuid())
+  userId              String
+  negotiationId       String        @unique
+  stripeSessionId     String?       @unique
+  stripePaymentId     String?
+  amountCents         Int
+  status              PaymentStatus @default(PENDING)
+  refundedAt          DateTime?
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  negotiation Negotiation @relation(fields: [negotiationId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+}
+
+model WaitlistEntry {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  userId    String?  @unique
+  source    String?
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([email])
+}
+
+model MarketProvider {
+  id         String       @id @default(cuid())
+  name       String       @unique
+  category   BillCategory
+  // Tarief per maand in cents voor instap-pakket (laagste plan).
+  basePriceCents Int
+  url        String?
+  notes      String?
+  updatedAt  DateTime     @updatedAt
+
+  plans MarketPlan[]
+
+  @@index([category])
+}
+
+model MarketPlan {
+  id          String       @id @default(cuid())
+  providerId  String
+  name        String
+  category    BillCategory
+  priceCents  Int
+  features    String?      @db.Text
+  updatedAt   DateTime     @updatedAt
+
+  provider MarketProvider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@index([providerId])
+  @@index([category, priceCents])
+}

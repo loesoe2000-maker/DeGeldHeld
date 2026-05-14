@@ -1,0 +1,13 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --brand: #059669;
+}
+
+html { color-scheme: light; }
+
+body { font-feature-settings: "ss01", "cv11"; }
+
+a { color: inherit; }
