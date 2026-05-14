@@ -1,0 +1,71 @@
+import { describe, it, expect } from "vitest";
+import {
+  NL_PROVIDERS,
+  findProvider,
+  listProvidersByCategory,
+  allCategories,
+} from "../lib/providers";
+
+describe("providers/registry", () => {
+  it("contains 17 providers (8+ telecom, 4+ energie, etc)", () => {
+    expect(NL_PROVIDERS.length).toBeGreaterThanOrEqual(14);
+  });
+
+  it("has at least 7 telecom providers", () => {
+    expect(listProvidersByCategory("TELECOM").length).toBeGreaterThanOrEqual(7);
+  });
+
+  it("has at least 4 energie providers", () => {
+    expect(listProvidersByCategory("ENERGIE").length).toBeGreaterThanOrEqual(4);
+  });
+
+  it("has all canonical names unique", () => {
+    const names = NL_PROVIDERS.map((p) => p.canonical.toLowerCase());
+    expect(new Set(names).size).toBe(names.length);
+  });
+
+  it("each provider has at least 1 alias", () => {
+    for (const p of NL_PROVIDERS) {
+      expect(p.aliases.length).toBeGreaterThanOrEqual(1);
+    }
+  });
+});
+
+describe("providers/findProvider", () => {
+  it("matches exact canonical name (case-insensitive)", () => {
+    expect(findProvider("T-Mobile")?.canonical).toBe("T-Mobile");
+    expect(findProvider("t-mobile")?.canonical).toBe("T-Mobile");
+  });
+
+  it("matches by alias", () => {
+    expect(findProvider("tmobile")?.canonical).toBe("T-Mobile");
+    expect(findProvider("nuon")?.canonical).toBe("Vattenfall");
+  });
+
+  it("matches embedded provider mention", () => {
+    expect(findProvider("KPN factuur mei")?.canonical).toBe("KPN");
+  });
+
+  it("returns null for unknown", () => {
+    expect(findProvider("unknown-provider")).toBeNull();
+  });
+
+  it("returns null for empty string", () => {
+    expect(findProvider("")).toBeNull();
+  });
+
+  it("identifies category", () => {
+    expect(findProvider("Eneco")?.category).toBe("ENERGIE");
+    expect(findProvider("Aegon")?.category).toBe("VERZEKERING");
+    expect(findProvider("ING")?.category).toBe("HYPOTHEEK");
+  });
+});
+
+describe("providers/allCategories", () => {
+  it("returns 6 categories", () => {
+    expect(allCategories().length).toBe(6);
+    expect(allCategories()).toContain("TELECOM");
+    expect(allCategories()).toContain("ENERGIE");
+    expect(allCategories()).toContain("OVERIG");
+  });
+});
