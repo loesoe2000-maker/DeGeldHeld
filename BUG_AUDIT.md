@@ -89,23 +89,40 @@ In dit document: alle bekende issues uit v1 codebase, plus fixes per fase.
 
 ## Status fixes per fase
 
-| Bug | Fase | Status |
-|---|---|---|
-| B1 form POST → JSON | F7 | TODO |
-| B2 JWT session.user.id | F1 | TODO |
-| B3 PDF support | F2 | TODO |
-| B4 filename preview | F1 | TODO |
-| B5 OCR retry | F2 | TODO |
-| B6 model cascade | F2 | TODO |
-| B7 negotiator validation | F4 | TODO |
-| B8 branded welcome | F6 | TODO |
-| B9 toast | F5 | TODO |
-| B10 skeletons | F5 | TODO |
-| B11 Vandebron | F2 | TODO |
-| B12 hero spinner | F5 | TODO |
-| B13 counter animation | F8 | TODO |
-| B14 stripe pages | F7 | TODO |
-| B15 follow-up labels | F6 | TODO |
+| Bug | Fase | Status | Bewijs |
+|---|---|---|---|
+| B1 form POST → JSON | F7 | ✅ FIXED | `components/PayButton.tsx` — client fetch + window.location.href, 5 tests |
+| B2 JWT session.user.id | F1 | ✅ FIXED | `lib/auth-callbacks.ts` — jwtCallback kopieert user.id, sessionCallback leest token.id|sub, 13 tests |
+| B3 PDF support | F2 | ✅ FIXED | `lib/ocr.ts` validateUploadedFile accepts pdf, extractBill skips Vision voor pdf, 3 tests |
+| B4 filename preview | F1 | ✅ FIXED | `components/BillUpload.tsx` — `selectedName` state + 'Geselecteerd:' regel |
+| B5 OCR retry | F1+F2 | ✅ FIXED | client-side 1× retry op 5xx (F1), server-side 90b→11b cascade (F2) |
+| B6 model cascade | F2 | ✅ FIXED | `lib/ocr.ts` VISION_MODELS [90b, 11b] + tryModel helper, 3 tests |
+| B7 negotiator validation | F4 | ✅ FIXED | `lib/negotiator.ts` isUsableEmail (>=5 subj, >=100 body, provider check), 8 tests |
+| B8 branded welcome | F6 | ✅ FIXED | `lib/email_templates.ts` welcomeBrandedHtml (groen header, footer, preview), 8 tests |
+| B9 toast | F5 | ✅ FIXED | `components/Toast.tsx` ToastProvider + 3 variants + auto-dismiss, 6 tests |
+| B10 skeletons | F5 | ✅ FIXED | `components/Skeleton.tsx` Skeleton + SavingsCardSkeleton + NegotiationListSkeleton + ComparisonSkeleton, 4 tests |
+| B11 Vandebron | F2 | ✅ FIXED | `lib/providers.ts` + Budget Energie ook toegevoegd, 5 tests |
+| B12 hero spinner | F1 | ✅ FIXED | BillUpload heeft `animate-spin` + progress label |
+| B13 counter animation | F8 | ✅ FIXED | `components/CounterUp.tsx` rAF ease-out cubic, used on /proof, 4 tests |
+| B14 stripe pages | F7 | ✅ FIXED | /pay/[id] success state met breakdown (bruto/fee/netto), refund notice |
+| B15 follow-up labels | F6 | ✅ FIXED | `lib/email_templates.ts` 'Ja gelukt'/'Niet gelukt'/'Nog wachten' (was 'Bespaard'/'Geen deal'/'Nog wachten'), 7 tests |
+
+**15/15 bugs gefixt.** 0 P0/P1 issues open.
+
+## F9 build + test bewijs
+
+```
+npm run build  →  ✓ Compiled successfully
+                  18 routes gegenereerd (8 static, 10 dynamic functions)
+                  /proof: 450 B, /pay/[id]: 1.34 kB, /onderhandel: 2.4 kB
+
+npm test       →  Test Files  34 passed (34)
+                  Tests       417 passed (417)
+                  Duration    ~3.5s
+```
+
+**Delta v1→v2**: +135 nieuwe tests (282 → 417), 11 nieuwe modules/components,
+0 breaking changes voor user-facing APIs.
 
 ---
 
