@@ -1,4 +1,5 @@
 import { Resend } from "resend";
+import { welcomeBrandedHtml } from "@/lib/email_templates";
 
 const apiKey = process.env.RESEND_API_KEY ?? "";
 const from = process.env.EMAIL_FROM ?? "DeGeldHeld <hallo@degeldheld.com>";
@@ -29,15 +30,8 @@ export async function sendEmail(opts: {
 }
 
 export function welcomeEmailHtml(email: string) {
-  return `<!doctype html>
-<html lang="nl"><body style="font-family:system-ui,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#0f172a">
-<h1 style="color:#047857">Welkom bij DeGeldHeld 👋</h1>
-<p>Hoi ${escapeHtml(email)},</p>
-<p>Je staat op de wachtlijst! Zodra we openen krijg je een uitnodiging om je
-eerste rekening te uploaden — wij onderhandelen voor je en je betaalt alleen
-15% van wat we besparen.</p>
-<p>Tot snel,<br/>Team DeGeldHeld</p>
-</body></html>`;
+  // Backwards-compat alias — delegates to branded template.
+  return welcomeBrandedHtml(email);
 }
 
 export function escapeHtml(s: string): string {

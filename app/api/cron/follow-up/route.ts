@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { sendEmail } from "@/lib/email";
-import { followUpHtml, followUpSubject } from "@/lib/follow_up_email";
+import { followUpBrandedHtml, followUpBrandedSubject } from "@/lib/email_templates";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -33,19 +33,16 @@ export async function GET(req: NextRequest) {
 
   let sent = 0;
   let failed = 0;
-  const appUrl = process.env.APP_URL ?? "https://degeldheld.com";
-
   for (const n of due) {
     try {
       await sendEmail({
         to: n.user.email,
-        subject: followUpSubject(n.bill.provider),
-        html: followUpHtml({
+        subject: followUpBrandedSubject(n.bill.provider),
+        html: followUpBrandedHtml({
           customerName: n.user.name ?? n.user.email,
           provider: n.bill.provider,
-          expectedSavingsCents: n.expectedSavingsCents ?? 0,
           negotiationId: n.id,
-          appUrl,
+          expectedSavingsCents: n.expectedSavingsCents ?? 0,
         }),
       });
       // Push next follow-up 7d into the future (max 2 tries handled at flow layer)
