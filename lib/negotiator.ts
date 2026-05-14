@@ -106,6 +106,29 @@ export function parseNegotiatorJson(raw: string): Partial<NegotiatorOutput> {
   }
 }
 
+/**
+ * Validate LLM output is bruikbaar voor user. Hard gates:
+ *  - subject >= 5 chars (anders meaningless)
+ *  - body >= 100 chars (anders te kort voor onderhandel)
+ *  - body bevat naam van de provider (anchored relevance)
+ */
+export function isUsableEmail(opts: {
+  subject: string;
+  body: string;
+  provider: string;
+}): { ok: true } | { ok: false; reason: string } {
+  if (!opts.subject || opts.subject.trim().length < 5) {
+    return { ok: false, reason: "subject too short" };
+  }
+  if (!opts.body || opts.body.trim().length < 100) {
+    return { ok: false, reason: "body too short (<100 chars)" };
+  }
+  if (!opts.body.toLowerCase().includes(opts.provider.toLowerCase())) {
+    return { ok: false, reason: "body missing provider name" };
+  }
+  return { ok: true };
+}
+
 export async function generateEmail(input: NegotiatorInput): Promise<NegotiatorOutput> {
   const strategy = chooseStrategy(input);
   const fallback: NegotiatorOutput = {
@@ -138,6 +161,16 @@ export async function generateEmail(input: NegotiatorInput): Promise<NegotiatorO
   }
   const parsed = parseNegotiatorJson(raw);
   if (!parsed.subject || !parsed.body) return fallback;
+
+  const validation = isUsableEmail({
+    subject: parsed.subject,
+    body: parsed.body,
+    provider: input.provider,
+  });
+  if (!validation.ok) {
+    return { ...fallback, reasoning: `LLM output rejected: ${validation.reason}` };
+  }
+
   return {
     subject: parsed.subject,
     body: parsed.body,
