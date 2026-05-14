@@ -13,7 +13,7 @@ function LoginForm() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
-    await signIn("email", { email, callbackUrl: "/dashboard" });
+    await signIn("resend", { email, callbackUrl: "/dashboard" });
     setLoading(false);
   }
 
