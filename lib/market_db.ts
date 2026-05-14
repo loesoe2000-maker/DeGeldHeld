@@ -37,6 +37,8 @@ export const MARKET_PLANS: SeedPlan[] = [
   { provider: "Vattenfall", category: "ENERGIE", name: "Vast 3 jaar groene stroom", priceCents: 17500, features: "3jr vast tarief" },
   { provider: "Essent", category: "ENERGIE", name: "Variabel groen", priceCents: 16000, features: "Variabel groen" },
   { provider: "Greenchoice", category: "ENERGIE", name: "Vast 1 jaar 100% groen", priceCents: 15800, features: "1jr vast 100% groen" },
+  { provider: "Vandebron", category: "ENERGIE", name: "Direct van boer 1 jaar", priceCents: 16200, features: "Direct van NL boer, 1jr vast" },
+  { provider: "Budget Energie", category: "ENERGIE", name: "Variabel scherp", priceCents: 14900, features: "Goedkoopste variabel" },
 
   // --- VERZEKERING (auto WA basis) ---
   { provider: "Centraal Beheer", category: "VERZEKERING", name: "Auto WA basis", priceCents: 1500, features: "WA basis" },

@@ -1,6 +1,11 @@
 /**
- * Bill OCR via Groq Vision (llama-3.2-90b-vision).
- * Falls back to manual entry if extraction fails or confidence < 0.6.
+ * Bill OCR via Groq Vision met model cascade + retry.
+ *
+ *   Eerste poging:  llama-3.2-90b-vision-preview
+ *   Fallback:       llama-3.2-11b-vision-preview
+ *   Bij beide fail / lage confidence: needsManual = true
+ *
+ * PDF wordt niet door Groq Vision ondersteund — direct needsManual.
  */
 
 import Groq from "groq-sdk";
@@ -17,6 +22,8 @@ export type OcrResult = {
   confidence: number; // 0..1
   rawText: string;
   imageHash: string;
+  modelUsed?: string;
+  attempts?: number;
   cached?: boolean;
 };
 
@@ -25,8 +32,13 @@ Extracteer alleen: provider naam, totaal maand-bedrag in euro, pakket-naam, peri
 Antwoord ALLEEN in JSON met velden: provider, amount_eur (number), plan, period, confidence (0-1).
 Als iets niet leesbaar is, gebruik null. Geen uitleg, geen markdown.`;
 
+export const VISION_MODELS = [
+  "llama-3.2-90b-vision-preview",
+  "llama-3.2-11b-vision-preview",
+];
+
 const apiKey = process.env.GROQ_API_KEY ?? "";
-const visionModel = process.env.GROQ_VISION_MODEL ?? "llama-3.2-90b-vision-preview";
+const visionModelOverride = process.env.GROQ_VISION_MODEL;
 
 let _client: Groq | null = null;
 function client(): Groq {
@@ -39,7 +51,6 @@ export function hashImage(buf: Uint8Array | Buffer): string {
 }
 
 export function extractEurFromText(s: string): number | null {
-  // Matches "€ 42,50", "42.50", "EUR 42,50"
   const m = /(?:€|EUR)?\s*([0-9]{1,4}(?:[.,][0-9]{2}))/i.exec(s);
   if (!m) return null;
   const num = Number(m[1].replace(",", "."));
@@ -49,7 +60,6 @@ export function extractEurFromText(s: string): number | null {
 
 export function parseOcrJson(raw: string): Partial<OcrResult> {
   try {
-    // strip markdown fence if any
     const cleaned = raw.replace(/^```(?:json)?\n?/, "").replace(/```\s*$/, "").trim();
     const obj = JSON.parse(cleaned) as Record<string, unknown>;
     const provider = typeof obj.provider === "string" ? obj.provider : null;
@@ -69,30 +79,13 @@ export function parseOcrJson(raw: string): Partial<OcrResult> {
   }
 }
 
-export async function extractBill(imageBuf: Buffer, mimeType: string): Promise<OcrResult> {
-  const imageHash = hashImage(imageBuf);
-  const empty: OcrResult = {
-    ok: false,
-    provider: null,
-    category: null,
-    amountCents: null,
-    plan: null,
-    period: null,
-    confidence: 0,
-    rawText: "",
-    imageHash,
-  };
-
-  if (!apiKey || apiKey === "gsk_test_dummy") {
-    return { ...empty, ok: false, rawText: "OCR_SKIPPED_NO_API_KEY" };
-  }
-
-  const dataUrl = `data:${mimeType};base64,${imageBuf.toString("base64")}`;
-
-  let raw = "";
+async function tryModel(
+  model: string,
+  dataUrl: string,
+): Promise<{ raw: string; err?: Error }> {
   try {
     const resp = await client().chat.completions.create({
-      model: visionModel,
+      model,
       messages: [
         {
           role: "user",
@@ -105,24 +98,73 @@ export async function extractBill(imageBuf: Buffer, mimeType: string): Promise<O
       max_tokens: 400,
       temperature: 0.1,
     });
-    raw = resp.choices[0]?.message?.content ?? "";
+    return { raw: resp.choices[0]?.message?.content ?? "" };
   } catch (e) {
-    return { ...empty, rawText: `OCR_ERROR: ${(e as Error).message}` };
+    return { raw: "", err: e as Error };
+  }
+}
+
+export async function extractBill(imageBuf: Buffer, mimeType: string): Promise<OcrResult> {
+  const imageHash = hashImage(imageBuf);
+  const empty: OcrResult = {
+    ok: false,
+    provider: null,
+    category: null,
+    amountCents: null,
+    plan: null,
+    period: null,
+    confidence: 0,
+    rawText: "",
+    imageHash,
+    attempts: 0,
+  };
+
+  // PDF: Groq Vision accepts only images — skip directly to manual entry.
+  if (mimeType.toLowerCase() === "application/pdf") {
+    return { ...empty, rawText: "PDF_SKIPPED_VISION_UNSUPPORTED" };
   }
 
-  const parsed = parseOcrJson(raw);
-  const matched = parsed.provider ? findProvider(parsed.provider) : null;
-  const ok = parsed.confidence != null && parsed.confidence >= 0.6 && parsed.amountCents != null;
+  if (!apiKey || apiKey === "gsk_test_dummy") {
+    return { ...empty, rawText: "OCR_SKIPPED_NO_API_KEY" };
+  }
+
+  const dataUrl = `data:${mimeType};base64,${imageBuf.toString("base64")}`;
+  const models = visionModelOverride ? [visionModelOverride] : VISION_MODELS;
+  let lastErr: Error | undefined;
+  let attempts = 0;
+
+  for (const model of models) {
+    attempts += 1;
+    const { raw, err } = await tryModel(model, dataUrl);
+    if (err) {
+      lastErr = err;
+      continue;
+    }
+    const parsed = parseOcrJson(raw);
+    if (parsed.confidence != null && parsed.confidence >= 0.6 && parsed.amountCents != null) {
+      const matched = parsed.provider ? findProvider(parsed.provider) : null;
+      return {
+        ok: true,
+        provider: matched?.canonical ?? parsed.provider ?? null,
+        category: matched?.category ?? null,
+        amountCents: parsed.amountCents,
+        plan: parsed.plan ?? null,
+        period: parsed.period ?? null,
+        confidence: parsed.confidence,
+        rawText: raw,
+        imageHash,
+        modelUsed: model,
+        attempts,
+      };
+    }
+    // Low confidence on this model — try next.
+    lastErr = undefined;
+  }
+
   return {
-    ok,
-    provider: matched?.canonical ?? parsed.provider ?? null,
-    category: matched?.category ?? null,
-    amountCents: parsed.amountCents ?? null,
-    plan: parsed.plan ?? null,
-    period: parsed.period ?? null,
-    confidence: parsed.confidence ?? 0,
-    rawText: raw,
-    imageHash,
+    ...empty,
+    attempts,
+    rawText: lastErr ? `OCR_ERROR_ALL_MODELS: ${lastErr.message}` : "OCR_LOW_CONFIDENCE_ALL_MODELS",
   };
 }
 
@@ -133,9 +175,16 @@ export function validateUploadedFile(opts: {
   const MAX = 10 * 1024 * 1024;
   if (opts.size > MAX) return { ok: false, error: "Bestand groter dan 10 MB" };
   if (opts.size <= 0) return { ok: false, error: "Leeg bestand" };
-  const allowed = ["image/jpeg", "image/png", "image/webp", "image/heic"];
+  const allowed = [
+    "image/jpeg",
+    "image/jpg",
+    "image/png",
+    "image/webp",
+    "image/heic",
+    "application/pdf",
+  ];
   if (!allowed.includes(opts.type.toLowerCase())) {
-    return { ok: false, error: "Alleen JPG/PNG/WebP/HEIC toegestaan" };
+    return { ok: false, error: "Alleen JPG/PNG/WebP/HEIC/PDF toegestaan" };
   }
   return { ok: true };
 }

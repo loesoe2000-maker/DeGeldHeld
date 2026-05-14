@@ -26,6 +26,8 @@ export const NL_PROVIDERS: ProviderRecord[] = [
   { canonical: "Vattenfall", category: "ENERGIE", aliases: ["vattenfall", "nuon"] },
   { canonical: "Essent", category: "ENERGIE", aliases: ["essent"] },
   { canonical: "Greenchoice", category: "ENERGIE", aliases: ["greenchoice", "green choice"] },
+  { canonical: "Vandebron", category: "ENERGIE", aliases: ["vandebron", "van de bron"] },
+  { canonical: "Budget Energie", category: "ENERGIE", aliases: ["budget energie", "budgetenergie"] },
 
   // --- VERZEKERING ---
   { canonical: "Centraal Beheer", category: "VERZEKERING", aliases: ["centraal beheer", "centraalbeheer"] },

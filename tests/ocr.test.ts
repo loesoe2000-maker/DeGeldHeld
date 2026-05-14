@@ -82,8 +82,13 @@ describe("ocr/validateUploadedFile", () => {
     const r = validateUploadedFile({ size: 0, type: "image/jpeg" });
     expect(r.ok).toBe(false);
   });
-  it("rejects non-image types", () => {
+  it("accepts pdf", () => {
     const r = validateUploadedFile({ size: 500, type: "application/pdf" });
+    expect(r.ok).toBe(true);
+  });
+
+  it("rejects non-image non-pdf types", () => {
+    const r = validateUploadedFile({ size: 500, type: "video/mp4" });
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.error).toMatch(/JPG/);
   });
