@@ -1,7 +1,8 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
-import { formatEurCents } from "@/lib/format";
+import { formatEurCents, formatPercent } from "@/lib/format";
+import PayButton from "@/components/PayButton";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -30,6 +31,8 @@ export default async function PayPage({
   const isCancelled = status === "cancelled";
   const fee = negotiation.payment?.amountCents ?? 0;
   const savings = negotiation.actualSavingsCents ?? 0;
+  const netUser = Math.max(savings - fee, 0);
+  const feePct = savings > 0 ? fee / savings : 0;
 
   if (isPaid) {
     return (
@@ -39,9 +42,24 @@ export default async function PayPage({
         </div>
         <h1 className="mt-6 text-3xl font-bold text-brand-700">Bedankt!</h1>
         <p className="mt-3 text-slate-600">
-          Je betaling van {formatEurCents(fee)} is verwerkt. Je hebt {formatEurCents(savings)} bespaard
-          op {negotiation.bill.provider}.
+          Je betaling van {formatEurCents(fee)} is verwerkt. Je hebt
+          {" "}
+          <strong>{formatEurCents(savings)}</strong> bespaard op {negotiation.bill.provider}.
         </p>
+        <div className="mt-8 rounded-xl bg-brand-50 p-6 text-left">
+          <div className="flex items-center justify-between border-b border-brand-200 pb-2">
+            <span className="text-sm text-slate-600">Jouw bruto besparing</span>
+            <span className="font-medium">{formatEurCents(savings)}</span>
+          </div>
+          <div className="flex items-center justify-between border-b border-brand-200 py-2">
+            <span className="text-sm text-slate-600">DeGeldHeld fee (15%)</span>
+            <span className="font-medium">−{formatEurCents(fee)}</span>
+          </div>
+          <div className="flex items-center justify-between pt-2">
+            <span className="text-sm font-semibold">Netto in jouw zak</span>
+            <span className="text-xl font-bold text-brand-700">{formatEurCents(netUser)}</span>
+          </div>
+        </div>
         <Link
           href="/dashboard"
           className="mt-8 inline-block rounded-lg bg-brand-600 px-6 py-3 font-semibold text-white hover:bg-brand-700"
@@ -55,14 +73,30 @@ export default async function PayPage({
   return (
     <main className="mx-auto max-w-xl px-6 py-12">
       <h1 className="text-3xl font-bold text-slate-900">Voltooi je betaling</h1>
+      <p className="mt-2 text-slate-600">
+        Een transparante breakdown — je betaalt alleen wanneer er bespaard is.
+      </p>
+
       <div className="mt-6 rounded-xl border border-slate-200 bg-white p-6">
         <div className="text-sm text-slate-500">Provider</div>
         <div className="text-lg font-semibold">{negotiation.bill.provider}</div>
+
         <hr className="my-4" />
-        <div className="text-sm text-slate-500">Jouw besparing dit jaar</div>
-        <div className="text-2xl font-bold text-brand-700">{formatEurCents(savings)}</div>
-        <div className="mt-4 text-sm text-slate-500">Onze success-fee (15%)</div>
-        <div className="text-xl font-bold">{formatEurCents(fee)}</div>
+
+        <dl className="space-y-3 text-sm">
+          <div className="flex items-center justify-between">
+            <dt className="text-slate-600">Jaarlijkse besparing</dt>
+            <dd className="font-bold text-brand-700">{formatEurCents(savings)}</dd>
+          </div>
+          <div className="flex items-center justify-between">
+            <dt className="text-slate-600">DeGeldHeld success-fee (15%)</dt>
+            <dd className="font-medium">−{formatEurCents(fee)}</dd>
+          </div>
+          <div className="flex items-center justify-between border-t border-slate-200 pt-3 text-base">
+            <dt className="font-semibold">Netto in jouw zak</dt>
+            <dd className="text-xl font-bold text-brand-700">{formatEurCents(netUser)}</dd>
+          </div>
+        </dl>
       </div>
 
       {isCancelled && (
@@ -71,15 +105,13 @@ export default async function PayPage({
         </p>
       )}
 
-      <form action="/api/checkout" method="POST" className="mt-6">
-        <input type="hidden" name="negotiationId" value={negotiation.id} />
-        <button
-          type="submit"
-          className="w-full rounded-lg bg-brand-600 px-6 py-3 font-semibold text-white hover:bg-brand-700"
-        >
-          Betaal {formatEurCents(fee)} via iDEAL of card
-        </button>
-      </form>
+      <div className="mt-6">
+        <PayButton negotiationId={negotiation.id} amountCents={fee} />
+      </div>
+
+      <p className="mt-4 text-center text-xs text-slate-500">
+        Betaling via Stripe · iDEAL en credit card · Niet tevreden? Vraag refund binnen 30 dagen ({formatPercent(feePct)} fee).
+      </p>
     </main>
   );
 }
