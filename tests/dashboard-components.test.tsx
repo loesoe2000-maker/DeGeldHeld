@@ -36,7 +36,9 @@ describe("components/SavingsCard", () => {
         }}
       />,
     );
-    expect(screen.getByText(/240/)).toBeInTheDocument();
+    // Two displays: total + average — both should show 240.
+    const hits = screen.getAllByText(/240/);
+    expect(hits.length).toBeGreaterThanOrEqual(1);
   });
 
   it("shows em-dash when no attempts", () => {

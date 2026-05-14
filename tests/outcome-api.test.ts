@@ -1,9 +1,21 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const mockUpdate = vi.fn();
+const mockFind = vi.fn();
 vi.mock("../lib/db", () => ({
   prisma: {
-    negotiation: { update: (...a: unknown[]) => mockUpdate(...a) },
+    negotiation: {
+      update: (...a: unknown[]) => mockUpdate(...a),
+      findUnique: (...a: unknown[]) => mockFind(...a),
+    },
+  },
+}));
+vi.mock("@/lib/db", () => ({
+  prisma: {
+    negotiation: {
+      update: (...a: unknown[]) => mockUpdate(...a),
+      findUnique: (...a: unknown[]) => mockFind(...a),
+    },
   },
 }));
 
@@ -18,7 +30,12 @@ function req(body: unknown): Request {
 }
 
 describe("api/negotiations/outcome POST", () => {
-  beforeEach(() => mockUpdate.mockReset());
+  beforeEach(() => {
+    mockUpdate.mockReset();
+    mockFind.mockReset();
+    // Default: findUnique returns a found row so update() is reachable.
+    mockFind.mockResolvedValue({ id: "n1" });
+  });
 
   it("400 on invalid JSON", async () => {
     const r = await POST(req("not-json") as never);
@@ -65,9 +82,10 @@ describe("api/negotiations/outcome POST", () => {
   });
 
   it("404 when negotiation not found", async () => {
-    mockUpdate.mockRejectedValue(new Error("not found"));
+    mockFind.mockResolvedValue(null);
     const r = await POST(req({ negotiationId: "missing", outcome: "SUCCESS_SAVED" }) as never);
     expect(r.status).toBe(404);
+    expect(mockUpdate).not.toHaveBeenCalled();
   });
 
   it("does not set actualSavings when outcome is failure", async () => {

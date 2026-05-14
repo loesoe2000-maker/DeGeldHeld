@@ -77,7 +77,8 @@ describe("llm_cache/RateLimiter", () => {
 
   it("blocks at per-day cap", () => {
     const now = 4_000_000;
-    for (let i = 0; i < 100; i++) groqLimiter.record(now - i * 1000); // spread over time
+    // Spread 100 events over ~24 hours so the minute window stays under the cap.
+    for (let i = 0; i < 100; i++) groqLimiter.record(now - (i + 1) * 70_000);
     const r = groqLimiter.check(now);
     expect(r.ok).toBe(false);
     expect(r.reason).toMatch(/day/);

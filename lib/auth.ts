@@ -2,6 +2,14 @@ import NextAuth, { type NextAuthConfig, type Session } from "next-auth";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import Resend from "next-auth/providers/resend";
 import { prisma } from "@/lib/db";
+import {
+  jwtCallback,
+  sessionCallback,
+  authorizedCallback,
+  PROTECTED_PATHS,
+} from "@/lib/auth-callbacks";
+
+export { PROTECTED_PATHS };
 
 const apiKey = process.env.RESEND_API_KEY ?? "";
 const from = process.env.EMAIL_FROM ?? "DeGeldHeld <hallo@degeldheld.com>";
@@ -17,19 +25,9 @@ export const authConfig: NextAuthConfig = {
     }),
   ],
   callbacks: {
-    session({ session, user }) {
-      if (session.user && user?.id) {
-        (session.user as { id?: string }).id = user.id;
-      }
-      return session;
-    },
-    authorized({ auth, request }) {
-      const protectedPaths = ["/dashboard", "/onderhandel", "/pay"];
-      const path = request.nextUrl.pathname;
-      const isProtected = protectedPaths.some((p) => path.startsWith(p));
-      if (!isProtected) return true;
-      return !!auth?.user;
-    },
+    jwt: jwtCallback as never,
+    session: sessionCallback as never,
+    authorized: authorizedCallback as never,
   },
   trustHost: true,
 };

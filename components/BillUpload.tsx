@@ -18,42 +18,75 @@ type UploadResp = {
   };
 };
 
+const MAX_SIZE_BYTES = 10 * 1024 * 1024;
+const ALLOWED_MIME = ["image/jpeg", "image/jpg", "image/png", "image/webp", "image/heic", "application/pdf"];
+
+export function validateClientFile(file: File): { ok: true } | { ok: false; error: string } {
+  if (file.size <= 0) return { ok: false, error: "Bestand is leeg" };
+  if (file.size > MAX_SIZE_BYTES) {
+    const mb = (file.size / 1024 / 1024).toFixed(1);
+    return { ok: false, error: `Bestand is ${mb} MB — maximum is 10 MB` };
+  }
+  const mime = file.type.toLowerCase();
+  if (!ALLOWED_MIME.includes(mime)) {
+    return { ok: false, error: "Alleen JPG, PNG, WebP, HEIC of PDF" };
+  }
+  return { ok: true };
+}
+
 export default function BillUpload({ onUploaded }: { onUploaded?: (r: UploadResp) => void }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [selectedName, setSelectedName] = useState("");
+  const [progress, setProgress] = useState<"validating" | "uploading" | "analysing" | "">("");
 
   const submit = useCallback(
     async (file: File) => {
       setError("");
-      if (file.size > 10 * 1024 * 1024) {
-        setError("Bestand mag max 10 MB zijn");
-        return;
-      }
-      if (!file.type.startsWith("image/")) {
-        setError("Alleen afbeeldingen (JPG/PNG/WebP/HEIC)");
+      setSelectedName(file.name);
+      setProgress("validating");
+      const v = validateClientFile(file);
+      if (!v.ok) {
+        setError(v.error);
+        setProgress("");
         return;
       }
       setBusy(true);
+      setProgress("uploading");
       try {
         const fd = new FormData();
         fd.append("file", file);
-        const res = await fetch("/api/bills/upload", { method: "POST", body: fd });
+        let res = await fetch("/api/bills/upload", { method: "POST", body: fd });
+        // 1× retry on transient 5xx
+        if (res.status >= 500 && res.status < 600) {
+          await new Promise((r) => setTimeout(r, 800));
+          setProgress("analysing");
+          res = await fetch("/api/bills/upload", { method: "POST", body: fd });
+        }
         const data: UploadResp = await res.json();
         if (!res.ok) {
-          setError(data.error ?? "Upload mislukt");
+          setError(data.error ?? "Upload mislukt — probeer opnieuw");
         } else {
           onUploaded?.(data);
         }
       } catch {
-        setError("Netwerkfout — probeer opnieuw");
+        setError("Netwerkfout — controleer je verbinding en probeer opnieuw");
       } finally {
         setBusy(false);
+        setProgress("");
       }
     },
     [onUploaded],
   );
+
+  const progressLabel = {
+    validating: "Bestand controleren…",
+    uploading: "Uploaden…",
+    analysing: "Rekening uitlezen…",
+    "": "",
+  }[progress];
 
   return (
     <div>
@@ -82,12 +115,12 @@ export default function BillUpload({ onUploaded }: { onUploaded?: (r: UploadResp
         <div className="mt-4 text-lg font-semibold text-slate-900">
           Sleep je rekening hierheen of klik om te kiezen
         </div>
-        <div className="mt-1 text-sm text-slate-500">JPG, PNG, WebP, HEIC · max 10 MB</div>
+        <div className="mt-1 text-sm text-slate-500">JPG, PNG, WebP, HEIC of PDF · max 10 MB</div>
         <input
           ref={inputRef}
           id="bill-file"
           type="file"
-          accept="image/*"
+          accept="image/*,application/pdf,.heic"
           className="sr-only"
           onChange={(e) => {
             const f = e.target.files?.[0];
@@ -96,9 +129,16 @@ export default function BillUpload({ onUploaded }: { onUploaded?: (r: UploadResp
         />
       </label>
 
+      {selectedName && !error && (
+        <p className="mt-3 text-center text-sm text-slate-600">
+          Geselecteerd: <span className="font-medium">{selectedName}</span>
+        </p>
+      )}
+
       {busy && (
-        <p role="status" className="mt-4 text-center text-sm text-slate-600">
-          Bezig met uploaden en analyseren…
+        <p role="status" className="mt-4 flex items-center justify-center gap-2 text-sm text-slate-600">
+          <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-brand-300 border-t-brand-600" aria-hidden />
+          {progressLabel}
         </p>
       )}
       {error && (

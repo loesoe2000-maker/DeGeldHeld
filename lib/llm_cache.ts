@@ -12,7 +12,7 @@ class TtlCache<T> {
   get(key: string): T | null {
     const e = this.store.get(key);
     if (!e) return null;
-    if (e.expiresAt < Date.now()) {
+    if (e.expiresAt <= Date.now()) {
       this.store.delete(key);
       return null;
     }

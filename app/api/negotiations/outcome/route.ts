@@ -27,17 +27,18 @@ export async function POST(req: NextRequest) {
   const { negotiationId, outcome, actualSavingsCents } = parsed.data;
   const { state, closedAt } = outcomeToState(outcome as OutcomeChoice);
 
-  try {
-    const updated = await prisma.negotiation.update({
-      where: { id: negotiationId },
-      data: {
-        state,
-        closedAt,
-        actualSavingsCents: outcome === "SUCCESS_SAVED" ? actualSavingsCents ?? null : null,
-      },
-    });
-    return NextResponse.json({ ok: true, state: updated.state });
-  } catch {
+  const existing = await prisma.negotiation.findUnique({ where: { id: negotiationId } });
+  if (!existing) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
+
+  const updated = await prisma.negotiation.update({
+    where: { id: negotiationId },
+    data: {
+      state,
+      closedAt,
+      actualSavingsCents: outcome === "SUCCESS_SAVED" ? actualSavingsCents ?? null : null,
+    },
+  });
+  return NextResponse.json({ ok: true, state: updated.state });
 }
