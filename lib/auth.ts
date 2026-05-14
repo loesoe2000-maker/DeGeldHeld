@@ -8,7 +8,7 @@ const from = process.env.EMAIL_FROM ?? "DeGeldHeld <hallo@degeldheld.com>";
 
 export const authConfig: NextAuthConfig = {
   adapter: PrismaAdapter(prisma),
-  session: { strategy: "database", maxAge: 60 * 60 * 24 * 30 },
+  session: { strategy: "jwt", maxAge: 60 * 60 * 24 * 30 },
   pages: { signIn: "/login", verifyRequest: "/login?check=email" },
   providers: [
     Resend({
