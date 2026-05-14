@@ -11,7 +11,7 @@ const MIN_BILL_CENTS = 500; // €5,00 minimum
 const apiKey = process.env.STRIPE_SECRET_KEY ?? "";
 let _stripe: Stripe | null = null;
 function client(): Stripe {
-  if (!_stripe) _stripe = new Stripe(apiKey, { apiVersion: "2024-11-20.acacia" });
+  if (!_stripe) _stripe = new Stripe(apiKey, { apiVersion: "2025-02-24.acacia" });
   return _stripe;
 }
 
