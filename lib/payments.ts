@@ -91,7 +91,7 @@ export function verifyAndParseWebhook(
   if (!secret) return { ok: false, error: "no webhook secret configured" };
   try {
     const evt = client().webhooks.constructEvent(payload, signature, secret);
-    const data = evt.data.object as Record<string, unknown>;
+    const data = evt.data.object as unknown as Record<string, unknown>;
     return {
       ok: true,
       event: {
