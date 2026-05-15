@@ -18,29 +18,50 @@ export type Category =
 
 export type Region = "NL" | "EU" | "GLOBAL";
 
+/**
+ * NL mobiele netwerk-eigenaars: KPN, Vodafone, Odido (de oude T-Mobile NL).
+ * MVNOs draaien op één van deze 3. null = eigen netwerk (geen MVNO).
+ * Alleen relevant voor TELECOM (mobiel) — andere categorieën: undefined.
+ */
+export type MobileNetwork = "KPN" | "Vodafone" | "Odido" | null;
+
 export type ProviderRecord = {
   canonical: string;
   category: Category;
   region: Region;
   aliases: string[];
+  /** Voor NL mobiele providers: onderliggend netwerk. null = eigen netwerk.
+   *  undefined voor non-telecom of internet/TV providers. */
+  network?: MobileNetwork;
 };
 
 export const NL_PROVIDERS: ProviderRecord[] = [
   // ===== TELECOM NL — mobiel =====
-  { canonical: "T-Mobile", category: "TELECOM", region: "NL", aliases: ["t-mobile", "tmobile", "t mobile"] },
-  { canonical: "KPN", category: "TELECOM", region: "NL", aliases: ["kpn", "k.p.n."] },
-  { canonical: "Vodafone", category: "TELECOM", region: "NL", aliases: ["vodafone"] },
-  { canonical: "Tele2", category: "TELECOM", region: "NL", aliases: ["tele2", "tele 2"] },
-  { canonical: "Odido", category: "TELECOM", region: "NL", aliases: ["odido"] },
-  { canonical: "Youfone", category: "TELECOM", region: "NL", aliases: ["youfone", "you fone"] },
-  { canonical: "Ben", category: "TELECOM", region: "NL", aliases: ["ben mobiel", "ben.nl", "ben telecom"] },
-  { canonical: "Hollandsnieuwe", category: "TELECOM", region: "NL", aliases: ["hollandsnieuwe", "hollands nieuwe"] },
-  { canonical: "Simpel", category: "TELECOM", region: "NL", aliases: ["simpel.nl", "simpel mobiel"] },
-  { canonical: "Lebara", category: "TELECOM", region: "NL", aliases: ["lebara"] },
-  { canonical: "Lyca Mobile", category: "TELECOM", region: "NL", aliases: ["lyca", "lycamobile", "lyca mobile"] },
-  { canonical: "Simyo", category: "TELECOM", region: "NL", aliases: ["simyo"] },
-  { canonical: "Budget Mobiel", category: "TELECOM", region: "NL", aliases: ["budget mobiel", "budgetmobiel"] },
-  { canonical: "Robin Mobile", category: "TELECOM", region: "NL", aliases: ["robin mobile", "robinmobile"] },
+  // T-Mobile NL = Odido na rebrand 2023; we houden T-Mobile als legacy entry,
+  // network = Odido zodat oude facturen correct gelabeld worden.
+  { canonical: "T-Mobile", category: "TELECOM", region: "NL", aliases: ["t-mobile", "tmobile", "t mobile"], network: "Odido" },
+  { canonical: "KPN", category: "TELECOM", region: "NL", aliases: ["kpn", "k.p.n."], network: null },
+  { canonical: "Vodafone", category: "TELECOM", region: "NL", aliases: ["vodafone"], network: null },
+  // Tele2: gefuseerd met T-Mobile/Odido sinds 2019 → draait nu op Odido-netwerk.
+  { canonical: "Tele2", category: "TELECOM", region: "NL", aliases: ["tele2", "tele 2"], network: "Odido" },
+  { canonical: "Odido", category: "TELECOM", region: "NL", aliases: ["odido"], network: null },
+  // MVNOs op KPN-netwerk
+  { canonical: "Youfone", category: "TELECOM", region: "NL", aliases: ["youfone", "you fone"], network: "KPN" },
+  // Ben Mobiel: dochtermerk van Odido — draait op Odido-netwerk.
+  { canonical: "Ben", category: "TELECOM", region: "NL", aliases: ["ben mobiel", "ben.nl", "ben telecom"], network: "Odido" },
+  // Hollandsnieuwe: KPN-merk → KPN-netwerk.
+  { canonical: "Hollandsnieuwe", category: "TELECOM", region: "NL", aliases: ["hollandsnieuwe", "hollands nieuwe"], network: "KPN" },
+  // Simpel: Odido-merk → Odido-netwerk.
+  { canonical: "Simpel", category: "TELECOM", region: "NL", aliases: ["simpel.nl", "simpel mobiel"], network: "Odido" },
+  { canonical: "Lebara", category: "TELECOM", region: "NL", aliases: ["lebara"], network: "KPN" },
+  { canonical: "Lyca Mobile", category: "TELECOM", region: "NL", aliases: ["lyca", "lycamobile", "lyca mobile"], network: "KPN" },
+  { canonical: "Simyo", category: "TELECOM", region: "NL", aliases: ["simyo"], network: "KPN" },
+  { canonical: "Budget Mobiel", category: "TELECOM", region: "NL", aliases: ["budget mobiel", "budgetmobiel"], network: "KPN" },
+  { canonical: "Robin Mobile", category: "TELECOM", region: "NL", aliases: ["robin mobile", "robinmobile"], network: "KPN" },
+  // Aldi Talk NL: KPN-MVNO (verkocht via Aldi-supermarkten).
+  { canonical: "Aldi Talk", category: "TELECOM", region: "NL", aliases: ["aldi talk", "alditalk"], network: "KPN" },
+  // Telfort: legacy KPN-merk (verkoop gestaakt 2020, bestaande klanten lopen door).
+  { canonical: "Telfort", category: "TELECOM", region: "NL", aliases: ["telfort"], network: "KPN" },
 
   // ===== TELECOM NL — internet/TV =====
   { canonical: "Ziggo", category: "TELECOM", region: "NL", aliases: ["ziggo"] },
@@ -254,4 +275,26 @@ export function allCategories(): Category[] {
 
 export function totalProviderCount(): number {
   return NL_PROVIDERS.length;
+}
+
+/**
+ * Voor een NL mobiele provider: retourneert het onderliggende netwerk
+ * ("KPN" | "Vodafone" | "Odido") of null als het de provider zelf is.
+ * Undefined als de provider geen NL telecom-mobiel is (internet/TV, energie etc).
+ */
+export function getProviderNetwork(canonical: string): MobileNetwork | undefined {
+  const p = NL_PROVIDERS.find((x) => x.canonical.toLowerCase() === canonical.toLowerCase());
+  if (!p || p.category !== "TELECOM" || p.region !== "NL") return undefined;
+  return p.network ?? null;
+}
+
+/**
+ * Korte label voor UI: "eigen netwerk", "MVNO op KPN-netwerk", etc.
+ * Returns null voor non-mobile providers (geen label tonen).
+ */
+export function describeNetwork(canonical: string): string | null {
+  const network = getProviderNetwork(canonical);
+  if (network === undefined) return null;
+  if (network === null) return "eigen netwerk";
+  return `MVNO op ${network}-netwerk`;
 }

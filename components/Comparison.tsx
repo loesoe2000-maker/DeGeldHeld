@@ -1,5 +1,6 @@
 import { formatEurCents, formatPercent } from "@/lib/format";
 import type { ComparisonResult } from "@/lib/comparison";
+import { describeNetwork } from "@/lib/providers";
 
 function ConfidenceBadge({ pct }: { pct: number }) {
   const label = pct >= 75 ? "Hoog" : pct >= 50 ? "Gemiddeld" : "Laag";
@@ -131,6 +132,18 @@ export default function Comparison({ result }: { result: ComparisonResult }) {
                       </div>
                       <div className="text-sm text-slate-600">{alt.plan.name}</div>
                       <div className="mt-0.5 text-xs text-slate-500">{alt.plan.features}</div>
+                      {(() => {
+                        const networkLabel = describeNetwork(alt.plan.provider);
+                        if (!networkLabel) return null;
+                        return (
+                          <div
+                            data-testid="network-label"
+                            className="mt-1 text-xs text-slate-500"
+                          >
+                            <span aria-hidden>·</span> {networkLabel}
+                          </div>
+                        );
+                      })()}
                     </div>
                     <div className="text-right">
                       <div className="text-xl font-bold text-brand-700">
