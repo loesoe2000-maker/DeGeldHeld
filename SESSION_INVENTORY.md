@@ -1,4 +1,35 @@
-# SESSION_INVENTORY.md — DeGeldHeld MVP build
+# SESSION_INVENTORY.md — DeGeldHeld v3 build
+
+**Datum:** 2026-05-15 (v3 — providers + analyse + UX)
+**Sessie:** /goal "DeGeldHeld v3 — providers + analyse + UX in 10 fases"
+**Model:** Claude Opus 4.7 (1M context)
+**Owner:** Bart "bdb"
+
+---
+
+## v3 sessie samenvatting (2026-05-15)
+
+| Fase | Naam | Status | Tests | Commit |
+|---|---|---|---:|---|
+| F0 | v3 baseline audit | ✓ | (417 baseline) | 3bbf4ca |
+| F1 | PROVIDER DB 150+ NL/EU | ✓ | +39 | 9826029 |
+| F2 | ROBUST OCR + multi-lang + cache | ✓ | +21 | 9517442 |
+| F3 | BETTER ANALYSE — 3 alts + range + confidence | ✓ | +14 | a924c43 |
+| F4 | 404/500/onderhandel-catchall pages | ✓ | +13 | 5f35d0c |
+| F5 | NEGOTIATOR v3 — 5 strategies + tonality + EN + WhatsApp | ✓ | +26 (−1 legacy) | 1d7a835 |
+| F6 | UI polish — 3 loading.tsx + ui-polish tests | ✓ | +12 | 6717d0a |
+| F7 | ERROR HANDLING — AppError + retry + NetworkRetry | ✓ | +29 | 96e6410 |
+| F8 | PROOF + period filter 7d/30d/365d + BANK | ✓ | +10 | 4f94abd |
+| F9 | DEPLOY VERIFY — 581/581 tests + 19 routes build | ✓ | +E2E | _pending_ |
+
+**Totaal v3:** 581 tests (was 417 → +164), 19 routes (was 18 → +1 catch-all),
+152 providers (was 17), 153 plans (was 24), 5 negotiator strategies (was 3),
+NL/EN bilingual emails, 7 categorieën (was 6 + BANK), period filter,
+NL error messages, retry+sentry context, network-offline banner.
+
+---
+
+# SESSION_INVENTORY.md — DeGeldHeld MVP build (archief)
 
 **Datum:** 2026-05-14
 **Sessie:** /goal "DeGeldHeld Web App MVP — Groq-only stack in 10 fases"

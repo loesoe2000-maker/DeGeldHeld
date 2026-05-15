@@ -48,8 +48,12 @@ vercel --prod
 3. Lokale terminal:
    ```bash
    npx prisma migrate deploy
-   npm run seed   # 17 providers + 24 plans
+   npm run seed   # 152 providers + 153 plans (v3)
    ```
+
+> **v3 migratie nota**: `20260515000000_add_bank_category` voegt `BANK` toe
+> aan `BillCategory` enum. Postgres ALTER TYPE ADD VALUE moet buiten een
+> transactie draaien — `prisma migrate deploy` regelt dit correct.
 
 ## Domain bind
 
