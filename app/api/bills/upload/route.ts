@@ -5,6 +5,10 @@ import { extractBill, hashImage, validateUploadedFile } from "@/lib/ocr";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+// Groq Vision (90b + retry + 11b fallback) can take up to ~30s on a slow image.
+// Vercel hobby default is 10s → causes 504 → client shows "Netwerkfout".
+// Hobby plan max is 60s. Pro plan can go to 300s.
+export const maxDuration = 60;
 
 export async function POST(req: NextRequest) {
   const session = await auth();

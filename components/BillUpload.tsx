@@ -65,14 +65,40 @@ export default function BillUpload({ onUploaded }: { onUploaded?: (r: UploadResp
           setProgress("analysing");
           res = await fetch("/api/bills/upload", { method: "POST", body: fd });
         }
-        const data: UploadResp = await res.json();
+
+        // Auth-redirect (e.g. Vercel SSO or middleware) can return HTML, not JSON.
+        // Read as text first so we can give a real message instead of "Netwerkfout".
+        const ct = res.headers.get("content-type") ?? "";
+        const isJson = ct.includes("application/json");
+        const bodyText = await res.text();
+
+        if (!isJson) {
+          // Most common cause: Vercel 504 (timeout) or 413 (body too large).
+          if (res.status === 504) {
+            setError("Analyse duurde te lang — probeer een kleinere afbeelding.");
+          } else if (res.status === 413) {
+            setError("Bestand te groot voor server. Probeer < 4 MB.");
+          } else if (res.status === 401 || res.status === 403) {
+            setError("Je sessie is verlopen — log opnieuw in.");
+          } else {
+            setError(`Server gaf onverwacht antwoord (${res.status}). Probeer opnieuw.`);
+          }
+          return;
+        }
+
+        const data: UploadResp = JSON.parse(bodyText);
         if (!res.ok) {
           setError(data.error ?? "Upload mislukt — probeer opnieuw");
         } else {
           onUploaded?.(data);
         }
-      } catch {
-        setError("Netwerkfout — controleer je verbinding en probeer opnieuw");
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : "";
+        setError(
+          msg.includes("Failed to fetch") || msg.includes("NetworkError")
+            ? "Netwerkfout — controleer je verbinding en probeer opnieuw"
+            : `Upload mislukt: ${msg || "onbekende fout"}`,
+        );
       } finally {
         setBusy(false);
         setProgress("");
