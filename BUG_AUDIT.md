@@ -1,4 +1,31 @@
-# BUG_AUDIT.md — DeGeldHeld v2
+# BUG_AUDIT.md — DeGeldHeld v3
+
+**Datum:** 2026-05-15
+**Sessie:** /goal "DeGeldHeld v3 — providers + analyse + UX in 10 fases"
+**Baseline:** v2 afgerond (a1aa00a, 417/417 tests, 18 routes build)
+
+## F0 v3 baseline check (2026-05-15)
+
+| Check | Resultaat |
+|-------|-----------|
+| `npm run build` | OK 18 routes compiled, geen errors |
+| `npm test` | OK 417/417 tests passing (34 files, 3.5s) |
+| ESLint warning | non-blocking — `extensions` option deprecated, code lint clean |
+| Routes statisch | / /faq /login /onderhandel — OK |
+| Routes dynamisch | /dashboard /onderhandel/analyse /onderhandel/email /pay/[id] /proof — OK (server-rendered) |
+| API endpoints | /api/auth /api/bills/upload /api/checkout /api/cron/follow-up /api/health /api/negotiations/outcome /api/proof /api/waitlist /api/webhooks/stripe — alle gemapped |
+| Provider DB | ~17 canonical providers, ~25 plans in MARKET_PLANS — te beperkt voor v3 (target: 150+) |
+| OCR | Cascade 90b→11b → manual werkt, hardcoded provider matching via findProvider |
+| Analyse | 3 alternatieven via getCheaperAlternatives, geen confidence score, geen visuele markt-range |
+| Negotiator | 3 strategieën (RETENTIE_DREIG/SWITCH_CLAIM/LOYALTY) — target v3: 5 met tonality + NL/EN |
+| 404/500 pages | geen custom not-found.tsx, geen error.tsx — F4 target |
+| Sentry | client + server config aanwezig |
+
+**F0 gate: PASS** — bouw door naar F1.
+
+---
+
+# BUG_AUDIT.md — DeGeldHeld v2 (archief)
 
 **Datum:** 2026-05-14
 **Sessie:** /goal "DeGeldHeld v2 — fix bugs + polish"
