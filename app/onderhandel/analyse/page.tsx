@@ -90,12 +90,32 @@ export default async function AnalysePage({
     ? (bill.totalCents ?? 0) - (bill.monthlyCents ?? 0)
     : 0;
 
+  // v3.1: stale-warning bij factuur >180 dagen oud (markt-prijzen zijn dan
+  // mogelijk niet meer representatief).
+  const STALE_DAYS = 180;
+  const invoiceAgeDays =
+    bill.invoiceDate != null
+      ? Math.floor((Date.now() - new Date(bill.invoiceDate).getTime()) / (24 * 60 * 60 * 1000))
+      : null;
+  const showStaleBanner = invoiceAgeDays != null && invoiceAgeDays > STALE_DAYS;
+  const ageMonths = invoiceAgeDays != null ? Math.floor(invoiceAgeDays / 30) : 0;
+
   return (
     <main className="mx-auto max-w-3xl px-6 py-12">
       <h1 className="text-3xl font-bold text-slate-900">Analyse</h1>
       <p className="mt-2 text-slate-600">
         Op basis van je {bill.provider}-rekening hebben we de markt gecheckt.
       </p>
+      {showStaleBanner && (
+        <div
+          role="alert"
+          data-testid="stale-banner"
+          className="mt-6 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900"
+        >
+          <strong>Deze factuur is {ageMonths} maanden oud</strong> — markt-prijzen
+          kunnen gewijzigd zijn. Upload een recente factuur voor nauwkeurig advies.
+        </div>
+      )}
       {showOneTimeBanner && (
         <div
           role="status"

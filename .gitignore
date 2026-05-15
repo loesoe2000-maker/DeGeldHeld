@@ -34,3 +34,4 @@ prisma/migrations/dev.db*
 # sentry
 .sentryclirc
 .claude/settings.local.json
+tsconfig.tsbuildinfo

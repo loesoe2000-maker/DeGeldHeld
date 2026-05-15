@@ -112,6 +112,9 @@ model Bill {
   totalCents   Int?
   plan         String?
   period       String?
+  // v3.1: gepar­seerde factuur-periode (1e van de maand UTC).
+  // Voor stale-warning op /onderhandel/analyse (>180 dagen oud).
+  invoiceDate  DateTime?
   imageHash    String?      @unique
   rawOcr       String?      @db.Text
   createdAt    DateTime     @default(now())

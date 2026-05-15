@@ -121,6 +121,92 @@ function detectLanguage(input: unknown): OcrResult["language"] {
   return "unknown";
 }
 
+/**
+ * Parse een factuur-periode string naar een Date (1e van de maand, UTC).
+ *
+ * Ondersteunt:
+ *  - NL maandnamen: "augustus 2020", "Augustus 2020", "aug 2020", "aug. 2020"
+ *  - EN maandnamen: "August 2020", "Aug 2020"
+ *  - DE maandnamen: "August 2020", "Aug 2020"  (overlap met EN voor mei/aug)
+ *  - Pure DE: "Mai 2020", "Dezember 2020"
+ *  - Numeriek: "2020-08", "2020/08", "08-2020", "08/2020", "8/2020", "8-2020"
+ *
+ * Returns null bij parse-fail. Geldigheids-check: maand 1-12.
+ */
+const MONTH_MAP: Record<string, number> = {
+  // NL
+  januari: 1, jan: 1,
+  februari: 2, feb: 2,
+  maart: 3, mrt: 3,
+  april: 4, apr: 4,
+  mei: 5,
+  juni: 6, jun: 6,
+  juli: 7, jul: 7,
+  augustus: 8, aug: 8,
+  september: 9, sep: 9, sept: 9,
+  oktober: 10, okt: 10,
+  november: 11, nov: 11,
+  december: 12, dec: 12,
+  // EN
+  january: 1, february: 2, march: 3, may: 5, june: 6, july: 7, august: 8, october: 10,
+  // DE
+  mai: 5, dezember: 12, märz: 3, marz: 3,
+};
+
+export function parseInvoiceDate(period: string | null | undefined): Date | null {
+  if (!period || typeof period !== "string") return null;
+  const s = period.trim().toLowerCase().replace(/\./g, "");
+  if (!s) return null;
+
+  // 1. ISO-style: 2020-08, 2020-08-01, 2020/08
+  let m = /^(\d{4})[-/](\d{1,2})(?:[-/](\d{1,2}))?/.exec(s);
+  if (m) {
+    const year = Number(m[1]);
+    const month = Number(m[2]);
+    if (year >= 1900 && year <= 2100 && month >= 1 && month <= 12) {
+      return new Date(Date.UTC(year, month - 1, 1));
+    }
+    return null;
+  }
+
+  // 2. Reverse numeric: 08-2020, 8/2020
+  m = /^(\d{1,2})[-/](\d{4})$/.exec(s);
+  if (m) {
+    const month = Number(m[1]);
+    const year = Number(m[2]);
+    if (year >= 1900 && year <= 2100 && month >= 1 && month <= 12) {
+      return new Date(Date.UTC(year, month - 1, 1));
+    }
+    return null;
+  }
+
+  // 3. Month name + year: "augustus 2020", "Aug 2020", "August 2020"
+  m = /^([a-zäöü]+)[\s,]+(\d{4})$/.exec(s);
+  if (m) {
+    const name = m[1];
+    const year = Number(m[2]);
+    const month = MONTH_MAP[name];
+    if (month != null && year >= 1900 && year <= 2100) {
+      return new Date(Date.UTC(year, month - 1, 1));
+    }
+    return null;
+  }
+
+  // 4. Year + month name: "2020 augustus" (rare but seen on DE invoices)
+  m = /^(\d{4})[\s,]+([a-zäöü]+)$/.exec(s);
+  if (m) {
+    const year = Number(m[1]);
+    const name = m[2];
+    const month = MONTH_MAP[name];
+    if (month != null && year >= 1900 && year <= 2100) {
+      return new Date(Date.UTC(year, month - 1, 1));
+    }
+    return null;
+  }
+
+  return null;
+}
+
 function toCents(v: unknown): number | null {
   if (typeof v !== "number" || !Number.isFinite(v)) return null;
   return Math.round(v * 100);
