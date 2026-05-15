@@ -51,13 +51,16 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({
     ok: ocr.ok,
     billId: bill.id,
-    needsManual: !ocr.ok,
+    needsManual: ocr.needsManual ?? !ocr.ok,
+    needsManualProvider: ocr.needsManualProvider ?? false,
     extracted: {
       provider: ocr.provider,
       category: ocr.category,
       amountCents: ocr.amountCents,
       plan: ocr.plan,
       period: ocr.period,
+      customerNumber: ocr.customerNumber,
+      language: ocr.language,
       confidence: ocr.confidence,
     },
   });
