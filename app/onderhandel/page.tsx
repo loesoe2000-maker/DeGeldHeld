@@ -24,10 +24,10 @@ export default function OnderhandelPage() {
               } else {
                 toast("Rekening uitgelezen — analyse loopt.", "success");
               }
-              const path = r.needsManual
-                ? `/onderhandel/${r.billId}/manual`
-                : `/onderhandel/analyse?bill=${r.billId}`;
-              router.push(path);
+              // /analyse handles both the success case and the OCR-failed
+              // fallback. The `/onderhandel/[id]/manual` route doesn't exist
+              // yet, so don't send the user into a 404.
+              router.push(`/onderhandel/analyse?bill=${r.billId}`);
             }
           }}
         />

@@ -1,7 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
+import crypto from "node:crypto";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { extractBill, hashImage, validateUploadedFile } from "@/lib/ocr";
+
+// imageHash has a global UNIQUE constraint in the schema, so two users
+// uploading the same file would collide. Scope the stored hash to (user, file)
+// so dedup works per-user and a second user's upload still gets a fresh record.
+function userScopedHash(rawHash: string, userId: string): string {
+  return crypto.createHash("sha256").update(`${userId}:${rawHash}`).digest("hex");
+}
+
+// A bill is considered "usable" if OCR actually got a real provider and amount.
+// If not, we want to re-run OCR on the same image instead of redirecting to an
+// empty analysis page that silently bounces back to /onderhandel.
+function isBillUsable(b: { provider: string; amountCents: number }): boolean {
+  return b.amountCents > 0 && b.provider !== "Onbekend" && b.provider !== "";
+}
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -41,15 +56,16 @@ export async function POST(req: NextRequest) {
 
     stage = "hash";
     const buf = Buffer.from(await file.arrayBuffer());
-    const imageHash = hashImage(buf);
+    const rawHash = hashImage(buf);
+    const imageHash = userScopedHash(rawHash, userId);
 
     stage = "cache";
-    // Cache: don't re-OCR same image within 30 days
+    // Per-user cache: if the same user uploaded the same file before AND OCR
+    // succeeded, skip re-running Groq Vision. If the previous OCR was empty
+    // (provider "Onbekend" or amount 0), fall through and re-OCR — otherwise
+    // the user gets stuck on a blank analysis page forever.
     const cached = await prisma.bill.findUnique({ where: { imageHash } });
-    if (cached) {
-      // Same image already uploaded — re-use the existing record regardless of which
-      // user uploaded it first (imageHash has a UNIQUE constraint, so a second
-      // create() with the same hash would crash with P2002).
+    if (cached && isBillUsable(cached)) {
       return NextResponse.json({ ok: true, billId: cached.id, cached: true });
     }
 
@@ -57,18 +73,35 @@ export async function POST(req: NextRequest) {
     const ocr = await extractBill(buf, file.type);
 
     stage = "db";
-    const bill = await prisma.bill.create({
-      data: {
-        userId,
-        provider: ocr.provider ?? "Onbekend",
-        category: ocr.category ?? "OVERIG",
-        amountCents: ocr.amountCents ?? 0,
-        plan: ocr.plan,
-        period: ocr.period,
-        imageHash,
-        rawOcr: ocr.rawText.slice(0, 4000),
-      },
-    });
+    let bill;
+    if (cached) {
+      // Same image, same user, previous attempt unusable → update in place so
+      // we don't blow up the UNIQUE(imageHash) constraint on create().
+      bill = await prisma.bill.update({
+        where: { id: cached.id },
+        data: {
+          provider: ocr.provider ?? "Onbekend",
+          category: ocr.category ?? "OVERIG",
+          amountCents: ocr.amountCents ?? 0,
+          plan: ocr.plan,
+          period: ocr.period,
+          rawOcr: ocr.rawText.slice(0, 4000),
+        },
+      });
+    } else {
+      bill = await prisma.bill.create({
+        data: {
+          userId,
+          provider: ocr.provider ?? "Onbekend",
+          category: ocr.category ?? "OVERIG",
+          amountCents: ocr.amountCents ?? 0,
+          plan: ocr.plan,
+          period: ocr.period,
+          imageHash,
+          rawOcr: ocr.rawText.slice(0, 4000),
+        },
+      });
+    }
 
     return NextResponse.json({
       ok: ocr.ok,

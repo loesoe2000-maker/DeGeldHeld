@@ -24,6 +24,43 @@ export default async function AnalysePage({
   const bill = await prisma.bill.findFirst({ where: { id: billId, userId } });
   if (!bill) redirect("/onderhandel");
 
+  // Empty bill → OCR couldn't extract usable data. Show a graceful fallback
+  // instead of letting Comparison render an empty page or silently failing.
+  const ocrFailed = bill.amountCents <= 0 || bill.provider === "Onbekend" || bill.provider === "";
+  if (ocrFailed) {
+    return (
+      <main className="mx-auto max-w-3xl px-6 py-12">
+        <h1 className="text-3xl font-bold text-slate-900">We konden je rekening niet automatisch uitlezen</h1>
+        <p className="mt-3 text-slate-600">
+          De OCR herkende geen provider of bedrag. Dit gebeurt soms bij onscherpe foto's,
+          handgeschreven facturen of een onbekende leverancier.
+        </p>
+        <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+          <strong>Wat we wel zagen:</strong>
+          <ul className="mt-2 list-disc pl-5">
+            <li>Provider: {bill.provider || "—"}</li>
+            <li>Bedrag: {bill.amountCents > 0 ? `€${(bill.amountCents / 100).toFixed(2)}` : "—"}</li>
+            <li>Plan: {bill.plan ?? "—"}</li>
+          </ul>
+        </div>
+        <div className="mt-8 flex flex-wrap gap-3">
+          <Link
+            href="/onderhandel"
+            className="rounded-lg bg-brand-600 px-6 py-3 font-semibold text-white hover:bg-brand-700"
+          >
+            Probeer opnieuw met scherpere foto
+          </Link>
+          <Link
+            href="/dashboard"
+            className="rounded-lg border border-slate-300 px-6 py-3 font-medium text-slate-700 hover:bg-slate-50"
+          >
+            Terug naar dashboard
+          </Link>
+        </div>
+      </main>
+    );
+  }
+
   const comparison = buildComparison({
     provider: bill.provider,
     category: bill.category,
