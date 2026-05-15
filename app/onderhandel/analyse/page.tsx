@@ -42,6 +42,14 @@ export default async function AnalysePage({
             <li>Bedrag: {bill.amountCents > 0 ? `€${(bill.amountCents / 100).toFixed(2)}` : "—"}</li>
             <li>Plan: {bill.plan ?? "—"}</li>
           </ul>
+          {bill.rawOcr && (
+            <details className="mt-3 text-xs opacity-80">
+              <summary className="cursor-pointer font-medium">Debug-info (technisch)</summary>
+              <pre className="mt-2 max-h-48 overflow-auto whitespace-pre-wrap rounded bg-amber-100 p-2">
+                {bill.rawOcr}
+              </pre>
+            </details>
+          )}
         </div>
         <div className="mt-8 flex flex-wrap gap-3">
           <Link

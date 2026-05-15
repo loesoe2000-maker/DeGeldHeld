@@ -61,9 +61,14 @@ Belangrijke regels:
 Voorbeeld JSON output:
 {"provider":"Vodafone","amount_eur":29.95,"plan":"Red Unlimited","period":"mei 2026","customer_number":"12345678","language":"nl","confidence":0.92}`;
 
+// Groq deprecated the llama-3.2-*-vision-preview models in 2025.
+// Current vision-capable Groq models (as of May 2026):
+//   - meta-llama/llama-4-maverick-17b-128e-instruct  (large, best quality)
+//   - meta-llama/llama-4-scout-17b-16e-instruct      (smaller, faster fallback)
+// Override with GROQ_VISION_MODEL env var if needed.
 export const VISION_MODELS = [
-  "llama-3.2-90b-vision-preview",
-  "llama-3.2-11b-vision-preview",
+  "meta-llama/llama-4-maverick-17b-128e-instruct",
+  "meta-llama/llama-4-scout-17b-16e-instruct",
 ];
 
 const apiKey = process.env.GROQ_API_KEY ?? "";
