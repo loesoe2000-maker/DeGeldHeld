@@ -100,19 +100,24 @@ enum PaymentStatus {
 }
 
 model Bill {
-  id          String       @id @default(cuid())
-  userId      String
-  provider    String
-  category    BillCategory @default(OVERIG)
-  amountCents Int
-  plan        String?
-  period      String?
-  imageHash   String?      @unique
-  rawOcr      String?      @db.Text
-  createdAt   DateTime     @default(now())
+  id           String       @id @default(cuid())
+  userId       String
+  provider     String
+  category     BillCategory @default(OVERIG)
+  amountCents  Int
+  // v3.1: split maand-abonnement vs factuur-totaal voor accurate
+  // markt-vergelijking. Beide optional voor backwards-compat met
+  // bills die voor de migratie zijn aangemaakt.
+  monthlyCents Int?
+  totalCents   Int?
+  plan         String?
+  period       String?
+  imageHash    String?      @unique
+  rawOcr       String?      @db.Text
+  createdAt    DateTime     @default(now())
 
-  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  negotiation Negotiation?
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  negotiation  Negotiation?
 
   @@index([userId])
   @@index([imageHash])

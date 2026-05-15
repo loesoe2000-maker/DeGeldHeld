@@ -19,7 +19,17 @@ export type OcrResult = {
   ok: boolean;
   provider: string | null;
   category: Category | null;
+  /** Vast maand-abonnement in cents (zonder eenmalige posten).
+   *  Default voor vergelijking met markt-prijzen. */
+  monthlyAmountCents: number | null;
+  /** Volledig factuur-totaal in cents (incl. eenmalige posten zoals
+   *  online aankopen, eenmalige verhuiskosten, etc). */
+  totalAmountCents: number | null;
+  /** Backwards-compat: gelijk aan monthlyAmountCents ?? totalAmountCents */
   amountCents: number | null;
+  /** Labels van eenmalige posten (online aankopen, etc) — lege array bij
+   *  pure abonnementsfactuur. */
+  oneTimeItems: string[];
   plan: string | null;
   period: string | null;
   customerNumber: string | null;
@@ -45,21 +55,35 @@ export type OcrResult = {
 const SYSTEM_PROMPT = `Je bent een multilingual OCR-engine voor facturen (NL/EN/DE).
 Lees de factuur en extracteer:
   - provider: bedrijfs-/leveranciersnaam (zoals afgedrukt, geen interpretatie)
-  - amount_eur: totaal maand-bedrag in euro (number, geen valuta-symbool)
+  - monthly_subscription_eur: vaste maandelijkse abonnementsprijs in euro
+    (number). Dit is het terugkerend bedrag — exclusief eenmalige posten
+    zoals online aankopen, eenmalige verhuiskosten, of administratiekosten.
+  - total_eur: volledig factuur-totaal in euro (number). Dit is het bedrag
+    dat daadwerkelijk wordt afgeschreven. Gelijk aan monthly_subscription_eur
+    als er geen eenmalige posten zijn.
+  - one_time_items: array van strings met labels voor eenmalige posten
+    (bv ["Online aankopen 4,99", "Verhuiskosten 25,00"]). Lege array
+    als er geen eenmalige posten zijn.
   - plan: pakket-/tarief-/abonnementsnaam indien zichtbaar
   - period: factuur-periode (bv "mei 2026" of "2026-05")
   - customer_number: klantnummer / klant-id / Kundennummer / customer ID
   - language: "nl" | "en" | "de" (auto-detect)
-  - confidence: 0-1 (hoe zeker ben je over provider+amount samen)
+  - confidence: 0-1 (hoe zeker ben je over provider+amounts samen)
 
 Belangrijke regels:
   - Verzin GEEN waarden — null bij twijfel
   - Provider naam exact zoals afgedrukt (niet vertalen, niet normaliseren)
-  - Bij PDF/scan met meerdere bedragen: kies het maand-totaal (niet jaar/eenmalig)
+  - Bij pure abonnementsfactuur: monthly_subscription_eur == total_eur en
+    one_time_items = []
+  - Bij factuur met eenmalige posten: monthly_subscription_eur < total_eur
+    en one_time_items bevat de labels + bedragen
   - Antwoord ALLEEN in JSON, geen markdown, geen toelichting
 
-Voorbeeld JSON output:
-{"provider":"Vodafone","amount_eur":29.95,"plan":"Red Unlimited","period":"mei 2026","customer_number":"12345678","language":"nl","confidence":0.92}`;
+Voorbeeld JSON output (KPN met eenmalige post):
+{"provider":"KPN","monthly_subscription_eur":24.66,"total_eur":29.65,"one_time_items":["Online aankopen 4,99"],"plan":"Compleet","period":"mei 2026","customer_number":"12345678","language":"nl","confidence":0.92}
+
+Voorbeeld JSON output (Vodafone pure abonnement):
+{"provider":"Vodafone","monthly_subscription_eur":29.95,"total_eur":29.95,"one_time_items":[],"plan":"Red Unlimited","period":"mei 2026","customer_number":"87654321","language":"nl","confidence":0.94}`;
 
 // Groq deprecated the llama-3.2-*-vision-preview models in 2025.
 // Current vision-capable Groq models (as of May 2026):
@@ -97,19 +121,41 @@ function detectLanguage(input: unknown): OcrResult["language"] {
   return "unknown";
 }
 
+function toCents(v: unknown): number | null {
+  if (typeof v !== "number" || !Number.isFinite(v)) return null;
+  return Math.round(v * 100);
+}
+
 export function parseOcrJson(raw: string): Partial<OcrResult> {
   try {
     const cleaned = raw.replace(/^```(?:json)?\n?/, "").replace(/```\s*$/, "").trim();
     const obj = JSON.parse(cleaned) as Record<string, unknown>;
     const provider = typeof obj.provider === "string" ? obj.provider : null;
-    const amountEur = typeof obj.amount_eur === "number" ? obj.amount_eur : null;
     const plan = typeof obj.plan === "string" ? obj.plan : null;
     const period = typeof obj.period === "string" ? obj.period : null;
     const customerNumber = typeof obj.customer_number === "string" ? obj.customer_number : null;
     const confidence = typeof obj.confidence === "number" ? obj.confidence : 0;
+
+    // v3.1: split monthly subscription vs full invoice total.
+    // Backwards-compat: oude "amount_eur" wordt als monthly + total geïnterpreteerd.
+    const monthlyCents = toCents(obj.monthly_subscription_eur);
+    const totalCents = toCents(obj.total_eur);
+    const legacyAmount = toCents(obj.amount_eur);
+
+    const monthlyAmountCents = monthlyCents ?? legacyAmount;
+    const totalAmountCents = totalCents ?? legacyAmount ?? monthlyAmountCents;
+    const amountCents = monthlyAmountCents ?? totalAmountCents;
+
+    const oneTimeItems = Array.isArray(obj.one_time_items)
+      ? (obj.one_time_items as unknown[]).filter((x): x is string => typeof x === "string")
+      : [];
+
     return {
       provider,
-      amountCents: amountEur != null ? Math.round(amountEur * 100) : null,
+      monthlyAmountCents,
+      totalAmountCents,
+      amountCents,
+      oneTimeItems,
       plan,
       period,
       customerNumber,
@@ -117,7 +163,7 @@ export function parseOcrJson(raw: string): Partial<OcrResult> {
       confidence: Math.max(0, Math.min(1, confidence)),
     };
   } catch {
-    return { confidence: 0, language: "unknown" };
+    return { confidence: 0, language: "unknown", oneTimeItems: [] };
   }
 }
 
@@ -170,7 +216,10 @@ export async function extractBill(imageBuf: Buffer, mimeType: string): Promise<O
     ok: false,
     provider: null,
     category: null,
+    monthlyAmountCents: null,
+    totalAmountCents: null,
     amountCents: null,
+    oneTimeItems: [],
     plan: null,
     period: null,
     customerNumber: null,
@@ -215,7 +264,11 @@ export async function extractBill(imageBuf: Buffer, mimeType: string): Promise<O
         ok: true,
         provider: matched?.canonical ?? parsed.provider ?? null,
         category: matched?.category ?? null,
-        amountCents: parsed.amountCents,
+        monthlyAmountCents: parsed.monthlyAmountCents ?? parsed.amountCents,
+        totalAmountCents: parsed.totalAmountCents ?? parsed.amountCents,
+        // amountCents = preferred maand-bedrag voor markt-vergelijking
+        amountCents: parsed.monthlyAmountCents ?? parsed.totalAmountCents ?? parsed.amountCents,
+        oneTimeItems: parsed.oneTimeItems ?? [],
         plan: parsed.plan ?? null,
         period: parsed.period ?? null,
         customerNumber: parsed.customerNumber ?? null,

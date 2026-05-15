@@ -69,11 +69,26 @@ export default async function AnalysePage({
     );
   }
 
+  // v3.1: compare op het maand-abonnement (niet het totaal incl. eenmalige
+  // posten). bill.amountCents is al door upload-route op monthly gezet als die
+  // beschikbaar is, maar oude records kunnen alleen totalCents/amountCents hebben.
+  const comparisonAmount = bill.monthlyCents ?? bill.amountCents;
   const comparison = buildComparison({
     provider: bill.provider,
     category: bill.category,
-    amountCents: bill.amountCents,
+    amountCents: comparisonAmount,
   });
+
+  // Toon blauwe info-balk als factuur eenmalige posten bevat (>5% verschil
+  // tussen total en monthly).
+  const showOneTimeBanner =
+    bill.monthlyCents != null &&
+    bill.totalCents != null &&
+    bill.totalCents > 0 &&
+    Math.abs(bill.totalCents - bill.monthlyCents) / bill.totalCents > 0.05;
+  const oneTimeDeltaCents = showOneTimeBanner
+    ? (bill.totalCents ?? 0) - (bill.monthlyCents ?? 0)
+    : 0;
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-12">
@@ -81,6 +96,18 @@ export default async function AnalysePage({
       <p className="mt-2 text-slate-600">
         Op basis van je {bill.provider}-rekening hebben we de markt gecheckt.
       </p>
+      {showOneTimeBanner && (
+        <div
+          role="status"
+          data-testid="onetime-banner"
+          className="mt-6 rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900"
+        >
+          <strong>Eenmalige posten op deze factuur.</strong> Je factuur bevat{" "}
+          €{(oneTimeDeltaCents / 100).toFixed(2).replace(".", ",")} aan eenmalige
+          posten. We vergelijken op je vaste maand-abonnement van{" "}
+          €{((bill.monthlyCents ?? 0) / 100).toFixed(2).replace(".", ",")}.
+        </div>
+      )}
       <div className="mt-8">
         <Comparison result={comparison} />
       </div>
