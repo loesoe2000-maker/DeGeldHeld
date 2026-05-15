@@ -296,8 +296,40 @@ async function tryModelWithRetry(
   return tryModel(model, dataUrl);
 }
 
+/**
+ * E2E test hook: set GROQ_VISION_MOCK=1 om Groq Vision te bypassen.
+ * Returnt een vaste KPN-factuur response zodat Playwright tests
+ * geen echte API call hoeven (cost + flake control).
+ */
+function mockBillResponse(imageHash: string): OcrResult {
+  return {
+    ok: true,
+    provider: "KPN",
+    category: "TELECOM",
+    monthlyAmountCents: 2466,
+    totalAmountCents: 2965,
+    amountCents: 2466,
+    oneTimeItems: ["Online aankopen 4,99"],
+    plan: "Compleet",
+    period: "mei 2026",
+    customerNumber: "12345678",
+    language: "nl",
+    confidence: 0.95,
+    rawText: "MOCKED",
+    imageHash,
+    modelUsed: "mock",
+    attempts: 1,
+  };
+}
+
 export async function extractBill(imageBuf: Buffer, mimeType: string): Promise<OcrResult> {
   const imageHash = hashImage(imageBuf);
+
+  // E2E mock-mode: bypass Groq Vision (set GROQ_VISION_MOCK=1).
+  if (process.env.GROQ_VISION_MOCK === "1") {
+    return mockBillResponse(imageHash);
+  }
+
   const empty: OcrResult = {
     ok: false,
     provider: null,

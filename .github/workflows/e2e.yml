@@ -1,0 +1,72 @@
+name: E2E
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  playwright:
+    name: Playwright upload-to-email
+    timeout-minutes: 15
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: degeldheld
+          POSTGRES_PASSWORD: degeldheld
+          POSTGRES_DB: degeldheld_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U degeldheld"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://degeldheld:degeldheld@localhost:5432/degeldheld_test
+      DIRECT_URL: postgresql://degeldheld:degeldheld@localhost:5432/degeldheld_test
+      NEXTAUTH_SECRET: ci-test-secret-32-bytes-padding-xx
+      NEXTAUTH_URL: http://localhost:3000
+      GROQ_API_KEY: gsk_test_dummy
+      GROQ_VISION_MOCK: "1"
+      RESEND_API_KEY: re_test_dummy
+      EMAIL_FROM: test@degeldheld.test
+      STRIPE_SECRET_KEY: sk_test_dummy
+      STRIPE_WEBHOOK_SECRET: whsec_test_dummy
+      APP_URL: http://localhost:3000
+      CRON_SECRET: ci-cron-secret
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Prisma generate + migrate
+        run: |
+          npx prisma generate
+          npx prisma migrate deploy
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Playwright tests
+        run: npm run test:e2e
+
+      - name: Upload HTML report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
