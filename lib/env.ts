@@ -10,7 +10,10 @@ const schema = z.object({
   GROQ_VISION_MODEL: z.string().default("llama-3.2-90b-vision-preview"),
   GROQ_TEXT_MODEL: z.string().default("llama-3.1-70b-versatile"),
   STRIPE_SECRET_KEY: z.string().min(1),
-  STRIPE_WEBHOOK_SECRET: z.string().min(1),
+  // STRIPE_WEBHOOK_SECRET wordt alleen door /api/webhooks/stripe gebruikt.
+  // Optional zodat het ontbreken niet de hele app-health degradeert; de
+  // webhook-route weigert zelf calls als secret ontbreekt.
+  STRIPE_WEBHOOK_SECRET: z.string().optional().default(""),
   SENTRY_DSN: z.string().optional().default(""),
   CRON_SECRET: z.string().optional().default(""),
   APP_URL: z.string().url().default("http://localhost:3000"),
