@@ -28,8 +28,11 @@ describe("negotiator/chooseStrategy", () => {
     expect(chooseStrategy(baseInput)).toBe("LOYALTY");
   });
 
-  it("LOYALTY when savings <8%", () => {
-    expect(chooseStrategy({ ...baseInput, alternatives: [altWith(6500)] })).toBe("LOYALTY");
+  it("NIEUWE_KLANT_VERGELIJK when savings 3-7% (v3 nieuwe tier)", () => {
+    // altWith(6500) = €2.95/mnd savings = 4.3% — valt in v3's nieuwe 3-7% bucket
+    expect(chooseStrategy({ ...baseInput, alternatives: [altWith(6500)] })).toBe(
+      "NIEUWE_KLANT_VERGELIJK",
+    );
   });
 
   it("RETENTIE_DREIG when savings 8-19%", () => {

@@ -83,6 +83,9 @@ export default async function EmailPage({
           reasoning={result.reasoning}
           expectedSavingsCents={result.expectedSavingsCents}
           confidence={result.confidence}
+          strategy={result.strategy}
+          tonality={result.tonality}
+          language={result.language}
         />
       </div>
     </main>

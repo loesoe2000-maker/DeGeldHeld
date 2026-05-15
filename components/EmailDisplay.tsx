@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { formatEurCents, formatPercent } from "@/lib/format";
+import { buildWhatsAppShareUrl } from "@/lib/negotiator";
 
 export default function EmailDisplay({
   subject,
@@ -9,12 +10,18 @@ export default function EmailDisplay({
   reasoning,
   expectedSavingsCents,
   confidence,
+  strategy,
+  tonality,
+  language,
 }: {
   subject: string;
   body: string;
   reasoning: string;
   expectedSavingsCents: number;
   confidence: number;
+  strategy?: string;
+  tonality?: string;
+  language?: string;
 }) {
   const [copied, setCopied] = useState(false);
   async function copyAll() {
@@ -24,9 +31,11 @@ export default function EmailDisplay({
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      // ignore — fallback handled by browser select-text
+      // fallback handled by browser select-text
     }
   }
+
+  const whatsappUrl = buildWhatsAppShareUrl({ subject, body });
 
   return (
     <div className="space-y-6">
@@ -37,6 +46,21 @@ export default function EmailDisplay({
         </div>
         <div className="mt-1 text-xs text-brand-700">
           Vertrouwen: {formatPercent(confidence)}
+          {strategy && (
+            <span className="ml-2 rounded-full bg-white/60 px-2 py-0.5 font-medium">
+              {strategy.replace(/_/g, " ")}
+            </span>
+          )}
+          {tonality && (
+            <span className="ml-1 rounded-full bg-white/60 px-2 py-0.5 font-medium">
+              {tonality === "FORMEEL" ? "u-vorm" : "je-vorm"}
+            </span>
+          )}
+          {language && (
+            <span className="ml-1 rounded-full bg-white/60 px-2 py-0.5 font-medium uppercase">
+              {language}
+            </span>
+          )}
         </div>
       </div>
 
@@ -52,13 +76,23 @@ export default function EmailDisplay({
         <pre className="whitespace-pre-wrap font-sans text-slate-800">{body}</pre>
       </div>
 
-      <button
-        type="button"
-        onClick={copyAll}
-        className="rounded-lg bg-brand-600 px-6 py-3 font-semibold text-white hover:bg-brand-700"
-      >
-        {copied ? "✓ Gekopieerd" : "Kopieer onderwerp + bericht"}
-      </button>
+      <div className="flex flex-wrap gap-3">
+        <button
+          type="button"
+          onClick={copyAll}
+          className="rounded-lg bg-brand-600 px-6 py-3 font-semibold text-white hover:bg-brand-700"
+        >
+          {copied ? "✓ Gekopieerd" : "Kopieer onderwerp + bericht"}
+        </button>
+        <a
+          href={whatsappUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="rounded-lg border border-emerald-300 bg-emerald-50 px-6 py-3 font-semibold text-emerald-700 hover:bg-emerald-100"
+        >
+          Deel via WhatsApp
+        </a>
+      </div>
 
       <details className="rounded-xl border border-slate-200 bg-slate-50 p-4">
         <summary className="cursor-pointer text-sm font-medium text-slate-700">
