@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 
 export const runtime = "nodejs";
@@ -7,18 +7,39 @@ export const dynamic = "force-dynamic";
 /**
  * Public, anonymized track record. Powers /api/proof + landing page claims.
  * Cache 5 min via Cache-Control to reduce DB load.
+ *
+ * v3: query param `period` ∈ "7d" | "30d" | "365d" | "all" (default "all")
+ *     filters by createdAt >= cutoff.
  */
 
-export async function GET() {
+const PERIODS = ["7d", "30d", "365d", "all"] as const;
+type Period = (typeof PERIODS)[number];
+
+function parsePeriod(raw: string | null): Period {
+  if (raw && (PERIODS as readonly string[]).includes(raw)) return raw as Period;
+  return "all";
+}
+
+function cutoffFor(period: Period): Date | null {
+  if (period === "all") return null;
+  const days = period === "7d" ? 7 : period === "30d" ? 30 : 365;
+  return new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+}
+
+export async function GET(req: NextRequest) {
+  const period = parsePeriod(req.nextUrl.searchParams.get("period"));
+  const cutoff = cutoffFor(period);
+  const baseWhere = cutoff ? { createdAt: { gte: cutoff } } : {};
+
   const successful = await prisma.negotiation.findMany({
-    where: { state: { in: ["SUCCESS", "BILLED"] } },
+    where: { ...baseWhere, state: { in: ["SUCCESS", "BILLED"] } },
     select: { actualSavingsCents: true, bill: { select: { category: true } }, createdAt: true },
     take: 1000,
     orderBy: { createdAt: "desc" },
   });
 
   const failed = await prisma.negotiation.count({
-    where: { state: "FAILED" },
+    where: { ...baseWhere, state: "FAILED" },
   });
 
   const totalSavedCents = successful.reduce((acc, n) => acc + (n.actualSavingsCents ?? 0), 0);
@@ -38,6 +59,7 @@ export async function GET() {
   return NextResponse.json(
     {
       generated_at: new Date().toISOString(),
+      period,
       stats: {
         total_negotiations: totalAttempts,
         total_successful: successful.length,

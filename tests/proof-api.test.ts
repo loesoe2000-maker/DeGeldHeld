@@ -7,6 +7,12 @@ vi.mock("../lib/db", () => ({
 }));
 
 import { GET } from "../app/api/proof/route";
+import type { NextRequest } from "next/server";
+
+function makeReq(period?: string): NextRequest {
+  const url = new URL(`http://localhost/api/proof${period ? `?period=${period}` : ""}`);
+  return { nextUrl: url } as unknown as NextRequest;
+}
 
 describe("api/proof GET", () => {
   beforeEach(() => {
@@ -17,7 +23,7 @@ describe("api/proof GET", () => {
   it("returns 0-stats when no data", async () => {
     findMany.mockResolvedValue([]);
     count.mockResolvedValue(0);
-    const r = await GET();
+    const r = await GET(makeReq());
     expect(r.status).toBe(200);
     const data = await r.json();
     expect(data.stats.total_negotiations).toBe(0);
@@ -30,7 +36,7 @@ describe("api/proof GET", () => {
       { actualSavingsCents: 5000, bill: { category: "ENERGIE" }, createdAt: new Date() },
     ]);
     count.mockResolvedValue(0);
-    const r = await GET();
+    const r = await GET(makeReq());
     const data = await r.json();
     expect(data.stats.total_saved_eur).toBe(150);
     expect(data.stats.average_saved_eur).toBe(75);
@@ -41,7 +47,7 @@ describe("api/proof GET", () => {
       { actualSavingsCents: 1000, bill: { category: "TELECOM" }, createdAt: new Date() },
     ]);
     count.mockResolvedValue(3);
-    const r = await GET();
+    const r = await GET(makeReq());
     const data = await r.json();
     expect(data.stats.total_negotiations).toBe(4);
     expect(data.stats.success_rate).toBe(0.25);
@@ -54,7 +60,7 @@ describe("api/proof GET", () => {
       { actualSavingsCents: 1500, bill: { category: "ENERGIE" }, createdAt: new Date() },
     ]);
     count.mockResolvedValue(0);
-    const r = await GET();
+    const r = await GET(makeReq());
     const data = await r.json();
     expect(data.stats.by_category.TELECOM.count).toBe(2);
     expect(data.stats.by_category.TELECOM.totalCents).toBe(3000);
@@ -64,14 +70,14 @@ describe("api/proof GET", () => {
   it("includes Cache-Control header", async () => {
     findMany.mockResolvedValue([]);
     count.mockResolvedValue(0);
-    const r = await GET();
+    const r = await GET(makeReq());
     expect(r.headers.get("cache-control")).toContain("max-age=300");
   });
 
   it("includes generated_at timestamp", async () => {
     findMany.mockResolvedValue([]);
     count.mockResolvedValue(0);
-    const r = await GET();
+    const r = await GET(makeReq());
     const data = await r.json();
     expect(data.generated_at).toMatch(/^\d{4}-\d{2}-\d{2}T/);
   });

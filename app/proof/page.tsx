@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import CounterUp from "@/components/CounterUp";
 import Footer from "@/components/Footer";
+import Link from "next/link";
 import { formatEurCents, formatPercent } from "@/lib/format";
 
 export const metadata = { title: "Track record — DeGeldHeld" };
@@ -8,14 +9,32 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 type CategoryStats = { count: number; totalCents: number };
+type Period = "7d" | "30d" | "365d" | "all";
 
-async function loadStats() {
+const PERIODS: Period[] = ["7d", "30d", "365d", "all"];
+const PERIOD_LABELS: Record<Period, string> = {
+  "7d": "7 dagen",
+  "30d": "30 dagen",
+  "365d": "1 jaar",
+  all: "Alles",
+};
+
+function cutoffFor(period: Period): Date | null {
+  if (period === "all") return null;
+  const days = period === "7d" ? 7 : period === "30d" ? 30 : 365;
+  return new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+}
+
+async function loadStats(period: Period) {
+  const cutoff = cutoffFor(period);
+  const baseWhere = cutoff ? { createdAt: { gte: cutoff } } : {};
+
   const successful = await prisma.negotiation.findMany({
-    where: { state: { in: ["SUCCESS", "BILLED"] } },
+    where: { ...baseWhere, state: { in: ["SUCCESS", "BILLED"] } },
     select: { actualSavingsCents: true, bill: { select: { category: true } } },
     take: 1000,
   });
-  const failed = await prisma.negotiation.count({ where: { state: "FAILED" } });
+  const failed = await prisma.negotiation.count({ where: { ...baseWhere, state: "FAILED" } });
 
   const totalSavedCents = successful.reduce((a, n) => a + (n.actualSavingsCents ?? 0), 0);
   const totalAttempts = successful.length + failed;
@@ -46,12 +65,21 @@ const CATEGORY_LABELS: Record<string, string> = {
   ENERGIE: "Energie",
   VERZEKERING: "Verzekering",
   HYPOTHEEK: "Hypotheek",
+  BANK: "Bank",
   ABONNEMENT: "Abonnementen",
   OVERIG: "Overig",
 };
 
-export default async function ProofPage() {
-  const stats = await loadStats();
+export default async function ProofPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ period?: string }>;
+}) {
+  const params = await searchParams;
+  const period: Period = (PERIODS as string[]).includes(params.period ?? "")
+    ? (params.period as Period)
+    : "all";
+  const stats = await loadStats(period);
   return (
     <>
       <main className="mx-auto max-w-4xl px-6 py-16">
@@ -61,9 +89,30 @@ export default async function ProofPage() {
           Live data — wordt elke 5 minuten ververst.
         </p>
 
-        <section className="mt-12 rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 p-10 text-white">
+        <div className="mt-6 inline-flex flex-wrap gap-1 rounded-lg border border-slate-200 bg-slate-50 p-1">
+          {PERIODS.map((p) => {
+            const active = p === period;
+            const href = p === "all" ? "/proof" : `/proof?period=${p}`;
+            return (
+              <Link
+                key={p}
+                href={href}
+                className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${
+                  active
+                    ? "bg-brand-600 text-white shadow-sm"
+                    : "text-slate-600 hover:bg-white hover:text-slate-900"
+                }`}
+                aria-current={active ? "page" : undefined}
+              >
+                {PERIOD_LABELS[p]}
+              </Link>
+            );
+          })}
+        </div>
+
+        <section className="mt-8 rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 p-10 text-white">
           <div className="text-sm font-medium uppercase tracking-wider text-brand-100">
-            Totaal bespaard voor leden
+            Totaal bespaard ({PERIOD_LABELS[period].toLowerCase()})
           </div>
           <div className="mt-2 text-5xl font-bold tabular-nums sm:text-7xl">
             <CounterUp
@@ -85,7 +134,7 @@ export default async function ProofPage() {
         <section className="mt-12">
           <h2 className="text-2xl font-bold text-slate-900">Per categorie</h2>
           {Object.keys(stats.byCategory).length === 0 ? (
-            <p className="mt-4 text-slate-500">Nog geen data — kom snel terug.</p>
+            <p className="mt-4 text-slate-500">Nog geen data voor deze periode — kom snel terug.</p>
           ) : (
             <ul className="mt-6 divide-y divide-slate-200 rounded-xl bg-white shadow-sm">
               {Object.entries(stats.byCategory).map(([cat, s]) => (
@@ -131,7 +180,7 @@ export default async function ProofPage() {
             Start je eigen onderhandeling →
           </a>
           <p className="mt-3 text-xs text-slate-500">
-            Raw JSON: <a href="/api/proof" className="text-brand-700 underline">/api/proof</a>
+            Raw JSON: <a href={`/api/proof?period=${period}`} className="text-brand-700 underline">/api/proof?period={period}</a>
           </p>
         </section>
       </main>
