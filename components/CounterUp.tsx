@@ -1,20 +1,26 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { formatEurCents } from "@/lib/format";
 
 /**
  * Animates a number from 0 to `value` over `durationMs`.
  * Uses requestAnimationFrame with ease-out cubic.
+ *
+ * NOTE: cannot accept a function prop because this is used from a Server
+ * Component (app/proof/page.tsx) — functions aren't serializable across the
+ * RSC boundary. Pass a string `formatType` instead.
  */
 export default function CounterUp({
   value,
   durationMs = 1200,
-  format,
+  formatType,
   className = "",
 }: {
   value: number;
   durationMs?: number;
-  format?: (n: number) => string;
+  /** "eur" treats `value` as euros (no decimals), "plain" shows the raw integer */
+  formatType?: "eur" | "plain";
   className?: string;
 }) {
   const [current, setCurrent] = useState(0);
@@ -32,5 +38,10 @@ export default function CounterUp({
     return () => cancelAnimationFrame(raf);
   }, [value, durationMs]);
 
-  return <span className={className}>{format ? format(current) : current}</span>;
+  const rendered =
+    formatType === "eur"
+      ? formatEurCents(current * 100, { showDecimals: false })
+      : current;
+
+  return <span className={className}>{rendered}</span>;
 }

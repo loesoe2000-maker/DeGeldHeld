@@ -19,9 +19,13 @@ describe("components/CounterUp", () => {
     );
   });
 
-  it("applies format function", async () => {
-    render(<CounterUp value={100} durationMs={20} format={(n) => `€${n},-`} />);
-    await waitFor(() => expect(screen.getByText("€100,-")).toBeInTheDocument(), { timeout: 500 });
+  it("applies formatType='eur'", async () => {
+    render(<CounterUp value={100} durationMs={20} formatType="eur" />);
+    // formatEurCents(100 * 100) => "€ 100" (no decimals); allow any euro-formatted match
+    await waitFor(
+      () => expect(screen.getByText(/€\s?100/)).toBeInTheDocument(),
+      { timeout: 500 },
+    );
   });
 
   it("respects className", () => {

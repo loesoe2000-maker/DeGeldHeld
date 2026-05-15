@@ -117,7 +117,7 @@ export default async function ProofPage({
           <div className="mt-2 text-5xl font-bold tabular-nums sm:text-7xl">
             <CounterUp
               value={Math.round(stats.totalSavedCents / 100)}
-              format={(n) => formatEurCents(n * 100, { showDecimals: false })}
+              formatType="eur"
             />
           </div>
           <div className="mt-4 grid grid-cols-2 gap-6 sm:grid-cols-3">
