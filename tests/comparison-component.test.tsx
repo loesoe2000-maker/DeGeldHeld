@@ -14,7 +14,7 @@ describe("components/Comparison", () => {
   it("shows savings banner when alternatives exist", () => {
     const r = buildComparison({ provider: "Ziggo", category: "TELECOM", amountCents: 6795 });
     render(<Comparison result={r} />);
-    expect(screen.getByText(/Mogelijke besparing/)).toBeInTheDocument();
+    expect(screen.getByText(/Jaarlijkse besparing/)).toBeInTheDocument();
   });
 
   it("shows fallback when no alternatives", () => {
