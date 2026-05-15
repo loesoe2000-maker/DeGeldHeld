@@ -76,6 +76,7 @@ enum BillCategory {
   ENERGIE
   VERZEKERING
   HYPOTHEEK
+  BANK
   ABONNEMENT
   OVERIG
 }

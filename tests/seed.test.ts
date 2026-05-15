@@ -37,9 +37,10 @@ describe("seed/market_db coverage", () => {
     }
   });
 
-  it("price ranges are realistic (energie: 100-300 eur)", () => {
+  it("price ranges are realistic (energie: 80-300 eur incl. EU)", () => {
+    // v3: EU energie can be lower than NL (EDF €98, Iberdrola €95)
     for (const p of plansForCategory("ENERGIE")) {
-      expect(p.priceCents).toBeGreaterThanOrEqual(10000);
+      expect(p.priceCents).toBeGreaterThanOrEqual(8000);
       expect(p.priceCents).toBeLessThanOrEqual(30000);
     }
   });
@@ -55,12 +56,14 @@ describe("seed/getCheaperAlternatives integration", () => {
     }
   });
 
-  it("Eneco €180 ENERGIE finds Vandebron / Budget Energie as candidates", () => {
-    const alts = getCheaperAlternatives("Eneco", "ENERGIE", 18000, 5);
+  it("Eneco €180 ENERGIE finds cheaper candidates (NL+EU mixed)", () => {
+    // v3: include enough top to capture NL competitors after EU expansion
+    const alts = getCheaperAlternatives("Eneco", "ENERGIE", 18000, 20);
     expect(alts.length).toBeGreaterThan(0);
     const names = alts.map((a) => a.plan.provider);
-    // At least one of the v2-added cheap providers should appear
-    const hasCheap = names.some((n) => n === "Vandebron" || n === "Budget Energie" || n === "Greenchoice");
+    const hasCheap = names.some((n) =>
+      ["Vandebron", "Budget Energie", "Greenchoice", "EDF", "Iberdrola"].includes(n),
+    );
     expect(hasCheap).toBe(true);
   });
 

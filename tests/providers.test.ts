@@ -7,8 +7,8 @@ import {
 } from "../lib/providers";
 
 describe("providers/registry", () => {
-  it("contains 17 providers (8+ telecom, 4+ energie, etc)", () => {
-    expect(NL_PROVIDERS.length).toBeGreaterThanOrEqual(14);
+  it("contains 150+ providers (v3 expansion)", () => {
+    expect(NL_PROVIDERS.length).toBeGreaterThanOrEqual(150);
   });
 
   it("has at least 7 telecom providers", () => {
@@ -57,15 +57,18 @@ describe("providers/findProvider", () => {
   it("identifies category", () => {
     expect(findProvider("Eneco")?.category).toBe("ENERGIE");
     expect(findProvider("Aegon")?.category).toBe("VERZEKERING");
-    expect(findProvider("ING")?.category).toBe("HYPOTHEEK");
+    // v3: bare "ING" without "hypotheek" → BANK; "ING Hypotheken" → HYPOTHEEK
+    expect(findProvider("ING")?.category).toBe("BANK");
+    expect(findProvider("ING Hypotheken")?.category).toBe("HYPOTHEEK");
   });
 });
 
 describe("providers/allCategories", () => {
-  it("returns 6 categories", () => {
-    expect(allCategories().length).toBe(6);
+  it("returns 7 categories (v3 added BANK)", () => {
+    expect(allCategories().length).toBe(7);
     expect(allCategories()).toContain("TELECOM");
     expect(allCategories()).toContain("ENERGIE");
+    expect(allCategories()).toContain("BANK");
     expect(allCategories()).toContain("OVERIG");
   });
 });

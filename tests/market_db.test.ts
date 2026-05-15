@@ -8,18 +8,18 @@ import {
 } from "../lib/market_db";
 
 describe("market_db/registry", () => {
-  it("contains 24+ plans", () => {
-    expect(MARKET_PLANS.length).toBeGreaterThanOrEqual(24);
+  it("contains 150+ plans (v3)", () => {
+    expect(MARKET_PLANS.length).toBeGreaterThanOrEqual(150);
   });
 
-  it("covers 14+ unique providers", () => {
-    expect(uniqueProviders().length).toBeGreaterThanOrEqual(14);
+  it("covers 130+ unique providers (v3)", () => {
+    expect(uniqueProviders().length).toBeGreaterThanOrEqual(130);
   });
 
-  it("all priceCents are positive integers", () => {
+  it("all priceCents are non-negative integers (banks may be 0)", () => {
     for (const p of MARKET_PLANS) {
       expect(Number.isInteger(p.priceCents)).toBe(true);
-      expect(p.priceCents).toBeGreaterThan(0);
+      expect(p.priceCents).toBeGreaterThanOrEqual(0);
     }
   });
 
@@ -74,8 +74,9 @@ describe("market_db/cheapestPlan", () => {
     expect(cheapest!.priceCents).toBe(minPrice);
   });
 
-  it("returns null when no plans", () => {
-    expect(cheapestPlan("ABONNEMENT")).toBeNull();
+  it("returns valid plan when category has entries", () => {
+    expect(cheapestPlan("ABONNEMENT")).not.toBeNull();
+    expect(cheapestPlan("BANK")).not.toBeNull();
   });
 });
 
