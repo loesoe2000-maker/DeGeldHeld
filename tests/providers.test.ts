@@ -64,11 +64,13 @@ describe("providers/findProvider", () => {
 });
 
 describe("providers/allCategories", () => {
-  it("returns 7 categories (v3 added BANK)", () => {
-    expect(allCategories().length).toBe(7);
+  it("returns 14 categories (v5 expanded with WATER/GEMEENTE/STREAMING/GYM/OV/SOFTWARE/OPSLAG)", () => {
+    expect(allCategories().length).toBe(14);
     expect(allCategories()).toContain("TELECOM");
     expect(allCategories()).toContain("ENERGIE");
     expect(allCategories()).toContain("BANK");
+    expect(allCategories()).toContain("STREAMING");
+    expect(allCategories()).toContain("WATER");
     expect(allCategories()).toContain("OVERIG");
   });
 });

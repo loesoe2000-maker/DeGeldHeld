@@ -52,6 +52,46 @@ curl -s https://degeldheld.com/api/health | jq
    WHERE state='AWAITING' AND "followUpAt" <= NOW();
    ```
 
+### "Outcome-followup cron stuurt geen uitkomst-mail"
+
+Vercel cron 08:00 UTC dagelijks → `/api/cron/outcome-followup`.
+
+1. Vercel logs filter `path=/api/cron/outcome-followup`
+2. Verifieer `OUTCOME_TOKEN_SECRET` of `CRON_SECRET` of `NEXTAUTH_SECRET`
+   is gezet (gebruikt voor HMAC-signed uitkomst-link).
+3. Check kandidaten (verstuurd ≥ 7d geleden, nog niet gevraagd):
+   ```sql
+   SELECT id, "emailSentAt", state FROM "Negotiation"
+   WHERE "emailSentAt" <= NOW() - INTERVAL '7 days'
+     AND "outcomeAskedAt" IS NULL
+     AND state IN ('EMAIL_GEN','EMAIL_SENT','AWAITING','COUNTER_SENT','RESPONSE_RECEIVED')
+     AND "closedAt" IS NULL;
+   ```
+4. Daily cap 50 → bij rugzak verhogen via env (of meerdere runs/dag).
+
+### "ProviderCandidate workflow"
+
+Onbekende providers worden ontdekt via `POST /api/providers/discover`
+(auth + 5/uur per user). Admin curated daarna:
+
+1. Open `/admin/providers` (vereist `ADMIN_EMAILS` in Vercel env).
+2. Klik Approve op een pending candidate.
+3. Run lokaal `npx tsx scripts/sync-approved-providers.ts` →
+   print TS-stubs.
+4. Plak deze in `lib/providers.ts` (kies juiste category!) → commit.
+
+### "DB migraties die zijn gedeployed (v5 sprint)"
+
+- `20260516144850_negotiation_rounds` — multi-round table + 5 nieuwe
+  NegotiationState values.
+- `20260516145341_negotiation_followup` — Negotiation.emailSentAt +
+  outcomeAskedAt.
+- `20260516150604_bill_country` — Bill.country veld.
+- `20260516151409_category_expansion` — BillCategory enum 7 → 14.
+- `20260516151959_bill_currency` — Bill.currency (default EUR).
+- `20260516152346_provider_candidate` — ProviderCandidate +
+  CandidateStatus.
+
 ### "Groq 429 (rate limited)"
 
 - Per design: `lib/llm_cache.ts` heeft 5/min + 100/dag cap

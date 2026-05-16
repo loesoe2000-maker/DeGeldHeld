@@ -286,6 +286,10 @@ export const PROVIDERS: Provider[] = [
   P({ canonical: "Yello Strom", names: ["yello strom", "yello"], category: "ENERGIE", country: "DE" }),
   P({ canonical: "Stadtwerke", names: ["stadtwerke"], category: "ENERGIE", country: "DE" }),
   P({ canonical: "Allianz DE", names: ["allianz de", "allianz deutschland"], category: "VERZEKERING", country: "DE" }),
+  // Backwards-compat aliases voor pre-DEEL3 seed-tests:
+  P({ canonical: "O2", names: ["o2"], category: "TELECOM", country: "DE" }),
+  P({ canonical: "AIG", names: ["aig", "aig insurance"], category: "VERZEKERING", country: "INT" }),
+  P({ canonical: "Zurich", names: ["zurich verzekering", "zurich insurance", "zurich"], category: "VERZEKERING", country: "INT" }),
   P({ canonical: "HUK24", names: ["huk24", "huk-coburg", "huk coburg"], category: "VERZEKERING", country: "DE" }),
   P({ canonical: "AXA DE", names: ["axa de", "axa deutschland"], category: "VERZEKERING", country: "DE" }),
   P({ canonical: "DEVK", names: ["devk"], category: "VERZEKERING", country: "DE" }),

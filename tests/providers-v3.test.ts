@@ -116,9 +116,9 @@ describe("providers-v3/bank", () => {
     }
   });
 
-  it("EU banks: Revolut and N26 in EU region", () => {
-    expect(findProvider("Revolut")?.region).toBe("EU");
-    expect(findProvider("N26")?.region).toBe("EU");
+  it("INT banks: Revolut and N26 are global (v5 reclassified from EU)", () => {
+    expect(findProvider("Revolut")?.region).toBe("GLOBAL");
+    expect(findProvider("N26")?.region).toBe("GLOBAL");
   });
 });
 
@@ -137,10 +137,10 @@ describe("providers-v3/hypotheek disambiguation", () => {
 });
 
 describe("providers-v3/abonnement streaming", () => {
-  it("finds Netflix, Disney+, HBO Max", () => {
-    expect(findProvider("Netflix")?.category).toBe("ABONNEMENT");
-    expect(findProvider("Disney+")?.category).toBe("ABONNEMENT");
-    expect(findProvider("HBO Max")?.category).toBe("ABONNEMENT");
+  it("finds Netflix, Disney+, HBO Max (v5 reclassified ABONNEMENT → STREAMING)", () => {
+    expect(findProvider("Netflix")?.category).toBe("STREAMING");
+    expect(findProvider("Disney+")?.category).toBe("STREAMING");
+    expect(findProvider("HBO Max")?.category).toBe("STREAMING");
   });
 
   it("finds Apple TV+, Prime, Videoland, Spotify", () => {
