@@ -115,6 +115,9 @@ model Bill {
   // v3.1: gepar­seerde factuur-periode (1e van de maand UTC).
   // Voor stale-warning op /onderhandel/analyse (>180 dagen oud).
   invoiceDate  DateTime?
+  // v4: klantnummer uit OCR — gebruikt in onderhandel-email zodat retentie
+  // direct kan zoeken op account.
+  customerNumber String?
   imageHash    String?      @unique
   rawOcr       String?      @db.Text
   createdAt    DateTime     @default(now())

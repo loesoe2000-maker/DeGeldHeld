@@ -31,15 +31,21 @@ export default async function EmailPage({
     amountCents: bill.amountCents,
   });
 
-  const key = cacheKey(["negotiator", bill.id, bill.amountCents]);
+  // v4: use monthlyCents (vast abonnement) ipv amountCents (totaal) zodat
+  // negotiator vergelijkt op het terugkerend bedrag, niet eenmalige posten.
+  const compareCents = bill.monthlyCents ?? bill.amountCents;
+
+  const key = cacheKey(["negotiator", bill.id, compareCents, "v4"]);
   let result = negotiatorCache.get(key) as Awaited<ReturnType<typeof generateEmail>> | null;
   if (!result) {
     result = await generateEmail({
       customerName: session.user.name ?? session.user.email ?? "Klant",
+      customerEmail: session.user.email ?? undefined,
       provider: bill.provider,
       category: bill.category,
       currentPlan: bill.plan,
-      currentMonthlyCents: bill.amountCents,
+      currentMonthlyCents: compareCents,
+      customerNumber: bill.customerNumber,
       alternatives: comparison.topAlternatives,
     });
     negotiatorCache.set(key, result);

@@ -96,6 +96,7 @@ export async function POST(req: NextRequest) {
           plan: ocr.plan,
           period: ocr.period,
           invoiceDate: parseInvoiceDate(ocr.period),
+          customerNumber: ocr.customerNumber,
           rawOcr: ocr.rawText.slice(0, 4000),
         },
       });
@@ -111,6 +112,7 @@ export async function POST(req: NextRequest) {
           plan: ocr.plan,
           period: ocr.period,
           invoiceDate: parseInvoiceDate(ocr.period),
+          customerNumber: ocr.customerNumber,
           imageHash,
           rawOcr: ocr.rawText.slice(0, 4000),
         },
