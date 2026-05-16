@@ -3,6 +3,7 @@ import crypto from "node:crypto";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { extractBill, hashImage, parseInvoiceDate, validateUploadedFile } from "@/lib/ocr";
+import { currencyForCountry } from "@/lib/format";
 
 // imageHash has a global UNIQUE constraint in the schema, so two users
 // uploading the same file would collide. Scope the stored hash to (user, file)
@@ -98,6 +99,7 @@ export async function POST(req: NextRequest) {
           invoiceDate: parseInvoiceDate(ocr.period),
           customerNumber: ocr.customerNumber,
           country: ocr.country ?? undefined,
+          currency: currencyForCountry(ocr.country),
           rawOcr: ocr.rawText.slice(0, 4000),
         },
       });
@@ -115,6 +117,7 @@ export async function POST(req: NextRequest) {
           invoiceDate: parseInvoiceDate(ocr.period),
           customerNumber: ocr.customerNumber,
           country: ocr.country ?? undefined,
+          currency: currencyForCountry(ocr.country),
           imageHash,
           rawOcr: ocr.rawText.slice(0, 4000),
         },

@@ -1,6 +1,26 @@
 /**
- * Nederlandse format helpers — komma als decimaal, € prefix, K/M suffix.
+ * Format helpers — NL default, multi-currency for EU/UK/US/CH expansion.
  */
+
+export type SupportedCurrency = "EUR" | "GBP" | "USD" | "CHF";
+export type SupportedLocale = "nl" | "en" | "de" | "fr";
+
+const LOCALE_FOR_CURRENCY: Record<SupportedCurrency, string> = {
+  EUR: "nl-NL",
+  GBP: "en-GB",
+  USD: "en-US",
+  CHF: "de-CH",
+};
+
+/** Map ISO country code → default currency. */
+export function currencyForCountry(country: string | null | undefined): SupportedCurrency {
+  if (!country) return "EUR";
+  const c = country.toUpperCase();
+  if (c === "UK" || c === "GB") return "GBP";
+  if (c === "US") return "USD";
+  if (c === "CH") return "CHF";
+  return "EUR";
+}
 
 const eurFormatter = new Intl.NumberFormat("nl-NL", {
   style: "currency",
@@ -15,6 +35,26 @@ const eurNoDecimalFormatter = new Intl.NumberFormat("nl-NL", {
   minimumFractionDigits: 0,
   maximumFractionDigits: 0,
 });
+
+/**
+ * Multi-currency formatter. Use this for new code where currency may vary.
+ * For NL EUR backwards-compat: `formatEurCents` keeps its signature.
+ */
+export function formatCurrency(
+  cents: number,
+  currency: SupportedCurrency = "EUR",
+  locale?: string,
+  opts: { showDecimals?: boolean } = {},
+): string {
+  const amount = cents / 100;
+  const loc = locale ?? LOCALE_FOR_CURRENCY[currency];
+  return new Intl.NumberFormat(loc, {
+    style: "currency",
+    currency,
+    minimumFractionDigits: opts.showDecimals === false ? 0 : 2,
+    maximumFractionDigits: opts.showDecimals === false ? 0 : 2,
+  }).format(amount);
+}
 
 export function formatEurCents(cents: number, opts: { showDecimals?: boolean } = {}): string {
   const euros = cents / 100;

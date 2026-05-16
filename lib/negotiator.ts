@@ -22,7 +22,7 @@ export type NegotiationStrategy =
   | "LANGETERMIJN_KORTING";
 
 export type Tonality = "FORMEEL" | "CASUAL";
-export type Language = "nl" | "en";
+export type Language = "nl" | "en" | "de" | "fr";
 
 export type NegotiatorInput = {
   customerName: string;
@@ -127,15 +127,32 @@ export function buildPrompt(input: NegotiatorInput): { system: string; user: str
   const best = input.alternatives[0];
   const hint = providerHint(input.provider);
 
-  const langLabel = language === "nl" ? "Nederlandse" : "Engelse";
-  const tonalityLabel =
-    tonality === "FORMEEL"
-      ? language === "nl"
-        ? "u-vorm, beleefd-formeel"
-        : "polite, formal"
-      : language === "nl"
-      ? "je-vorm, vriendelijk-direct"
-      : "casual, direct but friendly";
+  const LANG_LABEL: Record<Language, string> = {
+    nl: "Nederlandse",
+    en: "Engelse",
+    de: "Duitse",
+    fr: "Franse",
+  };
+  const FORMEEL_LABEL: Record<Language, string> = {
+    nl: "u-vorm, beleefd-formeel",
+    en: "polite, formal",
+    de: "Sie-Form, höflich-formell",
+    fr: "vouvoiement, poli et formel",
+  };
+  const CASUAL_LABEL: Record<Language, string> = {
+    nl: "je-vorm, vriendelijk-direct",
+    en: "casual, direct but friendly",
+    de: "du-Form, freundlich-direkt",
+    fr: "tutoiement, direct et amical",
+  };
+  const NATIVE_NAME: Record<Language, string> = {
+    nl: "Nederlands",
+    en: "English",
+    de: "Deutsch",
+    fr: "français",
+  };
+  const langLabel = LANG_LABEL[language];
+  const tonalityLabel = tonality === "FORMEEL" ? FORMEEL_LABEL[language] : CASUAL_LABEL[language];
 
   const system = `Je bent een ${langLabel} onderhandelings-assistent voor Nederlandse
 consumenten. Je schrijft een professionele e-mail aan het retentie-/klantbehoud-team
@@ -143,7 +160,7 @@ van een provider om het maandbedrag te verlagen.
 
 Stijl: ${tonalityLabel}, 150-220 woorden — lang genoeg om overtuigend te zijn,
 kort genoeg om gelezen te worden.
-Taal: ${language === "nl" ? "Nederlands" : "English"}.
+Taal: ${NATIVE_NAME[language]}.
 
 VERPLICHTE elementen in de mail (in deze volgorde):
 1. Aanhef + verwijzing naar klantnummer (als gegeven, anders "mijn account").
@@ -179,6 +196,8 @@ Antwoord in JSON met velden:
     )
     .join("; ");
 
+  // NL en EN hebben uitgewerkte strategie-tekst; DE/FR vallen terug op EN
+  // zodat de model de strategie-kern begrijpt, maar de body in DE/FR schrijft.
   const strategyDescriptions = language === "nl" ? STRATEGY_DESCRIPTIONS_NL : STRATEGY_DESCRIPTIONS_EN;
   const strategyDesc = strategyDescriptions[strategy];
 

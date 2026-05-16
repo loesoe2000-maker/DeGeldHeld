@@ -142,6 +142,8 @@ model Bill {
   // v5: country detected by OCR (NL/BE/DE/FR/UK/US/ES/IT/INT). Used to
   // disambiguate providers and to drive locale + dynamic alternatives.
   country      String?
+  // v5: currency from valuta-symbol / IBAN-prefix. Default EUR for NL/EU.
+  currency     String       @default("EUR")
   imageHash    String?      @unique
   rawOcr       String?      @db.Text
   createdAt    DateTime     @default(now())
