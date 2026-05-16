@@ -11,11 +11,19 @@ function userScopedHash(rawHash: string, userId: string): string {
   return crypto.createHash("sha256").update(`${userId}:${rawHash}`).digest("hex");
 }
 
-// A bill is considered "usable" if OCR actually got a real provider and amount.
-// If not, we want to re-run OCR on the same image instead of redirecting to an
-// empty analysis page that silently bounces back to /onderhandel.
-function isBillUsable(b: { provider: string; amountCents: number }): boolean {
-  return b.amountCents > 0 && b.provider !== "Onbekend" && b.provider !== "";
+// A bill is considered "usable" if OCR actually got a real provider and amount,
+// AND it was extracted against the current OCR schema (monthlyCents OR invoiceDate
+// populated — pre-v4 records have both null, so force a re-OCR to fill them in).
+function isBillUsable(b: {
+  provider: string;
+  amountCents: number;
+  monthlyCents?: number | null;
+  invoiceDate?: Date | null;
+}): boolean {
+  if (b.amountCents <= 0) return false;
+  if (b.provider === "Onbekend" || b.provider === "") return false;
+  if (b.monthlyCents == null && b.invoiceDate == null) return false;
+  return true;
 }
 
 export const runtime = "nodejs";

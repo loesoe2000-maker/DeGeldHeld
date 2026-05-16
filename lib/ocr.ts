@@ -228,8 +228,12 @@ export function parseOcrJson(raw: string): Partial<OcrResult> {
     const totalCents = toCents(obj.total_eur);
     const legacyAmount = toCents(obj.amount_eur);
 
-    const monthlyAmountCents = monthlyCents ?? legacyAmount;
-    const totalAmountCents = totalCents ?? legacyAmount ?? monthlyAmountCents;
+    // Llama 4 sometimes returns only `total_eur` (pure-subscription bill) or
+    // only `monthly_subscription_eur` (model couldn't read the total line).
+    // Fall back across all three so we never end up with a null comparison
+    // amount when at least one bedrag was extracted.
+    const monthlyAmountCents = monthlyCents ?? totalCents ?? legacyAmount;
+    const totalAmountCents = totalCents ?? monthlyCents ?? legacyAmount;
     const amountCents = monthlyAmountCents ?? totalAmountCents;
 
     const oneTimeItems = Array.isArray(obj.one_time_items)
