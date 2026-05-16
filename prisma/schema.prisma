@@ -87,9 +87,23 @@ enum NegotiationState {
   ANALYSE
   EMAIL_GEN
   AWAITING
+  // v5 multi-round:
+  EMAIL_SENT
+  RESPONSE_RECEIVED
+  COUNTER_SENT
+  ACCEPTED
+  REJECTED
+  // legacy terminals (still used by older negotiations):
   SUCCESS
   FAILED
   BILLED
+}
+
+enum RoundOutcome {
+  PENDING
+  ACCEPTED
+  REJECTED
+  ESCALATED
 }
 
 enum PaymentStatus {
@@ -149,10 +163,30 @@ model Negotiation {
   user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   bill    Bill     @relation(fields: [billId], references: [id], onDelete: Cascade)
   payment Payment?
+  rounds  NegotiationRound[]
 
   @@index([userId])
   @@index([state])
   @@index([followUpAt])
+}
+
+model NegotiationRound {
+  id               String       @id @default(cuid())
+  negotiationId    String
+  roundNumber      Int
+  providerResponse String?      @db.Text
+  responseOcrText  String?      @db.Text
+  analysisJson     String?      @db.Text
+  offeredCents     Int?
+  counterSubject   String?
+  counterBody      String?      @db.Text
+  outcome          RoundOutcome @default(PENDING)
+  createdAt        DateTime     @default(now())
+
+  negotiation Negotiation @relation(fields: [negotiationId], references: [id], onDelete: Cascade)
+
+  @@unique([negotiationId, roundNumber])
+  @@index([negotiationId])
 }
 
 model Payment {
