@@ -104,6 +104,28 @@ export default function EmailDisplay({
         </a>
       </div>
 
+      {billId && (
+        <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+          <div className="text-sm font-medium text-slate-700">
+            Heb je de mail verstuurd en al een antwoord ontvangen?
+          </div>
+          <div className="mt-3 flex flex-wrap gap-3">
+            <a
+              href={`/onderhandel/${billId}/ronde/1`}
+              className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800"
+            >
+              Ik kreeg antwoord →
+            </a>
+            <a
+              href={`/onderhandel/${billId}/uitkomst`}
+              className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-white"
+            >
+              Markeer uitkomst
+            </a>
+          </div>
+        </div>
+      )}
+
       <details className="rounded-xl border border-slate-200 bg-slate-50 p-4">
         <summary className="cursor-pointer text-sm font-medium text-slate-700">
           Waarom werkt deze hoek? (uitleg)

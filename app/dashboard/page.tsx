@@ -31,7 +31,10 @@ export default async function DashboardPage() {
   const active = negotiations
     .filter((n) => isOpenState(n.state))
     .map((n) => ({
-      id: n.id,
+      // The round route is /onderhandel/[billId]/ronde/[n], so we link via
+      // billId. Negotiation.id was a leftover from before the rounds feature
+      // existed and produced a 404 on the "Ik kreeg antwoord" button.
+      id: n.billId,
       provider: n.bill.provider,
       category: n.bill.category,
       state: n.state as string,
