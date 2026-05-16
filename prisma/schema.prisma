@@ -249,6 +249,26 @@ model MarketProvider {
   @@index([category])
 }
 
+enum CandidateStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model ProviderCandidate {
+  id            String          @id @default(cuid())
+  name          String
+  country       String
+  retentionJson String          @db.Text
+  status        CandidateStatus @default(PENDING)
+  source        String?         // bv "user_upload" / "admin"
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  @@unique([name, country])
+  @@index([status])
+}
+
 model MarketPlan {
   id          String       @id @default(cuid())
   providerId  String
