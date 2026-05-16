@@ -48,7 +48,7 @@ export async function GET(req: NextRequest) {
   };
   if (cutoff) successWhere.createdAt = { gte: cutoff };
   const billWhere: Record<string, unknown> = {};
-  // country filter is wired in DEEL 5 when Bill.country lands.
+  if (country) billWhere.country = country;
   if (category) billWhere.category = category;
   if (Object.keys(billWhere).length > 0) successWhere.bill = billWhere;
 

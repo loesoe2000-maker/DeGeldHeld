@@ -27,12 +27,26 @@ function cutoffFor(period: Period): Date | null {
 
 type Basis = "actual" | "expected";
 
-async function loadStats(period: Period, basis: Basis) {
+async function loadStats(period: Period, basis: Basis, country: string | null, category: string | null) {
   const cutoff = cutoffFor(period);
-  const baseWhere = cutoff ? { createdAt: { gte: cutoff } } : {};
+  const billWhere: Record<string, unknown> = {};
+  if (country) billWhere.country = country;
+  if (category) billWhere.category = category;
+
+  const successWhere: Record<string, unknown> = {
+    state: { in: ["SUCCESS", "BILLED", "ACCEPTED"] },
+  };
+  if (cutoff) successWhere.createdAt = { gte: cutoff };
+  if (Object.keys(billWhere).length > 0) successWhere.bill = billWhere;
+
+  const failedWhere: Record<string, unknown> = {
+    state: { in: ["FAILED", "REJECTED"] },
+  };
+  if (cutoff) failedWhere.createdAt = { gte: cutoff };
+  if (Object.keys(billWhere).length > 0) failedWhere.bill = billWhere;
 
   const successful = await prisma.negotiation.findMany({
-    where: { ...baseWhere, state: { in: ["SUCCESS", "BILLED", "ACCEPTED"] } },
+    where: successWhere,
     select: {
       actualSavingsCents: true,
       expectedSavingsCents: true,
@@ -40,9 +54,7 @@ async function loadStats(period: Period, basis: Basis) {
     },
     take: 1000,
   });
-  const failed = await prisma.negotiation.count({
-    where: { ...baseWhere, state: { in: ["FAILED", "REJECTED"] } },
-  });
+  const failed = await prisma.negotiation.count({ where: failedWhere });
 
   function val(n: { actualSavingsCents: number | null; expectedSavingsCents: number | null }): number {
     if (basis === "actual") return n.actualSavingsCents ?? 0;
@@ -83,17 +95,34 @@ const CATEGORY_LABELS: Record<string, string> = {
   OVERIG: "Overig",
 };
 
+const COUNTRY_OPTIONS = ["NL", "BE", "DE", "FR", "UK", "US", "ES", "IT"];
+const CATEGORY_OPTIONS = [
+  "TELECOM", "ENERGIE", "VERZEKERING", "HYPOTHEEK", "BANK",
+  "STREAMING", "GYM", "SOFTWARE", "OPSLAG", "OV", "ABONNEMENT", "OVERIG",
+];
+
+function buildHref(p: Record<string, string | null>): string {
+  const q = new URLSearchParams();
+  for (const [k, v] of Object.entries(p)) {
+    if (v) q.set(k, v);
+  }
+  const s = q.toString();
+  return s ? `/proof?${s}` : "/proof";
+}
+
 export default async function ProofPage({
   searchParams,
 }: {
-  searchParams: Promise<{ period?: string; basis?: string }>;
+  searchParams: Promise<{ period?: string; basis?: string; country?: string; category?: string }>;
 }) {
   const params = await searchParams;
   const period: Period = (PERIODS as string[]).includes(params.period ?? "")
     ? (params.period as Period)
     : "all";
   const basis: Basis = params.basis === "expected" ? "expected" : "actual";
-  const stats = await loadStats(period, basis);
+  const country = COUNTRY_OPTIONS.includes(params.country ?? "") ? params.country! : null;
+  const category = CATEGORY_OPTIONS.includes(params.category ?? "") ? params.category! : null;
+  const stats = await loadStats(period, basis, country, category);
   return (
     <>
       <main className="mx-auto max-w-4xl px-6 py-16">
@@ -103,52 +132,62 @@ export default async function ProofPage({
           Live data — wordt elke 5 minuten ververst.
         </p>
 
-        <div className="mt-6 flex flex-wrap items-center gap-4">
-          <div className="inline-flex flex-wrap gap-1 rounded-lg border border-slate-200 bg-slate-50 p-1">
-            {PERIODS.map((p) => {
-              const active = p === period;
-              const q = new URLSearchParams();
-              if (p !== "all") q.set("period", p);
-              if (basis !== "actual") q.set("basis", basis);
-              const href = q.toString() ? `/proof?${q.toString()}` : "/proof";
-              return (
-                <Link
+        <div className="mt-6 space-y-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <FilterGroup label="Periode">
+              {PERIODS.map((p) => (
+                <FilterPill
                   key={p}
-                  href={href}
-                  className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${
-                    active
-                      ? "bg-brand-600 text-white shadow-sm"
-                      : "text-slate-600 hover:bg-white hover:text-slate-900"
-                  }`}
-                  aria-current={active ? "page" : undefined}
+                  href={buildHref({ period: p === "all" ? null : p, basis: basis === "actual" ? null : basis, country, category })}
+                  active={p === period}
+                  variant="brand"
                 >
                   {PERIOD_LABELS[p]}
-                </Link>
-              );
-            })}
-          </div>
-          <div className="inline-flex gap-1 rounded-lg border border-slate-200 bg-slate-50 p-1">
-            {(["actual", "expected"] as Basis[]).map((b) => {
-              const active = b === basis;
-              const q = new URLSearchParams();
-              if (period !== "all") q.set("period", period);
-              if (b !== "actual") q.set("basis", b);
-              const href = q.toString() ? `/proof?${q.toString()}` : "/proof";
-              return (
-                <Link
+                </FilterPill>
+              ))}
+            </FilterGroup>
+            <FilterGroup label="Basis">
+              {(["actual", "expected"] as Basis[]).map((b) => (
+                <FilterPill
                   key={b}
-                  href={href}
-                  className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${
-                    active
-                      ? "bg-emerald-600 text-white shadow-sm"
-                      : "text-slate-600 hover:bg-white hover:text-slate-900"
-                  }`}
-                  aria-current={active ? "page" : undefined}
+                  href={buildHref({ period: period === "all" ? null : period, basis: b === "actual" ? null : b, country, category })}
+                  active={b === basis}
+                  variant="emerald"
                 >
                   {b === "actual" ? "Behaald" : "Verwacht"}
-                </Link>
-              );
-            })}
+                </FilterPill>
+              ))}
+            </FilterGroup>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <FilterGroup label="Land">
+              <FilterPill href={buildHref({ period: period === "all" ? null : period, basis: basis === "actual" ? null : basis, country: null, category })} active={country === null} variant="slate">Alle</FilterPill>
+              {COUNTRY_OPTIONS.map((c) => (
+                <FilterPill
+                  key={c}
+                  href={buildHref({ period: period === "all" ? null : period, basis: basis === "actual" ? null : basis, country: c, category })}
+                  active={c === country}
+                  variant="slate"
+                >
+                  {c}
+                </FilterPill>
+              ))}
+            </FilterGroup>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <FilterGroup label="Categorie">
+              <FilterPill href={buildHref({ period: period === "all" ? null : period, basis: basis === "actual" ? null : basis, country, category: null })} active={category === null} variant="slate">Alle</FilterPill>
+              {CATEGORY_OPTIONS.map((c) => (
+                <FilterPill
+                  key={c}
+                  href={buildHref({ period: period === "all" ? null : period, basis: basis === "actual" ? null : basis, country, category: c })}
+                  active={c === category}
+                  variant="slate"
+                >
+                  {CATEGORY_LABELS[c] ?? c}
+                </FilterPill>
+              ))}
+            </FilterGroup>
           </div>
         </div>
 
@@ -240,5 +279,44 @@ function Stat({ label, value, suffix = "" }: { label: string; value: number; suf
         {suffix}
       </div>
     </div>
+  );
+}
+
+function FilterGroup({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex flex-wrap items-center gap-1">
+      <span className="mr-1 text-xs font-medium uppercase tracking-wide text-slate-500">{label}</span>
+      <div className="inline-flex flex-wrap gap-1 rounded-lg border border-slate-200 bg-slate-50 p-1">{children}</div>
+    </div>
+  );
+}
+
+function FilterPill({
+  href,
+  active,
+  variant,
+  children,
+}: {
+  href: string;
+  active: boolean;
+  variant: "brand" | "emerald" | "slate";
+  children: React.ReactNode;
+}) {
+  const activeCls =
+    variant === "brand"
+      ? "bg-brand-600 text-white shadow-sm"
+      : variant === "emerald"
+      ? "bg-emerald-600 text-white shadow-sm"
+      : "bg-slate-700 text-white shadow-sm";
+  return (
+    <Link
+      href={href}
+      className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${
+        active ? activeCls : "text-slate-600 hover:bg-white hover:text-slate-900"
+      }`}
+      aria-current={active ? "page" : undefined}
+    >
+      {children}
+    </Link>
   );
 }
