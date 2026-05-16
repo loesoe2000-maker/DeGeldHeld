@@ -83,6 +83,8 @@ describe("components/NegotiationList", () => {
     confidence: null,
     reasoning: null,
     followUpAt: null,
+    emailSentAt: null,
+    outcomeAskedAt: null,
     closedAt: null,
     createdAt: new Date(),
     updatedAt: new Date(),

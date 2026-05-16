@@ -92,6 +92,7 @@ export default async function EmailPage({
           strategy={result.strategy}
           tonality={result.tonality}
           language={result.language}
+          billId={bill.id}
         />
       </div>
     </main>

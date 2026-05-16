@@ -156,6 +156,8 @@ model Negotiation {
   confidence      Float?
   reasoning       String?          @db.Text
   followUpAt      DateTime?
+  emailSentAt     DateTime?
+  outcomeAskedAt  DateTime?
   closedAt        DateTime?
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt

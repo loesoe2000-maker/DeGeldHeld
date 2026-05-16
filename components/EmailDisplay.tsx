@@ -13,6 +13,7 @@ export default function EmailDisplay({
   strategy,
   tonality,
   language,
+  billId,
 }: {
   subject: string;
   body: string;
@@ -22,6 +23,7 @@ export default function EmailDisplay({
   strategy?: string;
   tonality?: string;
   language?: string;
+  billId?: string;
 }) {
   const [copied, setCopied] = useState(false);
   async function copyAll() {
@@ -32,6 +34,14 @@ export default function EmailDisplay({
       setTimeout(() => setCopied(false), 2000);
     } catch {
       // fallback handled by browser select-text
+    }
+    if (billId) {
+      // Fire-and-forget: mark emailSentAt so the outcome-followup cron picks it up.
+      void fetch("/api/negotiations/sent", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ billId }),
+      }).catch(() => {});
     }
   }
 

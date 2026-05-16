@@ -25,18 +25,31 @@ function cutoffFor(period: Period): Date | null {
   return new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 }
 
-async function loadStats(period: Period) {
+type Basis = "actual" | "expected";
+
+async function loadStats(period: Period, basis: Basis) {
   const cutoff = cutoffFor(period);
   const baseWhere = cutoff ? { createdAt: { gte: cutoff } } : {};
 
   const successful = await prisma.negotiation.findMany({
-    where: { ...baseWhere, state: { in: ["SUCCESS", "BILLED"] } },
-    select: { actualSavingsCents: true, bill: { select: { category: true } } },
+    where: { ...baseWhere, state: { in: ["SUCCESS", "BILLED", "ACCEPTED"] } },
+    select: {
+      actualSavingsCents: true,
+      expectedSavingsCents: true,
+      bill: { select: { category: true } },
+    },
     take: 1000,
   });
-  const failed = await prisma.negotiation.count({ where: { ...baseWhere, state: "FAILED" } });
+  const failed = await prisma.negotiation.count({
+    where: { ...baseWhere, state: { in: ["FAILED", "REJECTED"] } },
+  });
 
-  const totalSavedCents = successful.reduce((a, n) => a + (n.actualSavingsCents ?? 0), 0);
+  function val(n: { actualSavingsCents: number | null; expectedSavingsCents: number | null }): number {
+    if (basis === "actual") return n.actualSavingsCents ?? 0;
+    return n.expectedSavingsCents ?? 0;
+  }
+
+  const totalSavedCents = successful.reduce((a, n) => a + val(n), 0);
   const totalAttempts = successful.length + failed;
   const successRate = totalAttempts > 0 ? successful.length / totalAttempts : 0;
   const avgCents = successful.length > 0 ? Math.round(totalSavedCents / successful.length) : 0;
@@ -46,7 +59,7 @@ async function loadStats(period: Period) {
     const cat = n.bill.category;
     byCategory[cat] = byCategory[cat] ?? { count: 0, totalCents: 0 };
     byCategory[cat].count += 1;
-    byCategory[cat].totalCents += n.actualSavingsCents ?? 0;
+    byCategory[cat].totalCents += val(n);
   }
 
   return {
@@ -73,13 +86,14 @@ const CATEGORY_LABELS: Record<string, string> = {
 export default async function ProofPage({
   searchParams,
 }: {
-  searchParams: Promise<{ period?: string }>;
+  searchParams: Promise<{ period?: string; basis?: string }>;
 }) {
   const params = await searchParams;
   const period: Period = (PERIODS as string[]).includes(params.period ?? "")
     ? (params.period as Period)
     : "all";
-  const stats = await loadStats(period);
+  const basis: Basis = params.basis === "expected" ? "expected" : "actual";
+  const stats = await loadStats(period, basis);
   return (
     <>
       <main className="mx-auto max-w-4xl px-6 py-16">
@@ -89,25 +103,53 @@ export default async function ProofPage({
           Live data — wordt elke 5 minuten ververst.
         </p>
 
-        <div className="mt-6 inline-flex flex-wrap gap-1 rounded-lg border border-slate-200 bg-slate-50 p-1">
-          {PERIODS.map((p) => {
-            const active = p === period;
-            const href = p === "all" ? "/proof" : `/proof?period=${p}`;
-            return (
-              <Link
-                key={p}
-                href={href}
-                className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${
-                  active
-                    ? "bg-brand-600 text-white shadow-sm"
-                    : "text-slate-600 hover:bg-white hover:text-slate-900"
-                }`}
-                aria-current={active ? "page" : undefined}
-              >
-                {PERIOD_LABELS[p]}
-              </Link>
-            );
-          })}
+        <div className="mt-6 flex flex-wrap items-center gap-4">
+          <div className="inline-flex flex-wrap gap-1 rounded-lg border border-slate-200 bg-slate-50 p-1">
+            {PERIODS.map((p) => {
+              const active = p === period;
+              const q = new URLSearchParams();
+              if (p !== "all") q.set("period", p);
+              if (basis !== "actual") q.set("basis", basis);
+              const href = q.toString() ? `/proof?${q.toString()}` : "/proof";
+              return (
+                <Link
+                  key={p}
+                  href={href}
+                  className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${
+                    active
+                      ? "bg-brand-600 text-white shadow-sm"
+                      : "text-slate-600 hover:bg-white hover:text-slate-900"
+                  }`}
+                  aria-current={active ? "page" : undefined}
+                >
+                  {PERIOD_LABELS[p]}
+                </Link>
+              );
+            })}
+          </div>
+          <div className="inline-flex gap-1 rounded-lg border border-slate-200 bg-slate-50 p-1">
+            {(["actual", "expected"] as Basis[]).map((b) => {
+              const active = b === basis;
+              const q = new URLSearchParams();
+              if (period !== "all") q.set("period", period);
+              if (b !== "actual") q.set("basis", b);
+              const href = q.toString() ? `/proof?${q.toString()}` : "/proof";
+              return (
+                <Link
+                  key={b}
+                  href={href}
+                  className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${
+                    active
+                      ? "bg-emerald-600 text-white shadow-sm"
+                      : "text-slate-600 hover:bg-white hover:text-slate-900"
+                  }`}
+                  aria-current={active ? "page" : undefined}
+                >
+                  {b === "actual" ? "Behaald" : "Verwacht"}
+                </Link>
+              );
+            })}
+          </div>
         </div>
 
         <section className="mt-8 rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 p-10 text-white">

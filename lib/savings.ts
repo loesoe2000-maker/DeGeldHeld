@@ -50,6 +50,11 @@ export function negotiationLabel(state: NegotiationState): string {
     ANALYSE: "Analyse loopt",
     EMAIL_GEN: "Email opgesteld",
     AWAITING: "Wacht op provider",
+    EMAIL_SENT: "Email verstuurd",
+    RESPONSE_RECEIVED: "Antwoord ontvangen",
+    COUNTER_SENT: "Counter-mail verstuurd",
+    ACCEPTED: "Akkoord — deal gesloten",
+    REJECTED: "Geweigerd",
     SUCCESS: "Geslaagd",
     FAILED: "Niet gelukt",
     BILLED: "Afgerond",
@@ -58,16 +63,30 @@ export function negotiationLabel(state: NegotiationState): string {
 }
 
 export function isOpenState(state: NegotiationState): boolean {
-  return ["NIEUW", "BILL_UPLOAD", "ANALYSE", "EMAIL_GEN", "AWAITING"].includes(state);
+  return [
+    "NIEUW",
+    "BILL_UPLOAD",
+    "ANALYSE",
+    "EMAIL_GEN",
+    "AWAITING",
+    "EMAIL_SENT",
+    "RESPONSE_RECEIVED",
+    "COUNTER_SENT",
+  ].includes(state);
 }
 
 export function isClosedState(state: NegotiationState): boolean {
-  return ["SUCCESS", "FAILED", "BILLED"].includes(state);
+  return ["SUCCESS", "FAILED", "BILLED", "ACCEPTED", "REJECTED"].includes(state);
 }
 
 export function tierClass(state: NegotiationState): string {
-  if (state === "SUCCESS" || state === "BILLED") return "bg-brand-100 text-brand-800";
-  if (state === "FAILED") return "bg-red-100 text-red-800";
-  if (state === "AWAITING") return "bg-amber-100 text-amber-800";
+  if (state === "SUCCESS" || state === "BILLED" || state === "ACCEPTED") {
+    return "bg-brand-100 text-brand-800";
+  }
+  if (state === "FAILED" || state === "REJECTED") return "bg-red-100 text-red-800";
+  if (state === "AWAITING" || state === "EMAIL_SENT" || state === "COUNTER_SENT") {
+    return "bg-amber-100 text-amber-800";
+  }
+  if (state === "RESPONSE_RECEIVED") return "bg-blue-100 text-blue-800";
   return "bg-slate-100 text-slate-700";
 }

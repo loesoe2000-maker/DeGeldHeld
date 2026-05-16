@@ -2,6 +2,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const mockUpdate = vi.fn();
 const mockFind = vi.fn();
+const mockAuth = vi.fn();
+
 vi.mock("../lib/db", () => ({
   prisma: {
     negotiation: {
@@ -18,8 +20,15 @@ vi.mock("@/lib/db", () => ({
     },
   },
 }));
+vi.mock("@/lib/auth", () => ({
+  auth: (...a: unknown[]) => mockAuth(...a),
+}));
+vi.mock("../lib/auth", () => ({
+  auth: (...a: unknown[]) => mockAuth(...a),
+}));
 
 import { POST } from "../app/api/negotiations/outcome/route";
+import { signOutcomeToken } from "@/lib/outcome_token";
 
 function req(body: unknown): Request {
   return new Request("http://localhost/api/negotiations/outcome", {
@@ -33,8 +42,12 @@ describe("api/negotiations/outcome POST", () => {
   beforeEach(() => {
     mockUpdate.mockReset();
     mockFind.mockReset();
-    // Default: findUnique returns a found row so update() is reachable.
-    mockFind.mockResolvedValue({ id: "n1" });
+    mockAuth.mockReset();
+    process.env.OUTCOME_TOKEN_SECRET = "test-secret-32-bytes-or-more-pls-ok";
+    // Default: findUnique returns row owned by user u1, no session — most tests
+    // explicitly opt in to auth via mockAuth or pass a token.
+    mockFind.mockResolvedValue({ id: "n1", userId: "u1", billId: "b1" });
+    mockAuth.mockResolvedValue({ user: { id: "u1", email: "x@y.nl" } });
   });
 
   it("400 on invalid JSON", async () => {
@@ -52,7 +65,13 @@ describe("api/negotiations/outcome POST", () => {
     expect(r.status).toBe(400);
   });
 
-  it("transitions SUCCESS on SUCCESS_SAVED", async () => {
+  it("401 when no auth and no token", async () => {
+    mockAuth.mockResolvedValueOnce(null);
+    const r = await POST(req({ negotiationId: "n1", outcome: "SUCCESS_SAVED" }) as never);
+    expect(r.status).toBe(401);
+  });
+
+  it("transitions SUCCESS on SUCCESS_SAVED (session auth)", async () => {
     mockUpdate.mockResolvedValue({ state: "SUCCESS" });
     const r = await POST(
       req({ negotiationId: "n1", outcome: "SUCCESS_SAVED", actualSavingsCents: 21600 }) as never,
@@ -63,6 +82,30 @@ describe("api/negotiations/outcome POST", () => {
         data: expect.objectContaining({ state: "SUCCESS", actualSavingsCents: 21600 }),
       }),
     );
+  });
+
+  it("token auth allows write without session", async () => {
+    mockAuth.mockResolvedValueOnce(null);
+    mockUpdate.mockResolvedValue({ state: "SUCCESS" });
+    const token = signOutcomeToken("b1");
+    const r = await POST(
+      req({
+        negotiationId: "n1",
+        outcome: "SUCCESS_SAVED",
+        actualSavingsCents: 100,
+        token,
+      }) as never,
+    );
+    expect(r.status).toBe(200);
+  });
+
+  it("token for different billId is rejected", async () => {
+    mockAuth.mockResolvedValueOnce(null);
+    const token = signOutcomeToken("b2"); // wrong bill
+    const r = await POST(
+      req({ negotiationId: "n1", outcome: "SUCCESS_SAVED", token }) as never,
+    );
+    expect(r.status).toBe(401);
   });
 
   it("transitions FAILED on FAILED_NO_DEAL", async () => {

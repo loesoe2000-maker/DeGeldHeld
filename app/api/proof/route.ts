@@ -5,21 +5,30 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
- * Public, anonymized track record. Powers /api/proof + landing page claims.
- * Cache 5 min via Cache-Control to reduce DB load.
+ * Public anonymized track record.
  *
- * v3: query param `period` ∈ "7d" | "30d" | "365d" | "all" (default "all")
- *     filters by createdAt >= cutoff.
+ * v5 query params:
+ *  - period:  "7d" | "30d" | "365d" | "all"  (default "all")
+ *  - basis:   "actual" | "expected"          (default "actual")
+ *      actual   = use actualSavingsCents (only filled after outcome capture)
+ *      expected = use expectedSavingsCents (LLM estimate at email-gen time)
+ *  - country: optional country filter (e.g. "NL")
+ *  - category: optional category filter (e.g. "TELECOM")
  */
 
 const PERIODS = ["7d", "30d", "365d", "all"] as const;
 type Period = (typeof PERIODS)[number];
+const BASES = ["actual", "expected"] as const;
+type Basis = (typeof BASES)[number];
 
 function parsePeriod(raw: string | null): Period {
   if (raw && (PERIODS as readonly string[]).includes(raw)) return raw as Period;
   return "all";
 }
-
+function parseBasis(raw: string | null): Basis {
+  if (raw && (BASES as readonly string[]).includes(raw)) return raw as Basis;
+  return "actual";
+}
 function cutoffFor(period: Period): Date | null {
   if (period === "all") return null;
   const days = period === "7d" ? 7 : period === "30d" ? 30 : 365;
@@ -27,22 +36,48 @@ function cutoffFor(period: Period): Date | null {
 }
 
 export async function GET(req: NextRequest) {
-  const period = parsePeriod(req.nextUrl.searchParams.get("period"));
+  const params = req.nextUrl.searchParams;
+  const period = parsePeriod(params.get("period"));
+  const basis = parseBasis(params.get("basis"));
+  const country = params.get("country");
+  const category = params.get("category");
+
   const cutoff = cutoffFor(period);
-  const baseWhere = cutoff ? { createdAt: { gte: cutoff } } : {};
+  const successWhere: Record<string, unknown> = {
+    state: { in: ["SUCCESS", "BILLED", "ACCEPTED"] },
+  };
+  if (cutoff) successWhere.createdAt = { gte: cutoff };
+  const billWhere: Record<string, unknown> = {};
+  // country filter is wired in DEEL 5 when Bill.country lands.
+  if (category) billWhere.category = category;
+  if (Object.keys(billWhere).length > 0) successWhere.bill = billWhere;
+
+  const failedWhere: Record<string, unknown> = {
+    state: { in: ["FAILED", "REJECTED"] },
+  };
+  if (cutoff) failedWhere.createdAt = { gte: cutoff };
+  if (Object.keys(billWhere).length > 0) failedWhere.bill = billWhere;
 
   const successful = await prisma.negotiation.findMany({
-    where: { ...baseWhere, state: { in: ["SUCCESS", "BILLED"] } },
-    select: { actualSavingsCents: true, bill: { select: { category: true } }, createdAt: true },
+    where: successWhere,
+    select: {
+      actualSavingsCents: true,
+      expectedSavingsCents: true,
+      bill: { select: { category: true } },
+      createdAt: true,
+    },
     take: 1000,
     orderBy: { createdAt: "desc" },
   });
 
-  const failed = await prisma.negotiation.count({
-    where: { ...baseWhere, state: "FAILED" },
-  });
+  const failed = await prisma.negotiation.count({ where: failedWhere });
 
-  const totalSavedCents = successful.reduce((acc, n) => acc + (n.actualSavingsCents ?? 0), 0);
+  function valueFor(n: { actualSavingsCents: number | null; expectedSavingsCents: number | null }): number {
+    if (basis === "actual") return n.actualSavingsCents ?? 0;
+    return n.expectedSavingsCents ?? 0;
+  }
+
+  const totalSavedCents = successful.reduce((acc, n) => acc + valueFor(n), 0);
   const totalAttempts = successful.length + failed;
   const successRate = totalAttempts > 0 ? successful.length / totalAttempts : 0;
   const avgSavingsCents =
@@ -53,13 +88,15 @@ export async function GET(req: NextRequest) {
     const cat = n.bill.category;
     byCategory[cat] = byCategory[cat] ?? { count: 0, totalCents: 0 };
     byCategory[cat].count += 1;
-    byCategory[cat].totalCents += n.actualSavingsCents ?? 0;
+    byCategory[cat].totalCents += valueFor(n);
   }
 
   return NextResponse.json(
     {
       generated_at: new Date().toISOString(),
       period,
+      basis,
+      filters: { country, category },
       stats: {
         total_negotiations: totalAttempts,
         total_successful: successful.length,
