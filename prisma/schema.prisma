@@ -74,10 +74,17 @@ model VerificationToken {
 enum BillCategory {
   TELECOM
   ENERGIE
+  WATER
+  GEMEENTE
   VERZEKERING
   HYPOTHEEK
   BANK
   ABONNEMENT
+  STREAMING
+  GYM
+  OV
+  SOFTWARE
+  OPSLAG
   OVERIG
 }
 

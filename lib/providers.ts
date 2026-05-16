@@ -19,10 +19,17 @@
 export type Category =
   | "TELECOM"
   | "ENERGIE"
+  | "WATER"
+  | "GEMEENTE"
   | "VERZEKERING"
   | "HYPOTHEEK"
   | "BANK"
   | "ABONNEMENT"
+  | "STREAMING"
+  | "GYM"
+  | "OV"
+  | "SOFTWARE"
+  | "OPSLAG"
   | "OVERIG";
 
 export type Country =
@@ -231,12 +238,12 @@ export const PROVIDERS: Provider[] = [
   P({ canonical: "Tulp Hypotheken", names: ["tulp hypotheken", "tulphypotheken"], category: "HYPOTHEEK", country: "NL" }),
   P({ canonical: "Centraal Beheer Hypotheek", names: ["centraal beheer hypotheek"], category: "HYPOTHEEK", country: "NL" }),
 
-  P({ canonical: "Vitens", names: ["vitens"], category: "OVERIG", country: "NL" }),
-  P({ canonical: "Brabant Water", names: ["brabant water"], category: "OVERIG", country: "NL" }),
-  P({ canonical: "PWN", names: ["pwn waterleiding", "pwn drinkwater"], category: "OVERIG", country: "NL" }),
-  P({ canonical: "Evides", names: ["evides"], category: "OVERIG", country: "NL" }),
-  P({ canonical: "Dunea", names: ["dunea"], category: "OVERIG", country: "NL" }),
-  P({ canonical: "Waternet", names: ["waternet"], category: "OVERIG", country: "NL" }),
+  P({ canonical: "Vitens", names: ["vitens"], category: "WATER", country: "NL" }),
+  P({ canonical: "Brabant Water", names: ["brabant water"], category: "WATER", country: "NL" }),
+  P({ canonical: "PWN", names: ["pwn waterleiding", "pwn drinkwater"], category: "WATER", country: "NL" }),
+  P({ canonical: "Evides", names: ["evides"], category: "WATER", country: "NL" }),
+  P({ canonical: "Dunea", names: ["dunea"], category: "WATER", country: "NL" }),
+  P({ canonical: "Waternet", names: ["waternet"], category: "WATER", country: "NL" }),
   P({ canonical: "PostNL", names: ["postnl", "post nl"], category: "OVERIG", country: "NL" }),
 
   // ===== BE =====
@@ -403,39 +410,50 @@ export const PROVIDERS: Provider[] = [
   P({ canonical: "UniCredit", names: ["unicredit"], category: "BANK", country: "IT" }),
   P({ canonical: "BPER", names: ["bper banca", "bper"], category: "BANK", country: "IT" }),
 
-  // ===== INT (global streaming/software) =====
-  P({ canonical: "Netflix", names: ["netflix"], category: "ABONNEMENT", country: "INT" }),
-  P({ canonical: "Disney+", names: ["disney+", "disneyplus", "disney plus"], category: "ABONNEMENT", country: "INT" }),
-  P({ canonical: "HBO Max", names: ["hbo max", "hbomax"], category: "ABONNEMENT", country: "INT" }),
-  P({ canonical: "Apple TV+", names: ["apple tv+", "apple tv plus", "appletv"], category: "ABONNEMENT", country: "INT" }),
-  P({ canonical: "Amazon Prime Video", names: ["prime video", "amazon prime"], category: "ABONNEMENT", country: "INT" }),
-  P({ canonical: "Spotify", names: ["spotify"], category: "ABONNEMENT", country: "INT" }),
-  P({ canonical: "Apple Music", names: ["apple music"], category: "ABONNEMENT", country: "INT" }),
-  P({ canonical: "YouTube Premium", names: ["youtube premium", "youtube music"], category: "ABONNEMENT", country: "INT" }),
-  P({ canonical: "Tidal", names: ["tidal"], category: "ABONNEMENT", country: "INT" }),
-  P({ canonical: "Deezer", names: ["deezer"], category: "ABONNEMENT", country: "INT" }),
-  P({ canonical: "Audible", names: ["audible"], category: "ABONNEMENT", country: "INT" }),
-  P({ canonical: "Microsoft 365", names: ["microsoft 365", "office 365", "ms 365"], category: "ABONNEMENT", country: "INT" }),
-  P({ canonical: "Adobe Creative Cloud", names: ["adobe creative cloud", "adobe cc", "creative cloud"], category: "ABONNEMENT", country: "INT" }),
-  P({ canonical: "iCloud+", names: ["icloud+", "icloud plus", "icloud storage"], category: "ABONNEMENT", country: "INT" }),
-  P({ canonical: "Google One", names: ["google one"], category: "ABONNEMENT", country: "INT" }),
-  P({ canonical: "Dropbox", names: ["dropbox plus", "dropbox pro"], category: "ABONNEMENT", country: "INT" }),
-  P({ canonical: "ChatGPT Plus", names: ["chatgpt plus", "openai plus"], category: "ABONNEMENT", country: "INT" }),
-  P({ canonical: "GitHub Pro", names: ["github copilot", "github pro"], category: "ABONNEMENT", country: "INT" }),
-  P({ canonical: "Notion", names: ["notion plus", "notion pro"], category: "ABONNEMENT", country: "INT" }),
+  // ===== INT — STREAMING =====
+  P({ canonical: "Netflix", names: ["netflix"], category: "STREAMING", country: "INT" }),
+  P({ canonical: "Disney+", names: ["disney+", "disneyplus", "disney plus"], category: "STREAMING", country: "INT" }),
+  P({ canonical: "HBO Max", names: ["hbo max", "hbomax"], category: "STREAMING", country: "INT" }),
+  P({ canonical: "Apple TV+", names: ["apple tv+", "apple tv plus", "appletv"], category: "STREAMING", country: "INT" }),
+  P({ canonical: "Amazon Prime Video", names: ["prime video", "amazon prime"], category: "STREAMING", country: "INT" }),
+  P({ canonical: "Spotify", names: ["spotify"], category: "STREAMING", country: "INT" }),
+  P({ canonical: "Apple Music", names: ["apple music"], category: "STREAMING", country: "INT" }),
+  P({ canonical: "YouTube Premium", names: ["youtube premium", "youtube music"], category: "STREAMING", country: "INT" }),
+  P({ canonical: "Tidal", names: ["tidal"], category: "STREAMING", country: "INT" }),
+  P({ canonical: "Deezer", names: ["deezer"], category: "STREAMING", country: "INT" }),
+  P({ canonical: "Audible", names: ["audible"], category: "STREAMING", country: "INT" }),
+  P({ canonical: "Videoland", names: ["videoland"], category: "STREAMING", country: "NL" }),
+  P({ canonical: "ESPN+", names: ["espn+", "espn plus"], category: "STREAMING", country: "NL" }),
+  P({ canonical: "Ziggo Sport", names: ["ziggo sport"], category: "STREAMING", country: "NL" }),
+  P({ canonical: "Viaplay", names: ["viaplay"], category: "STREAMING", country: "INT" }),
+  P({ canonical: "Storytel", names: ["storytel"], category: "STREAMING", country: "INT" }),
+  // ===== INT — SOFTWARE =====
+  P({ canonical: "Microsoft 365", names: ["microsoft 365", "office 365", "ms 365"], category: "SOFTWARE", country: "INT" }),
+  P({ canonical: "Adobe Creative Cloud", names: ["adobe creative cloud", "adobe cc", "creative cloud"], category: "SOFTWARE", country: "INT" }),
+  P({ canonical: "ChatGPT Plus", names: ["chatgpt plus", "openai plus"], category: "SOFTWARE", country: "INT" }),
+  P({ canonical: "GitHub Pro", names: ["github copilot", "github pro"], category: "SOFTWARE", country: "INT" }),
+  P({ canonical: "Notion", names: ["notion plus", "notion pro"], category: "SOFTWARE", country: "INT" }),
+  // ===== INT — OPSLAG =====
+  P({ canonical: "iCloud+", names: ["icloud+", "icloud plus", "icloud storage"], category: "OPSLAG", country: "INT" }),
+  P({ canonical: "Google One", names: ["google one"], category: "OPSLAG", country: "INT" }),
+  P({ canonical: "Dropbox", names: ["dropbox plus", "dropbox pro"], category: "OPSLAG", country: "INT" }),
+  // ===== INT — BANK =====
   P({ canonical: "Revolut", names: ["revolut"], category: "BANK", country: "INT" }),
   P({ canonical: "N26", names: ["n26"], category: "BANK", country: "INT" }),
   P({ canonical: "Wise", names: ["wise", "transferwise"], category: "BANK", country: "INT" }),
-  P({ canonical: "Videoland", names: ["videoland"], category: "ABONNEMENT", country: "NL" }),
-  P({ canonical: "ESPN+", names: ["espn+", "espn plus"], category: "ABONNEMENT", country: "NL" }),
-  P({ canonical: "Ziggo Sport", names: ["ziggo sport"], category: "ABONNEMENT", country: "NL" }),
-  P({ canonical: "Viaplay", names: ["viaplay"], category: "ABONNEMENT", country: "INT" }),
-  P({ canonical: "Storytel", names: ["storytel"], category: "ABONNEMENT", country: "INT" }),
-  P({ canonical: "Basic-Fit", names: ["basic-fit", "basicfit", "basic fit"], category: "ABONNEMENT", country: "INT" }),
-  P({ canonical: "SportCity", names: ["sportcity", "sport city"], category: "ABONNEMENT", country: "NL" }),
-  P({ canonical: "Anytime Fitness", names: ["anytime fitness"], category: "ABONNEMENT", country: "INT" }),
-  P({ canonical: "Fit For Free", names: ["fit for free"], category: "ABONNEMENT", country: "NL" }),
+  // ===== GYM =====
+  P({ canonical: "Basic-Fit", names: ["basic-fit", "basicfit", "basic fit"], category: "GYM", country: "INT" }),
+  P({ canonical: "SportCity", names: ["sportcity", "sport city"], category: "GYM", country: "NL" }),
+  P({ canonical: "Anytime Fitness", names: ["anytime fitness"], category: "GYM", country: "INT" }),
+  P({ canonical: "Fit For Free", names: ["fit for free"], category: "GYM", country: "NL" }),
+  // ===== WATER / GEMEENTE / OV =====
+  // Promoted from OVERIG. Water heeft géén onderhandel-mogelijkheid maar wel
+  // monitoring (zie lib/categories.ts) — gemeente idem.
   P({ canonical: "DPD", names: ["dpd"], category: "OVERIG", country: "INT" }),
+  P({ canonical: "NS", names: ["ns nederlandse spoorwegen", "ns.nl", "nederlandse spoorwegen"], category: "OV", country: "NL" }),
+  P({ canonical: "OV-chipkaart", names: ["ov-chipkaart", "ovchipkaart"], category: "OV", country: "NL" }),
+  P({ canonical: "Greenwheels", names: ["greenwheels"], category: "OV", country: "NL" }),
+  P({ canonical: "Swapfiets", names: ["swapfiets"], category: "OV", country: "NL" }),
 ];
 
 // ─────────────────────────────────────────────────────────────
@@ -601,7 +619,22 @@ export function listProvidersByCountry(country: Country): Provider[] {
 }
 
 export function allCategories(): Category[] {
-  return ["TELECOM", "ENERGIE", "VERZEKERING", "HYPOTHEEK", "BANK", "ABONNEMENT", "OVERIG"];
+  return [
+    "TELECOM",
+    "ENERGIE",
+    "WATER",
+    "GEMEENTE",
+    "VERZEKERING",
+    "HYPOTHEEK",
+    "BANK",
+    "ABONNEMENT",
+    "STREAMING",
+    "GYM",
+    "OV",
+    "SOFTWARE",
+    "OPSLAG",
+    "OVERIG",
+  ];
 }
 
 export function allCountries(): Country[] {

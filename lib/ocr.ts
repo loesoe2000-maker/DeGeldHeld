@@ -36,6 +36,15 @@ export type OcrResult = {
   language: "nl" | "en" | "de" | "unknown";
   /** Detected country from valuta/address/language. Null when uncertain. */
   country: Country | null;
+  /** Optional category-specific extras — only populated when OCR was confident. */
+  energyKwhRateCents?: number | null;     // ENERGIE: cent per kWh
+  energyM3RateCents?: number | null;      // ENERGIE: cent per m³ gas
+  insuranceCoverage?: string | null;      // VERZEKERING: WA/casco/uitgebreid
+  insuranceDeductibleCents?: number | null; // VERZEKERING: eigen risico in cents
+  mortgageInterestPct?: number | null;    // HYPOTHEEK: rentepercentage
+  mortgageTermYears?: number | null;      // HYPOTHEEK: looptijd in jaren
+  bankAccountTier?: string | null;        // BANK: pakketnaam
+  streamingTier?: string | null;          // STREAMING: basic/standard/premium
   confidence: number; // 0..1
   rawText: string;
   imageHash: string;
@@ -73,6 +82,16 @@ Lees de factuur en extracteer:
   - country: ISO-2-code van het land waar de factuur uit komt
     (NL/BE/DE/FR/UK/US/ES/IT). Gebruik valuta-symbool (€/£/$),
     adres, IBAN-prefix en taal als hints. null bij twijfel.
+  - category-specifieke extras (alleen vullen indien duidelijk leesbaar,
+    anders null):
+      energy_kwh_rate_eur: prijs per kWh (energie-factuur)
+      energy_m3_rate_eur: prijs per m³ gas (energie-factuur)
+      insurance_coverage: dekking-type (WA/casco/uitgebreid)
+      insurance_deductible_eur: eigen risico in euro
+      mortgage_interest_pct: rente in procent (hypotheek-factuur)
+      mortgage_term_years: looptijd in jaren
+      bank_account_tier: pakket-/account-naam
+      streaming_tier: tier basic/standard/premium
   - confidence: 0-1 (hoe zeker ben je over provider+amounts samen)
 
 Belangrijke regels:
@@ -263,6 +282,17 @@ export function parseOcrJson(raw: string): Partial<OcrResult> {
       ? (obj.one_time_items as unknown[]).filter((x): x is string => typeof x === "string")
       : [];
 
+    function toCentsLoose(v: unknown): number | null {
+      if (typeof v !== "number" || !Number.isFinite(v)) return null;
+      return Math.round(v * 100);
+    }
+    function strOrNull(v: unknown): string | null {
+      return typeof v === "string" && v.length > 0 ? v : null;
+    }
+    function numOrNull(v: unknown): number | null {
+      return typeof v === "number" && Number.isFinite(v) ? v : null;
+    }
+
     return {
       provider,
       monthlyAmountCents,
@@ -274,6 +304,14 @@ export function parseOcrJson(raw: string): Partial<OcrResult> {
       customerNumber,
       language: detectLanguage(obj.language),
       country: detectCountry(obj.country),
+      energyKwhRateCents: toCentsLoose(obj.energy_kwh_rate_eur),
+      energyM3RateCents: toCentsLoose(obj.energy_m3_rate_eur),
+      insuranceCoverage: strOrNull(obj.insurance_coverage),
+      insuranceDeductibleCents: toCentsLoose(obj.insurance_deductible_eur),
+      mortgageInterestPct: numOrNull(obj.mortgage_interest_pct),
+      mortgageTermYears: numOrNull(obj.mortgage_term_years),
+      bankAccountTier: strOrNull(obj.bank_account_tier),
+      streamingTier: strOrNull(obj.streaming_tier),
       confidence: Math.max(0, Math.min(1, confidence)),
     };
   } catch {
@@ -426,6 +464,14 @@ export async function extractBill(imageBuf: Buffer, mimeType: string): Promise<O
         customerNumber: parsed.customerNumber ?? null,
         language: parsed.language ?? "unknown",
         country,
+        energyKwhRateCents: parsed.energyKwhRateCents ?? null,
+        energyM3RateCents: parsed.energyM3RateCents ?? null,
+        insuranceCoverage: parsed.insuranceCoverage ?? null,
+        insuranceDeductibleCents: parsed.insuranceDeductibleCents ?? null,
+        mortgageInterestPct: parsed.mortgageInterestPct ?? null,
+        mortgageTermYears: parsed.mortgageTermYears ?? null,
+        bankAccountTier: parsed.bankAccountTier ?? null,
+        streamingTier: parsed.streamingTier ?? null,
         confidence: parsed.confidence,
         rawText: raw,
         imageHash,

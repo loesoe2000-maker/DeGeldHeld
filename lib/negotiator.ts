@@ -12,6 +12,7 @@
 
 import Groq from "groq-sdk";
 import type { Alternative } from "@/lib/comparison";
+import { ruleFor } from "@/lib/categories";
 
 export type NegotiationStrategy =
   | "RETENTIE_DREIG"
@@ -181,6 +182,11 @@ Antwoord in JSON met velden:
   const strategyDescriptions = language === "nl" ? STRATEGY_DESCRIPTIONS_NL : STRATEGY_DESCRIPTIONS_EN;
   const strategyDesc = strategyDescriptions[strategy];
 
+  // Category-specific playbook: bv hypotheek vraagt om rente-reductie, niet
+  // "switch binnen 30 dagen" zoals telecom.
+  const catRule = ruleFor(input.category as never);
+  const categoryHint = catRule.negotiable ? catRule.negotiationPlaybook : "";
+
   // Target = beste alternatief +€2 buffer, of 15% korting op huidig als geen alt.
   const targetCents = best
     ? best.plan.priceCents + 200
@@ -202,6 +208,7 @@ ${altSummary || "geen — gebruik markt-mediaan als argument"}
 Gewenst nieuw bedrag: €${(targetCents / 100).toFixed(2)}/maand
 Beste alternatief jaarlijkse besparing: €${best ? (best.yearlySavingsCents / 100).toFixed(0) : "0"}
 ${hint ? `Provider-tip: ${hint}` : ""}
+${categoryHint ? `Categorie-tip (${catRule.label}): ${categoryHint}` : ""}
 
 Schrijf de e-mail volgens de strategie en de 7 verplichte elementen. Wees concreet
 en feitelijk. Noem expliciet "${input.provider}" in de body.`;

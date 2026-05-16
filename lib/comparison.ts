@@ -1,5 +1,29 @@
 import { MARKET_PLANS, type SeedPlan } from "@/lib/market_db";
 import type { Category } from "@/lib/providers";
+import { ruleFor, type ComparisonUnit } from "@/lib/categories";
+
+export type { ComparisonUnit };
+
+export function comparisonUnitFor(cat: Category): ComparisonUnit {
+  return ruleFor(cat).comparisonUnit;
+}
+
+export function unitLabelFor(cat: Category): string {
+  switch (ruleFor(cat).comparisonUnit) {
+    case "monthly_eur":
+      return "€/maand";
+    case "per_kwh":
+      return "€/kWh";
+    case "per_m3":
+      return "€/m³";
+    case "per_year":
+      return "€/jaar";
+    case "interest_pct":
+      return "% rente";
+    case "monitoring_only":
+      return "monitoring";
+  }
+}
 
 export type Alternative = {
   plan: SeedPlan;
