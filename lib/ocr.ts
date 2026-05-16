@@ -12,7 +12,7 @@
 
 import Groq from "groq-sdk";
 import crypto from "node:crypto";
-import { findProvider, type Category } from "@/lib/providers";
+import { findProvider, providerCountry, type Category, type Country } from "@/lib/providers";
 import { ocrCache } from "@/lib/llm_cache";
 
 export type OcrResult = {
@@ -34,6 +34,8 @@ export type OcrResult = {
   period: string | null;
   customerNumber: string | null;
   language: "nl" | "en" | "de" | "unknown";
+  /** Detected country from valuta/address/language. Null when uncertain. */
+  country: Country | null;
   confidence: number; // 0..1
   rawText: string;
   imageHash: string;
@@ -52,7 +54,7 @@ export type OcrResult = {
  * Dynamic OCR prompt — multi-language, geen hardcoded provider lijst.
  * Asks model to extract whatever provider name appears, in any language.
  */
-const SYSTEM_PROMPT = `Je bent een multilingual OCR-engine voor facturen (NL/EN/DE).
+const SYSTEM_PROMPT = `Je bent een multilingual OCR-engine voor facturen (NL/EN/DE/FR/ES/IT).
 Lees de factuur en extracteer:
   - provider: bedrijfs-/leveranciersnaam (zoals afgedrukt, geen interpretatie)
   - monthly_subscription_eur: vaste maandelijkse abonnementsprijs in euro
@@ -68,6 +70,9 @@ Lees de factuur en extracteer:
   - period: factuur-periode (bv "mei 2026" of "2026-05")
   - customer_number: klantnummer / klant-id / Kundennummer / customer ID
   - language: "nl" | "en" | "de" (auto-detect)
+  - country: ISO-2-code van het land waar de factuur uit komt
+    (NL/BE/DE/FR/UK/US/ES/IT). Gebruik valuta-symbool (€/£/$),
+    adres, IBAN-prefix en taal als hints. null bij twijfel.
   - confidence: 0-1 (hoe zeker ben je over provider+amounts samen)
 
 Belangrijke regels:
@@ -119,6 +124,24 @@ export function extractEurFromText(s: string): number | null {
 function detectLanguage(input: unknown): OcrResult["language"] {
   if (input === "nl" || input === "en" || input === "de") return input;
   return "unknown";
+}
+
+const VALID_COUNTRIES: Country[] = ["NL", "BE", "DE", "FR", "UK", "US", "ES", "IT", "INT"];
+
+function detectCountry(input: unknown): Country | null {
+  if (typeof input !== "string") return null;
+  const upper = input.toUpperCase().trim();
+  if (VALID_COUNTRIES.includes(upper as Country)) return upper as Country;
+  // Common aliases
+  if (upper === "GB" || upper === "GBR") return "UK";
+  if (upper === "USA") return "US";
+  if (upper === "DEU") return "DE";
+  if (upper === "FRA") return "FR";
+  if (upper === "NLD") return "NL";
+  if (upper === "BEL") return "BE";
+  if (upper === "ESP") return "ES";
+  if (upper === "ITA") return "IT";
+  return null;
 }
 
 /**
@@ -250,10 +273,11 @@ export function parseOcrJson(raw: string): Partial<OcrResult> {
       period,
       customerNumber,
       language: detectLanguage(obj.language),
+      country: detectCountry(obj.country),
       confidence: Math.max(0, Math.min(1, confidence)),
     };
   } catch {
-    return { confidence: 0, language: "unknown", oneTimeItems: [] };
+    return { confidence: 0, language: "unknown", country: null, oneTimeItems: [] };
   }
 }
 
@@ -318,6 +342,7 @@ function mockBillResponse(imageHash: string): OcrResult {
     period: "mei 2026",
     customerNumber: "12345678",
     language: "nl",
+    country: "NL",
     confidence: 0.95,
     rawText: "MOCKED",
     imageHash,
@@ -346,6 +371,7 @@ export async function extractBill(imageBuf: Buffer, mimeType: string): Promise<O
     period: null,
     customerNumber: null,
     language: "unknown",
+    country: null,
     confidence: 0,
     rawText: "",
     imageHash,
@@ -382,6 +408,10 @@ export async function extractBill(imageBuf: Buffer, mimeType: string): Promise<O
     const parsed = parseOcrJson(raw);
     if (parsed.confidence != null && parsed.confidence >= 0.6 && parsed.amountCents != null) {
       const matched = parsed.provider ? findProvider(parsed.provider) : null;
+      // Country derivation: prefer OCR-detected, then provider's home country,
+      // then null. Means a Vodafone DE invoice scanned in NL still tags as DE.
+      const country: Country | null =
+        parsed.country ?? (matched ? providerCountry(matched.canonical) : null);
       const result: OcrResult = {
         ok: true,
         provider: matched?.canonical ?? parsed.provider ?? null,
@@ -395,6 +425,7 @@ export async function extractBill(imageBuf: Buffer, mimeType: string): Promise<O
         period: parsed.period ?? null,
         customerNumber: parsed.customerNumber ?? null,
         language: parsed.language ?? "unknown",
+        country,
         confidence: parsed.confidence,
         rawText: raw,
         imageHash,

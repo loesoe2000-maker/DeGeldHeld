@@ -132,6 +132,9 @@ model Bill {
   // v4: klantnummer uit OCR — gebruikt in onderhandel-email zodat retentie
   // direct kan zoeken op account.
   customerNumber String?
+  // v5: country detected by OCR (NL/BE/DE/FR/UK/US/ES/IT/INT). Used to
+  // disambiguate providers and to drive locale + dynamic alternatives.
+  country      String?
   imageHash    String?      @unique
   rawOcr       String?      @db.Text
   createdAt    DateTime     @default(now())

@@ -97,6 +97,7 @@ export async function POST(req: NextRequest) {
           period: ocr.period,
           invoiceDate: parseInvoiceDate(ocr.period),
           customerNumber: ocr.customerNumber,
+          country: ocr.country ?? undefined,
           rawOcr: ocr.rawText.slice(0, 4000),
         },
       });
@@ -113,6 +114,7 @@ export async function POST(req: NextRequest) {
           period: ocr.period,
           invoiceDate: parseInvoiceDate(ocr.period),
           customerNumber: ocr.customerNumber,
+          country: ocr.country ?? undefined,
           imageHash,
           rawOcr: ocr.rawText.slice(0, 4000),
         },
@@ -135,6 +137,7 @@ export async function POST(req: NextRequest) {
         period: ocr.period,
         customerNumber: ocr.customerNumber,
         language: ocr.language,
+        country: ocr.country,
         confidence: ocr.confidence,
       },
     });

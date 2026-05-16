@@ -1,10 +1,19 @@
 /**
- * Canonical NL/EU provider registry — used by OCR matching, comparison,
- * and seed scripts.
+ * Global provider registry.
  *
- * v3: uitgebreid van ~17 → 150+ providers met aliases voor robuuste OCR-matching.
- * Per provider: canonical naam + aliases (lowercase substrings die OCR kan extracten)
- * + region (NL / EU / GLOBAL) voor toekomstige geo-targeting.
+ * v5 schema (sprint GLOBAL_EXPANSION):
+ *  - id: canonical slug (kebab-case, unique)
+ *  - canonical: display name (was always canonical)
+ *  - names: alle bekende varianten incl. canonical en aliases (OCR match)
+ *  - category: cross-domain (TELECOM/ENERGIE/VERZEKERING/...)
+ *  - country: NL/BE/DE/FR/UK/US/ES/IT/INT (8 markten + global)
+ *  - locale: nl/en/de/fr/es/it
+ *  - network: MVNO underlying network (NL telecom only)
+ *  - retention: email/phone/whatsapp/url/hours — alleen waar WebFetch-geverifieerd
+ *
+ * Backwards-compat exports: NL_PROVIDERS, ProviderRecord, findProvider, region,
+ * aliases. Een verlaten van de oude type is een grote refactor en wordt
+ * vermeden door beide te exposen.
  */
 
 export type Category =
@@ -16,282 +25,605 @@ export type Category =
   | "ABONNEMENT"
   | "OVERIG";
 
+export type Country =
+  | "NL"
+  | "BE"
+  | "DE"
+  | "FR"
+  | "UK"
+  | "US"
+  | "ES"
+  | "IT"
+  | "INT";
+
+export type Locale = "nl" | "en" | "de" | "fr" | "es" | "it";
+
 export type Region = "NL" | "EU" | "GLOBAL";
 
-/**
- * NL mobiele netwerk-eigenaars: KPN, Vodafone, Odido (de oude T-Mobile NL).
- * MVNOs draaien op één van deze 3. null = eigen netwerk (geen MVNO).
- * Alleen relevant voor TELECOM (mobiel) — andere categorieën: undefined.
- */
 export type MobileNetwork = "KPN" | "Vodafone" | "Odido" | null;
 
+export type RetentionContact = {
+  email?: string;
+  phone?: string;
+  whatsapp?: string;
+  url?: string;
+  hours?: string;
+};
+
+export type Provider = {
+  id: string;
+  canonical: string;
+  names: string[];
+  category: Category;
+  country: Country;
+  locale: Locale;
+  network?: MobileNetwork;
+  retention?: RetentionContact;
+};
+
+/**
+ * Backwards-compat type — matches the old ProviderRecord shape so existing
+ * imports keep compiling. New code should prefer `Provider`.
+ */
 export type ProviderRecord = {
   canonical: string;
   category: Category;
   region: Region;
   aliases: string[];
-  /** Voor NL mobiele providers: onderliggend netwerk. null = eigen netwerk.
-   *  undefined voor non-telecom of internet/TV providers. */
   network?: MobileNetwork;
+  country?: Country;
+  locale?: Locale;
 };
 
-export const NL_PROVIDERS: ProviderRecord[] = [
-  // ===== TELECOM NL — mobiel =====
-  // T-Mobile NL = Odido na rebrand 2023; we houden T-Mobile als legacy entry,
-  // network = Odido zodat oude facturen correct gelabeld worden.
-  { canonical: "T-Mobile", category: "TELECOM", region: "NL", aliases: ["t-mobile", "tmobile", "t mobile"], network: "Odido" },
-  { canonical: "KPN", category: "TELECOM", region: "NL", aliases: ["kpn", "k.p.n."], network: null },
-  { canonical: "Vodafone", category: "TELECOM", region: "NL", aliases: ["vodafone"], network: null },
-  // Tele2: gefuseerd met T-Mobile/Odido sinds 2019 → draait nu op Odido-netwerk.
-  { canonical: "Tele2", category: "TELECOM", region: "NL", aliases: ["tele2", "tele 2"], network: "Odido" },
-  { canonical: "Odido", category: "TELECOM", region: "NL", aliases: ["odido"], network: null },
-  // MVNOs op KPN-netwerk
-  { canonical: "Youfone", category: "TELECOM", region: "NL", aliases: ["youfone", "you fone"], network: "KPN" },
-  // Ben Mobiel: dochtermerk van Odido — draait op Odido-netwerk.
-  { canonical: "Ben", category: "TELECOM", region: "NL", aliases: ["ben mobiel", "ben.nl", "ben telecom"], network: "Odido" },
-  // Hollandsnieuwe: KPN-merk → KPN-netwerk.
-  { canonical: "Hollandsnieuwe", category: "TELECOM", region: "NL", aliases: ["hollandsnieuwe", "hollands nieuwe"], network: "KPN" },
-  // Simpel: Odido-merk → Odido-netwerk.
-  { canonical: "Simpel", category: "TELECOM", region: "NL", aliases: ["simpel.nl", "simpel mobiel"], network: "Odido" },
-  { canonical: "Lebara", category: "TELECOM", region: "NL", aliases: ["lebara"], network: "KPN" },
-  { canonical: "Lyca Mobile", category: "TELECOM", region: "NL", aliases: ["lyca", "lycamobile", "lyca mobile"], network: "KPN" },
-  { canonical: "Simyo", category: "TELECOM", region: "NL", aliases: ["simyo"], network: "KPN" },
-  { canonical: "Budget Mobiel", category: "TELECOM", region: "NL", aliases: ["budget mobiel", "budgetmobiel"], network: "KPN" },
-  { canonical: "Robin Mobile", category: "TELECOM", region: "NL", aliases: ["robin mobile", "robinmobile"], network: "KPN" },
-  // Aldi Talk NL: KPN-MVNO (verkocht via Aldi-supermarkten).
-  { canonical: "Aldi Talk", category: "TELECOM", region: "NL", aliases: ["aldi talk", "alditalk"], network: "KPN" },
-  // Telfort: legacy KPN-merk (verkoop gestaakt 2020, bestaande klanten lopen door).
-  { canonical: "Telfort", category: "TELECOM", region: "NL", aliases: ["telfort"], network: "KPN" },
+function slug(s: string): string {
+  return s
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+}
 
-  // ===== TELECOM NL — internet/TV =====
-  { canonical: "Ziggo", category: "TELECOM", region: "NL", aliases: ["ziggo"] },
-  { canonical: "Online.nl", category: "TELECOM", region: "NL", aliases: ["online.nl", "online nl"] },
-  { canonical: "Caiway", category: "TELECOM", region: "NL", aliases: ["caiway"] },
-  { canonical: "Delta", category: "TELECOM", region: "NL", aliases: ["delta fiber", "delta internet"] },
-  { canonical: "Freedom Internet", category: "TELECOM", region: "NL", aliases: ["freedom internet", "freedom.nl"] },
+function countryToRegion(c: Country): Region {
+  if (c === "NL") return "NL";
+  if (c === "INT") return "GLOBAL";
+  return "EU"; // any specific EU/non-NL country maps to EU in legacy region
+}
 
-  // ===== ENERGIE NL =====
-  { canonical: "Eneco", category: "ENERGIE", region: "NL", aliases: ["eneco"] },
-  { canonical: "Vattenfall", category: "ENERGIE", region: "NL", aliases: ["vattenfall", "nuon"] },
-  { canonical: "Essent", category: "ENERGIE", region: "NL", aliases: ["essent"] },
-  { canonical: "Greenchoice", category: "ENERGIE", region: "NL", aliases: ["greenchoice", "green choice"] },
-  { canonical: "Vandebron", category: "ENERGIE", region: "NL", aliases: ["vandebron", "van de bron"] },
-  { canonical: "Pure Energie", category: "ENERGIE", region: "NL", aliases: ["pure energie", "pureenergie"] },
-  { canonical: "Engie", category: "ENERGIE", region: "NL", aliases: ["engie"] },
-  { canonical: "Budget Energie", category: "ENERGIE", region: "NL", aliases: ["budget energie", "budgetenergie"] },
-  { canonical: "Frank Energie", category: "ENERGIE", region: "NL", aliases: ["frank energie", "frankenergie"] },
-  { canonical: "EasyEnergy", category: "ENERGIE", region: "NL", aliases: ["easyenergy", "easy energy"] },
-  { canonical: "Oxxio", category: "ENERGIE", region: "NL", aliases: ["oxxio"] },
-  { canonical: "Energiedirect", category: "ENERGIE", region: "NL", aliases: ["energiedirect", "energie direct"] },
-  { canonical: "ANWB Energie", category: "ENERGIE", region: "NL", aliases: ["anwb energie"] },
-  { canonical: "Coolblue Energie", category: "ENERGIE", region: "NL", aliases: ["coolblue energie", "coolblue stroom"] },
-  { canonical: "DGB Energie", category: "ENERGIE", region: "NL", aliases: ["dgb energie", "dgb"] },
+function defaultLocale(country: Country): Locale {
+  switch (country) {
+    case "NL":
+    case "BE":
+      return "nl";
+    case "DE":
+      return "de";
+    case "FR":
+      return "fr";
+    case "ES":
+      return "es";
+    case "IT":
+      return "it";
+    case "UK":
+    case "US":
+    case "INT":
+      return "en";
+  }
+}
 
-  // ===== VERZEKERING NL — auto/woon =====
-  { canonical: "Centraal Beheer", category: "VERZEKERING", region: "NL", aliases: ["centraal beheer", "centraalbeheer"] },
-  { canonical: "ANWB Verzekeringen", category: "VERZEKERING", region: "NL", aliases: ["anwb verzekering", "anwb verzekeringen"] },
-  { canonical: "FBTO", category: "VERZEKERING", region: "NL", aliases: ["fbto"] },
-  { canonical: "InShared", category: "VERZEKERING", region: "NL", aliases: ["inshared", "in shared"] },
-  { canonical: "Allianz", category: "VERZEKERING", region: "NL", aliases: ["allianz"] },
-  { canonical: "Nationale-Nederlanden", category: "VERZEKERING", region: "NL", aliases: ["nationale-nederlanden", "nationale nederlanden", "nn group"] },
-  { canonical: "Univé", category: "VERZEKERING", region: "NL", aliases: ["unive", "univé"] },
-  { canonical: "ASR", category: "VERZEKERING", region: "NL", aliases: ["a.s.r.", "asr verzekeringen"] },
-  { canonical: "Aegon", category: "VERZEKERING", region: "NL", aliases: ["aegon"] },
-  { canonical: "Achmea", category: "VERZEKERING", region: "NL", aliases: ["achmea"] },
-  { canonical: "Interpolis", category: "VERZEKERING", region: "NL", aliases: ["interpolis"] },
-  { canonical: "Ditzo", category: "VERZEKERING", region: "NL", aliases: ["ditzo"] },
-  { canonical: "OHRA", category: "VERZEKERING", region: "NL", aliases: ["ohra"] },
-  { canonical: "Promovendum", category: "VERZEKERING", region: "NL", aliases: ["promovendum"] },
-  { canonical: "Reaal", category: "VERZEKERING", region: "NL", aliases: ["reaal"] },
-  { canonical: "Goudse", category: "VERZEKERING", region: "NL", aliases: ["goudse", "de goudse"] },
+/** Helper to define a provider — fills id/locale defaults so call sites stay terse. */
+function P(opts: {
+  canonical: string;
+  names?: string[];
+  category: Category;
+  country: Country;
+  locale?: Locale;
+  network?: MobileNetwork;
+  retention?: RetentionContact;
+}): Provider {
+  const names = opts.names ?? [];
+  // Guarantee canonical is in names (case-insensitive)
+  const lowerNames = names.map((n) => n.toLowerCase());
+  if (!lowerNames.includes(opts.canonical.toLowerCase())) {
+    names.unshift(opts.canonical);
+  }
+  return {
+    id: slug(opts.canonical),
+    canonical: opts.canonical,
+    names,
+    category: opts.category,
+    country: opts.country,
+    locale: opts.locale ?? defaultLocale(opts.country),
+    network: opts.network,
+    retention: opts.retention,
+  };
+}
 
-  // ===== VERZEKERING NL — zorg =====
-  { canonical: "Zilveren Kruis", category: "VERZEKERING", region: "NL", aliases: ["zilveren kruis", "zilverenkruis"] },
-  { canonical: "VGZ", category: "VERZEKERING", region: "NL", aliases: ["vgz"] },
-  { canonical: "CZ", category: "VERZEKERING", region: "NL", aliases: ["cz zorgverzekering", "c.z."] },
-  { canonical: "Menzis", category: "VERZEKERING", region: "NL", aliases: ["menzis"] },
-  { canonical: "DSW", category: "VERZEKERING", region: "NL", aliases: ["dsw zorgverzekering"] },
-  { canonical: "ONVZ", category: "VERZEKERING", region: "NL", aliases: ["onvz"] },
-  { canonical: "Salland", category: "VERZEKERING", region: "NL", aliases: ["salland zorgverzekering"] },
+// ─────────────────────────────────────────────────────────────
+// PROVIDERS — sorted by country, alphabetically within
+// Retention data is left undefined unless we have a published,
+// publicly-known retention contact. Per sprint regel: niets verzinnen.
+// ─────────────────────────────────────────────────────────────
 
-  // ===== BANK NL =====
-  { canonical: "ABN AMRO", category: "BANK", region: "NL", aliases: ["abn amro", "abnamro"] },
-  { canonical: "ING", category: "BANK", region: "NL", aliases: ["ing bank"] },
-  { canonical: "Rabobank", category: "BANK", region: "NL", aliases: ["rabobank", "rabo bank"] },
-  { canonical: "SNS", category: "BANK", region: "NL", aliases: ["sns bank", "sns.nl"] },
-  { canonical: "Knab", category: "BANK", region: "NL", aliases: ["knab"] },
-  { canonical: "Bunq", category: "BANK", region: "NL", aliases: ["bunq"] },
-  { canonical: "ASN Bank", category: "BANK", region: "NL", aliases: ["asn bank", "asnbank"] },
-  { canonical: "Triodos", category: "BANK", region: "NL", aliases: ["triodos"] },
-  { canonical: "Revolut", category: "BANK", region: "EU", aliases: ["revolut"] },
-  { canonical: "N26", category: "BANK", region: "EU", aliases: ["n26"] },
+export const PROVIDERS: Provider[] = [
+  // ===== NL =====
+  P({ canonical: "T-Mobile", names: ["t-mobile", "tmobile", "t mobile"], category: "TELECOM", country: "NL", network: "Odido" }),
+  P({ canonical: "KPN", names: ["kpn", "k.p.n."], category: "TELECOM", country: "NL", network: null,
+     retention: { url: "https://www.kpn.com/service/contact.htm", hours: "ma-vr 08:00-20:00, za 09:00-17:30" } }),
+  P({ canonical: "Vodafone", names: ["vodafone"], category: "TELECOM", country: "NL", network: null,
+     retention: { url: "https://www.vodafone.nl/contact", hours: "ma-vr 08:00-21:00, za 09:00-17:30" } }),
+  P({ canonical: "Tele2", names: ["tele2", "tele 2"], category: "TELECOM", country: "NL", network: "Odido" }),
+  P({ canonical: "Odido", names: ["odido"], category: "TELECOM", country: "NL", network: null }),
+  P({ canonical: "Youfone", names: ["youfone", "you fone"], category: "TELECOM", country: "NL", network: "KPN" }),
+  P({ canonical: "Ben", names: ["ben mobiel", "ben.nl", "ben telecom"], category: "TELECOM", country: "NL", network: "Odido" }),
+  P({ canonical: "Hollandsnieuwe", names: ["hollandsnieuwe", "hollands nieuwe"], category: "TELECOM", country: "NL", network: "KPN" }),
+  P({ canonical: "Simpel", names: ["simpel.nl", "simpel mobiel"], category: "TELECOM", country: "NL", network: "Odido" }),
+  P({ canonical: "Lebara", names: ["lebara"], category: "TELECOM", country: "NL", network: "KPN" }),
+  P({ canonical: "Lyca Mobile", names: ["lyca", "lycamobile", "lyca mobile"], category: "TELECOM", country: "NL", network: "KPN" }),
+  P({ canonical: "Simyo", names: ["simyo"], category: "TELECOM", country: "NL", network: "KPN" }),
+  P({ canonical: "Budget Mobiel", names: ["budget mobiel", "budgetmobiel"], category: "TELECOM", country: "NL", network: "KPN" }),
+  P({ canonical: "Robin Mobile", names: ["robin mobile", "robinmobile"], category: "TELECOM", country: "NL", network: "KPN" }),
+  P({ canonical: "Aldi Talk", names: ["aldi talk", "alditalk"], category: "TELECOM", country: "NL", network: "KPN" }),
+  P({ canonical: "Telfort", names: ["telfort"], category: "TELECOM", country: "NL", network: "KPN" }),
+  P({ canonical: "Ziggo", names: ["ziggo"], category: "TELECOM", country: "NL",
+     retention: { url: "https://www.ziggo.nl/klantenservice/contact" } }),
+  P({ canonical: "Online.nl", names: ["online.nl", "online nl"], category: "TELECOM", country: "NL" }),
+  P({ canonical: "Caiway", names: ["caiway"], category: "TELECOM", country: "NL" }),
+  P({ canonical: "Delta", names: ["delta fiber", "delta internet"], category: "TELECOM", country: "NL" }),
+  P({ canonical: "Freedom Internet", names: ["freedom internet", "freedom.nl"], category: "TELECOM", country: "NL" }),
 
-  // ===== HYPOTHEEK NL =====
-  { canonical: "ABN AMRO Hypotheken", category: "HYPOTHEEK", region: "NL", aliases: ["abn amro hypotheek", "abn hypotheek"] },
-  { canonical: "ING Hypotheken", category: "HYPOTHEEK", region: "NL", aliases: ["ing hypotheek"] },
-  { canonical: "Rabo Hypotheken", category: "HYPOTHEEK", region: "NL", aliases: ["rabobank hypotheek", "rabo hypotheek"] },
-  { canonical: "Aegon Hypotheken", category: "HYPOTHEEK", region: "NL", aliases: ["aegon hypotheek"] },
-  { canonical: "Munt Hypotheken", category: "HYPOTHEEK", region: "NL", aliases: ["munt hypotheken", "munt hypotheek"] },
-  { canonical: "Argenta", category: "HYPOTHEEK", region: "NL", aliases: ["argenta"] },
-  { canonical: "Florius", category: "HYPOTHEEK", region: "NL", aliases: ["florius"] },
-  { canonical: "Obvion", category: "HYPOTHEEK", region: "NL", aliases: ["obvion"] },
-  { canonical: "BLG Wonen", category: "HYPOTHEEK", region: "NL", aliases: ["blg wonen"] },
-  { canonical: "Lloyds NL", category: "HYPOTHEEK", region: "NL", aliases: ["lloyds bank nl"] },
-  { canonical: "Tulp Hypotheken", category: "HYPOTHEEK", region: "NL", aliases: ["tulp hypotheken", "tulphypotheken"] },
-  { canonical: "Centraal Beheer Hypotheek", category: "HYPOTHEEK", region: "NL", aliases: ["centraal beheer hypotheek"] },
+  P({ canonical: "Eneco", names: ["eneco"], category: "ENERGIE", country: "NL" }),
+  P({ canonical: "Vattenfall", names: ["vattenfall", "nuon"], category: "ENERGIE", country: "NL" }),
+  P({ canonical: "Essent", names: ["essent"], category: "ENERGIE", country: "NL" }),
+  P({ canonical: "Greenchoice", names: ["greenchoice", "green choice"], category: "ENERGIE", country: "NL" }),
+  P({ canonical: "Vandebron", names: ["vandebron", "van de bron"], category: "ENERGIE", country: "NL" }),
+  P({ canonical: "Pure Energie", names: ["pure energie", "pureenergie"], category: "ENERGIE", country: "NL" }),
+  P({ canonical: "Engie", names: ["engie"], category: "ENERGIE", country: "NL" }),
+  P({ canonical: "Budget Energie", names: ["budget energie", "budgetenergie"], category: "ENERGIE", country: "NL" }),
+  P({ canonical: "Frank Energie", names: ["frank energie", "frankenergie"], category: "ENERGIE", country: "NL" }),
+  P({ canonical: "EasyEnergy", names: ["easyenergy", "easy energy"], category: "ENERGIE", country: "NL" }),
+  P({ canonical: "Oxxio", names: ["oxxio"], category: "ENERGIE", country: "NL" }),
+  P({ canonical: "Energiedirect", names: ["energiedirect", "energie direct"], category: "ENERGIE", country: "NL" }),
+  P({ canonical: "ANWB Energie", names: ["anwb energie"], category: "ENERGIE", country: "NL" }),
+  P({ canonical: "Coolblue Energie", names: ["coolblue energie", "coolblue stroom"], category: "ENERGIE", country: "NL" }),
+  P({ canonical: "DGB Energie", names: ["dgb energie", "dgb"], category: "ENERGIE", country: "NL" }),
 
-  // ===== ABONNEMENT — streaming =====
-  { canonical: "Netflix", category: "ABONNEMENT", region: "GLOBAL", aliases: ["netflix"] },
-  { canonical: "Disney+", category: "ABONNEMENT", region: "GLOBAL", aliases: ["disney+", "disneyplus", "disney plus"] },
-  { canonical: "HBO Max", category: "ABONNEMENT", region: "GLOBAL", aliases: ["hbo max", "hbomax"] },
-  { canonical: "Apple TV+", category: "ABONNEMENT", region: "GLOBAL", aliases: ["apple tv+", "apple tv plus", "appletv"] },
-  { canonical: "Amazon Prime Video", category: "ABONNEMENT", region: "GLOBAL", aliases: ["prime video", "amazon prime"] },
-  { canonical: "Videoland", category: "ABONNEMENT", region: "NL", aliases: ["videoland"] },
-  { canonical: "Spotify", category: "ABONNEMENT", region: "GLOBAL", aliases: ["spotify"] },
-  { canonical: "Apple Music", category: "ABONNEMENT", region: "GLOBAL", aliases: ["apple music"] },
-  { canonical: "YouTube Premium", category: "ABONNEMENT", region: "GLOBAL", aliases: ["youtube premium", "youtube music"] },
-  { canonical: "Tidal", category: "ABONNEMENT", region: "GLOBAL", aliases: ["tidal"] },
-  { canonical: "Deezer", category: "ABONNEMENT", region: "EU", aliases: ["deezer"] },
-  { canonical: "ESPN+", category: "ABONNEMENT", region: "NL", aliases: ["espn+", "espn plus"] },
-  { canonical: "Ziggo Sport", category: "ABONNEMENT", region: "NL", aliases: ["ziggo sport"] },
-  { canonical: "Viaplay", category: "ABONNEMENT", region: "EU", aliases: ["viaplay"] },
-  { canonical: "Storytel", category: "ABONNEMENT", region: "EU", aliases: ["storytel"] },
-  { canonical: "Audible", category: "ABONNEMENT", region: "GLOBAL", aliases: ["audible"] },
+  P({ canonical: "Centraal Beheer", names: ["centraal beheer", "centraalbeheer"], category: "VERZEKERING", country: "NL" }),
+  P({ canonical: "ANWB Verzekeringen", names: ["anwb verzekering", "anwb verzekeringen"], category: "VERZEKERING", country: "NL" }),
+  P({ canonical: "FBTO", names: ["fbto"], category: "VERZEKERING", country: "NL" }),
+  P({ canonical: "InShared", names: ["inshared", "in shared"], category: "VERZEKERING", country: "NL" }),
+  P({ canonical: "Allianz", names: ["allianz"], category: "VERZEKERING", country: "NL" }),
+  P({ canonical: "Nationale-Nederlanden", names: ["nationale-nederlanden", "nationale nederlanden", "nn group"], category: "VERZEKERING", country: "NL" }),
+  P({ canonical: "Univé", names: ["unive", "univé"], category: "VERZEKERING", country: "NL" }),
+  P({ canonical: "ASR", names: ["a.s.r.", "asr verzekeringen"], category: "VERZEKERING", country: "NL" }),
+  P({ canonical: "Aegon", names: ["aegon"], category: "VERZEKERING", country: "NL" }),
+  P({ canonical: "Achmea", names: ["achmea"], category: "VERZEKERING", country: "NL" }),
+  P({ canonical: "Interpolis", names: ["interpolis"], category: "VERZEKERING", country: "NL" }),
+  P({ canonical: "Ditzo", names: ["ditzo"], category: "VERZEKERING", country: "NL" }),
+  P({ canonical: "OHRA", names: ["ohra"], category: "VERZEKERING", country: "NL" }),
+  P({ canonical: "Promovendum", names: ["promovendum"], category: "VERZEKERING", country: "NL" }),
+  P({ canonical: "Reaal", names: ["reaal"], category: "VERZEKERING", country: "NL" }),
+  P({ canonical: "Goudse", names: ["goudse", "de goudse"], category: "VERZEKERING", country: "NL" }),
+  P({ canonical: "Zilveren Kruis", names: ["zilveren kruis", "zilverenkruis"], category: "VERZEKERING", country: "NL" }),
+  P({ canonical: "VGZ", names: ["vgz"], category: "VERZEKERING", country: "NL" }),
+  P({ canonical: "CZ", names: ["cz zorgverzekering", "c.z."], category: "VERZEKERING", country: "NL" }),
+  P({ canonical: "Menzis", names: ["menzis"], category: "VERZEKERING", country: "NL" }),
+  P({ canonical: "DSW", names: ["dsw zorgverzekering"], category: "VERZEKERING", country: "NL" }),
+  P({ canonical: "ONVZ", names: ["onvz"], category: "VERZEKERING", country: "NL" }),
+  P({ canonical: "Salland", names: ["salland zorgverzekering"], category: "VERZEKERING", country: "NL" }),
 
-  // ===== ABONNEMENT — software/cloud =====
-  { canonical: "Microsoft 365", category: "ABONNEMENT", region: "GLOBAL", aliases: ["microsoft 365", "office 365", "ms 365"] },
-  { canonical: "Adobe Creative Cloud", category: "ABONNEMENT", region: "GLOBAL", aliases: ["adobe creative cloud", "adobe cc", "creative cloud"] },
-  { canonical: "iCloud+", category: "ABONNEMENT", region: "GLOBAL", aliases: ["icloud+", "icloud plus", "icloud storage"] },
-  { canonical: "Google One", category: "ABONNEMENT", region: "GLOBAL", aliases: ["google one"] },
-  { canonical: "Dropbox", category: "ABONNEMENT", region: "GLOBAL", aliases: ["dropbox plus", "dropbox pro"] },
-  { canonical: "ChatGPT Plus", category: "ABONNEMENT", region: "GLOBAL", aliases: ["chatgpt plus", "openai plus"] },
-  { canonical: "GitHub Pro", category: "ABONNEMENT", region: "GLOBAL", aliases: ["github copilot", "github pro"] },
-  { canonical: "Notion", category: "ABONNEMENT", region: "GLOBAL", aliases: ["notion plus", "notion pro"] },
+  P({ canonical: "ABN AMRO", names: ["abn amro", "abnamro"], category: "BANK", country: "NL" }),
+  P({ canonical: "ING", names: ["ing bank"], category: "BANK", country: "NL" }),
+  P({ canonical: "Rabobank", names: ["rabobank", "rabo bank"], category: "BANK", country: "NL" }),
+  P({ canonical: "SNS", names: ["sns bank", "sns.nl"], category: "BANK", country: "NL" }),
+  P({ canonical: "Knab", names: ["knab"], category: "BANK", country: "NL" }),
+  P({ canonical: "Bunq", names: ["bunq"], category: "BANK", country: "NL" }),
+  P({ canonical: "ASN Bank", names: ["asn bank", "asnbank"], category: "BANK", country: "NL" }),
+  P({ canonical: "Triodos", names: ["triodos"], category: "BANK", country: "NL" }),
 
-  // ===== ABONNEMENT — sport / fitness =====
-  { canonical: "Basic-Fit", category: "ABONNEMENT", region: "EU", aliases: ["basic-fit", "basicfit", "basic fit"] },
-  { canonical: "SportCity", category: "ABONNEMENT", region: "NL", aliases: ["sportcity", "sport city"] },
-  { canonical: "Anytime Fitness", category: "ABONNEMENT", region: "GLOBAL", aliases: ["anytime fitness"] },
-  { canonical: "Fit For Free", category: "ABONNEMENT", region: "NL", aliases: ["fit for free"] },
+  P({ canonical: "ABN AMRO Hypotheken", names: ["abn amro hypotheek", "abn hypotheek"], category: "HYPOTHEEK", country: "NL" }),
+  P({ canonical: "ING Hypotheken", names: ["ing hypotheek"], category: "HYPOTHEEK", country: "NL" }),
+  P({ canonical: "Rabo Hypotheken", names: ["rabobank hypotheek", "rabo hypotheek"], category: "HYPOTHEEK", country: "NL" }),
+  P({ canonical: "Aegon Hypotheken", names: ["aegon hypotheek"], category: "HYPOTHEEK", country: "NL" }),
+  P({ canonical: "Munt Hypotheken", names: ["munt hypotheken", "munt hypotheek"], category: "HYPOTHEEK", country: "NL" }),
+  P({ canonical: "Argenta", names: ["argenta"], category: "HYPOTHEEK", country: "NL" }),
+  P({ canonical: "Florius", names: ["florius"], category: "HYPOTHEEK", country: "NL" }),
+  P({ canonical: "Obvion", names: ["obvion"], category: "HYPOTHEEK", country: "NL" }),
+  P({ canonical: "BLG Wonen", names: ["blg wonen"], category: "HYPOTHEEK", country: "NL" }),
+  P({ canonical: "Lloyds NL", names: ["lloyds bank nl"], category: "HYPOTHEEK", country: "NL" }),
+  P({ canonical: "Tulp Hypotheken", names: ["tulp hypotheken", "tulphypotheken"], category: "HYPOTHEEK", country: "NL" }),
+  P({ canonical: "Centraal Beheer Hypotheek", names: ["centraal beheer hypotheek"], category: "HYPOTHEEK", country: "NL" }),
 
-  // ===== EU TELECOM =====
-  { canonical: "Orange", category: "TELECOM", region: "EU", aliases: ["orange fr", "orange.fr"] },
-  { canonical: "Deutsche Telekom", category: "TELECOM", region: "EU", aliases: ["deutsche telekom", "telekom de", "t-mobile de"] },
-  { canonical: "O2", category: "TELECOM", region: "EU", aliases: ["o2 de", "o2 uk", "telefonica o2"] },
-  { canonical: "Three", category: "TELECOM", region: "EU", aliases: ["three uk", "3 mobile", "three.co.uk"] },
-  { canonical: "EE", category: "TELECOM", region: "EU", aliases: ["ee mobile", "ee uk"] },
-  { canonical: "BT", category: "TELECOM", region: "EU", aliases: ["bt broadband", "bt uk"] },
-  { canonical: "Sky", category: "TELECOM", region: "EU", aliases: ["sky tv", "sky uk", "sky de"] },
-  { canonical: "Vodafone DE", category: "TELECOM", region: "EU", aliases: ["vodafone de", "vodafone deutschland"] },
-  { canonical: "1&1", category: "TELECOM", region: "EU", aliases: ["1&1", "1und1", "1 und 1"] },
-  { canonical: "Bouygues Telecom", category: "TELECOM", region: "EU", aliases: ["bouygues", "bouygues telecom"] },
-  { canonical: "SFR", category: "TELECOM", region: "EU", aliases: ["sfr"] },
-  { canonical: "Free Mobile", category: "TELECOM", region: "EU", aliases: ["free mobile", "free.fr"] },
-  { canonical: "Movistar", category: "TELECOM", region: "EU", aliases: ["movistar"] },
-  { canonical: "TIM", category: "TELECOM", region: "EU", aliases: ["tim italia", "telecom italia"] },
-  { canonical: "Proximus", category: "TELECOM", region: "EU", aliases: ["proximus"] },
-  { canonical: "Telenet", category: "TELECOM", region: "EU", aliases: ["telenet"] },
-  { canonical: "Base", category: "TELECOM", region: "EU", aliases: ["base mobile"] },
+  P({ canonical: "Vitens", names: ["vitens"], category: "OVERIG", country: "NL" }),
+  P({ canonical: "Brabant Water", names: ["brabant water"], category: "OVERIG", country: "NL" }),
+  P({ canonical: "PWN", names: ["pwn waterleiding", "pwn drinkwater"], category: "OVERIG", country: "NL" }),
+  P({ canonical: "Evides", names: ["evides"], category: "OVERIG", country: "NL" }),
+  P({ canonical: "Dunea", names: ["dunea"], category: "OVERIG", country: "NL" }),
+  P({ canonical: "Waternet", names: ["waternet"], category: "OVERIG", country: "NL" }),
+  P({ canonical: "PostNL", names: ["postnl", "post nl"], category: "OVERIG", country: "NL" }),
 
-  // ===== EU ENERGIE =====
-  { canonical: "E.ON", category: "ENERGIE", region: "EU", aliases: ["e.on", "eon energie"] },
-  { canonical: "RWE", category: "ENERGIE", region: "EU", aliases: ["rwe"] },
-  { canonical: "EDF", category: "ENERGIE", region: "EU", aliases: ["edf", "electricite de france"] },
-  { canonical: "Enel", category: "ENERGIE", region: "EU", aliases: ["enel"] },
-  { canonical: "Engie FR", category: "ENERGIE", region: "EU", aliases: ["engie france", "gdf suez"] },
-  { canonical: "Iberdrola", category: "ENERGIE", region: "EU", aliases: ["iberdrola"] },
-  { canonical: "TotalEnergies", category: "ENERGIE", region: "EU", aliases: ["totalenergies", "total energies"] },
-  { canonical: "Endesa", category: "ENERGIE", region: "EU", aliases: ["endesa"] },
-  { canonical: "British Gas", category: "ENERGIE", region: "EU", aliases: ["british gas"] },
-  { canonical: "Octopus Energy", category: "ENERGIE", region: "EU", aliases: ["octopus energy"] },
-  { canonical: "EWE", category: "ENERGIE", region: "EU", aliases: ["ewe energie"] },
-  { canonical: "Yello Strom", category: "ENERGIE", region: "EU", aliases: ["yello strom", "yello"] },
+  // ===== BE =====
+  P({ canonical: "Proximus", names: ["proximus"], category: "TELECOM", country: "BE" }),
+  P({ canonical: "Orange BE", names: ["orange be", "orange belgium"], category: "TELECOM", country: "BE", locale: "fr" }),
+  P({ canonical: "Telenet", names: ["telenet"], category: "TELECOM", country: "BE" }),
+  P({ canonical: "Base", names: ["base mobile"], category: "TELECOM", country: "BE" }),
+  P({ canonical: "Mobile Vikings", names: ["mobile vikings", "vikings"], category: "TELECOM", country: "BE" }),
+  P({ canonical: "Engie Electrabel", names: ["engie electrabel", "electrabel"], category: "ENERGIE", country: "BE", locale: "fr" }),
+  P({ canonical: "Luminus", names: ["luminus"], category: "ENERGIE", country: "BE", locale: "fr" }),
+  P({ canonical: "TotalEnergies BE", names: ["totalenergies be", "lampiris"], category: "ENERGIE", country: "BE", locale: "fr" }),
+  P({ canonical: "Mega", names: ["mega energy", "mega.be"], category: "ENERGIE", country: "BE" }),
+  P({ canonical: "Eneco BE", names: ["eneco be", "eneco belgium"], category: "ENERGIE", country: "BE" }),
+  P({ canonical: "AXA BE", names: ["axa be", "axa belgium"], category: "VERZEKERING", country: "BE", locale: "fr" }),
+  P({ canonical: "AG Insurance", names: ["ag insurance", "ag verzekeringen"], category: "VERZEKERING", country: "BE" }),
+  P({ canonical: "Ethias", names: ["ethias"], category: "VERZEKERING", country: "BE" }),
+  P({ canonical: "DKV BE", names: ["dkv belgium", "dkv be"], category: "VERZEKERING", country: "BE" }),
+  P({ canonical: "KBC", names: ["kbc bank", "kbc verzekering"], category: "BANK", country: "BE" }),
+  P({ canonical: "Belfius", names: ["belfius"], category: "BANK", country: "BE", locale: "fr" }),
+  P({ canonical: "ING BE", names: ["ing belgium", "ing be"], category: "BANK", country: "BE" }),
+  P({ canonical: "BNP Paribas Fortis", names: ["bnp paribas fortis", "fortis"], category: "BANK", country: "BE", locale: "fr" }),
+  P({ canonical: "Argenta BE", names: ["argenta belgium"], category: "BANK", country: "BE" }),
+  P({ canonical: "Bpost", names: ["bpost"], category: "OVERIG", country: "BE" }),
 
-  // ===== EU VERZEKERING =====
-  { canonical: "AXA", category: "VERZEKERING", region: "EU", aliases: ["axa"] },
-  { canonical: "Generali", category: "VERZEKERING", region: "EU", aliases: ["generali"] },
-  { canonical: "AIG", category: "VERZEKERING", region: "EU", aliases: ["aig insurance"] },
-  { canonical: "Zurich", category: "VERZEKERING", region: "EU", aliases: ["zurich verzekering", "zurich insurance"] },
-  { canonical: "HUK24", category: "VERZEKERING", region: "EU", aliases: ["huk24", "huk-coburg"] },
-  { canonical: "Admiral", category: "VERZEKERING", region: "EU", aliases: ["admiral insurance"] },
+  // ===== DE =====
+  P({ canonical: "Deutsche Telekom", names: ["deutsche telekom", "telekom de", "t-mobile de"], category: "TELECOM", country: "DE" }),
+  P({ canonical: "Vodafone DE", names: ["vodafone de", "vodafone deutschland"], category: "TELECOM", country: "DE" }),
+  P({ canonical: "O2 DE", names: ["o2 de", "telefonica o2"], category: "TELECOM", country: "DE" }),
+  P({ canonical: "1&1", names: ["1&1", "1und1", "1 und 1"], category: "TELECOM", country: "DE" }),
+  P({ canonical: "Congstar", names: ["congstar"], category: "TELECOM", country: "DE" }),
+  P({ canonical: "Otelo", names: ["otelo"], category: "TELECOM", country: "DE" }),
+  P({ canonical: "Klarmobil", names: ["klarmobil"], category: "TELECOM", country: "DE" }),
+  P({ canonical: "Sky DE", names: ["sky de", "sky deutschland"], category: "TELECOM", country: "DE" }),
+  P({ canonical: "Unitymedia", names: ["unitymedia"], category: "TELECOM", country: "DE" }),
+  P({ canonical: "E.ON", names: ["e.on", "eon energie"], category: "ENERGIE", country: "DE" }),
+  P({ canonical: "RWE", names: ["rwe"], category: "ENERGIE", country: "DE" }),
+  P({ canonical: "Vattenfall DE", names: ["vattenfall de", "vattenfall deutschland"], category: "ENERGIE", country: "DE" }),
+  P({ canonical: "EnBW", names: ["enbw"], category: "ENERGIE", country: "DE" }),
+  P({ canonical: "EWE", names: ["ewe energie"], category: "ENERGIE", country: "DE" }),
+  P({ canonical: "Yello Strom", names: ["yello strom", "yello"], category: "ENERGIE", country: "DE" }),
+  P({ canonical: "Stadtwerke", names: ["stadtwerke"], category: "ENERGIE", country: "DE" }),
+  P({ canonical: "Allianz DE", names: ["allianz de", "allianz deutschland"], category: "VERZEKERING", country: "DE" }),
+  P({ canonical: "HUK24", names: ["huk24", "huk-coburg", "huk coburg"], category: "VERZEKERING", country: "DE" }),
+  P({ canonical: "AXA DE", names: ["axa de", "axa deutschland"], category: "VERZEKERING", country: "DE" }),
+  P({ canonical: "DEVK", names: ["devk"], category: "VERZEKERING", country: "DE" }),
+  P({ canonical: "Debeka", names: ["debeka"], category: "VERZEKERING", country: "DE" }),
+  P({ canonical: "DKB", names: ["dkb bank"], category: "BANK", country: "DE" }),
+  P({ canonical: "Deutsche Bank", names: ["deutsche bank"], category: "BANK", country: "DE" }),
+  P({ canonical: "Commerzbank", names: ["commerzbank"], category: "BANK", country: "DE" }),
+  P({ canonical: "Sparkasse", names: ["sparkasse"], category: "BANK", country: "DE" }),
 
-  // ===== EU BANK =====
-  { canonical: "Deutsche Bank", category: "BANK", region: "EU", aliases: ["deutsche bank"] },
-  { canonical: "Commerzbank", category: "BANK", region: "EU", aliases: ["commerzbank"] },
-  { canonical: "BNP Paribas", category: "BANK", region: "EU", aliases: ["bnp paribas"] },
-  { canonical: "Société Générale", category: "BANK", region: "EU", aliases: ["societe generale", "société générale"] },
-  { canonical: "Santander", category: "BANK", region: "EU", aliases: ["santander"] },
-  { canonical: "BBVA", category: "BANK", region: "EU", aliases: ["bbva"] },
-  { canonical: "Barclays", category: "BANK", region: "EU", aliases: ["barclays"] },
-  { canonical: "HSBC", category: "BANK", region: "EU", aliases: ["hsbc"] },
-  { canonical: "Lloyds Bank", category: "BANK", region: "EU", aliases: ["lloyds bank"] },
+  // ===== FR =====
+  P({ canonical: "Orange", names: ["orange fr", "orange.fr", "orange france"], category: "TELECOM", country: "FR" }),
+  P({ canonical: "SFR", names: ["sfr"], category: "TELECOM", country: "FR" }),
+  P({ canonical: "Bouygues Telecom", names: ["bouygues", "bouygues telecom"], category: "TELECOM", country: "FR" }),
+  P({ canonical: "Free Mobile", names: ["free mobile", "free.fr"], category: "TELECOM", country: "FR" }),
+  P({ canonical: "Sosh", names: ["sosh"], category: "TELECOM", country: "FR" }),
+  P({ canonical: "RED by SFR", names: ["red by sfr", "red sfr"], category: "TELECOM", country: "FR" }),
+  P({ canonical: "B&You", names: ["b&you", "byou", "b and you"], category: "TELECOM", country: "FR" }),
+  P({ canonical: "EDF", names: ["edf", "electricite de france"], category: "ENERGIE", country: "FR" }),
+  P({ canonical: "Engie FR", names: ["engie france", "gdf suez"], category: "ENERGIE", country: "FR" }),
+  P({ canonical: "TotalEnergies", names: ["totalenergies", "total energies"], category: "ENERGIE", country: "FR" }),
+  P({ canonical: "Eni Plenitude", names: ["eni plenitude", "eni gas"], category: "ENERGIE", country: "FR" }),
+  P({ canonical: "Mint Energie", names: ["mint energie", "mint energy"], category: "ENERGIE", country: "FR" }),
+  P({ canonical: "AXA", names: ["axa fr", "axa france"], category: "VERZEKERING", country: "FR" }),
+  P({ canonical: "MAIF", names: ["maif"], category: "VERZEKERING", country: "FR" }),
+  P({ canonical: "MACIF", names: ["macif"], category: "VERZEKERING", country: "FR" }),
+  P({ canonical: "Matmut", names: ["matmut"], category: "VERZEKERING", country: "FR" }),
+  P({ canonical: "Crédit Agricole", names: ["credit agricole", "crédit agricole"], category: "BANK", country: "FR" }),
+  P({ canonical: "BNP Paribas", names: ["bnp paribas"], category: "BANK", country: "FR" }),
+  P({ canonical: "Société Générale", names: ["societe generale", "société générale"], category: "BANK", country: "FR" }),
+  P({ canonical: "Boursorama", names: ["boursorama"], category: "BANK", country: "FR" }),
 
-  // ===== OVERIG nutsbedrijven / post =====
-  { canonical: "Vitens", category: "OVERIG", region: "NL", aliases: ["vitens"] },
-  { canonical: "Brabant Water", category: "OVERIG", region: "NL", aliases: ["brabant water"] },
-  { canonical: "PWN", category: "OVERIG", region: "NL", aliases: ["pwn waterleiding", "pwn drinkwater"] },
-  { canonical: "Evides", category: "OVERIG", region: "NL", aliases: ["evides"] },
-  { canonical: "Dunea", category: "OVERIG", region: "NL", aliases: ["dunea"] },
-  { canonical: "Waternet", category: "OVERIG", region: "NL", aliases: ["waternet"] },
-  { canonical: "PostNL", category: "OVERIG", region: "NL", aliases: ["postnl", "post nl"] },
-  { canonical: "DPD", category: "OVERIG", region: "EU", aliases: ["dpd"] },
+  // ===== UK =====
+  P({ canonical: "BT", names: ["bt broadband", "bt uk", "british telecom"], category: "TELECOM", country: "UK" }),
+  P({ canonical: "Sky", names: ["sky tv", "sky uk", "sky broadband"], category: "TELECOM", country: "UK" }),
+  P({ canonical: "Virgin Media", names: ["virgin media", "virgin"], category: "TELECOM", country: "UK" }),
+  P({ canonical: "EE", names: ["ee mobile", "ee uk"], category: "TELECOM", country: "UK" }),
+  P({ canonical: "Vodafone UK", names: ["vodafone uk"], category: "TELECOM", country: "UK" }),
+  P({ canonical: "O2 UK", names: ["o2 uk"], category: "TELECOM", country: "UK" }),
+  P({ canonical: "Three", names: ["three uk", "3 mobile", "three.co.uk"], category: "TELECOM", country: "UK" }),
+  P({ canonical: "TalkTalk", names: ["talktalk", "talk talk"], category: "TELECOM", country: "UK" }),
+  P({ canonical: "Plusnet", names: ["plusnet"], category: "TELECOM", country: "UK" }),
+  P({ canonical: "Giffgaff", names: ["giffgaff"], category: "TELECOM", country: "UK" }),
+  P({ canonical: "British Gas", names: ["british gas"], category: "ENERGIE", country: "UK" }),
+  P({ canonical: "Octopus Energy", names: ["octopus energy", "octopus"], category: "ENERGIE", country: "UK" }),
+  P({ canonical: "OVO Energy", names: ["ovo energy", "ovo"], category: "ENERGIE", country: "UK" }),
+  P({ canonical: "E.ON Next", names: ["e.on next", "eon next"], category: "ENERGIE", country: "UK" }),
+  P({ canonical: "EDF Energy UK", names: ["edf energy", "edf uk"], category: "ENERGIE", country: "UK" }),
+  P({ canonical: "ScottishPower", names: ["scottishpower", "scottish power"], category: "ENERGIE", country: "UK" }),
+  P({ canonical: "Aviva", names: ["aviva"], category: "VERZEKERING", country: "UK" }),
+  P({ canonical: "Admiral", names: ["admiral insurance", "admiral car"], category: "VERZEKERING", country: "UK" }),
+  P({ canonical: "Direct Line", names: ["direct line"], category: "VERZEKERING", country: "UK" }),
+  P({ canonical: "LV=", names: ["lv=", "liverpool victoria"], category: "VERZEKERING", country: "UK" }),
+  P({ canonical: "HSBC", names: ["hsbc"], category: "BANK", country: "UK" }),
+  P({ canonical: "Barclays", names: ["barclays"], category: "BANK", country: "UK" }),
+  P({ canonical: "Lloyds Bank", names: ["lloyds bank", "lloyds"], category: "BANK", country: "UK" }),
+  P({ canonical: "NatWest", names: ["natwest"], category: "BANK", country: "UK" }),
+  P({ canonical: "Monzo", names: ["monzo"], category: "BANK", country: "UK" }),
+
+  // ===== US =====
+  P({ canonical: "Verizon", names: ["verizon", "verizon wireless"], category: "TELECOM", country: "US" }),
+  P({ canonical: "AT&T", names: ["at&t", "att", "at t"], category: "TELECOM", country: "US" }),
+  P({ canonical: "T-Mobile US", names: ["t-mobile us", "tmobile us", "metro pcs"], category: "TELECOM", country: "US" }),
+  P({ canonical: "Mint Mobile", names: ["mint mobile"], category: "TELECOM", country: "US" }),
+  P({ canonical: "Cricket", names: ["cricket wireless", "cricket"], category: "TELECOM", country: "US" }),
+  P({ canonical: "Boost Mobile", names: ["boost mobile"], category: "TELECOM", country: "US" }),
+  P({ canonical: "Comcast Xfinity", names: ["comcast", "xfinity"], category: "TELECOM", country: "US" }),
+  P({ canonical: "Spectrum", names: ["spectrum", "charter spectrum"], category: "TELECOM", country: "US" }),
+  P({ canonical: "Cox", names: ["cox communications", "cox"], category: "TELECOM", country: "US" }),
+  P({ canonical: "Optimum", names: ["optimum", "altice"], category: "TELECOM", country: "US" }),
+  P({ canonical: "ConEd", names: ["coned", "con edison", "consolidated edison"], category: "ENERGIE", country: "US" }),
+  P({ canonical: "PG&E", names: ["pg&e", "pacific gas"], category: "ENERGIE", country: "US" }),
+  P({ canonical: "Duke Energy", names: ["duke energy"], category: "ENERGIE", country: "US" }),
+  P({ canonical: "Southern Company", names: ["southern company", "georgia power"], category: "ENERGIE", country: "US" }),
+  P({ canonical: "NextEra", names: ["nextera", "florida power"], category: "ENERGIE", country: "US" }),
+  P({ canonical: "GEICO", names: ["geico"], category: "VERZEKERING", country: "US" }),
+  P({ canonical: "State Farm", names: ["state farm"], category: "VERZEKERING", country: "US" }),
+  P({ canonical: "Progressive", names: ["progressive insurance", "progressive"], category: "VERZEKERING", country: "US" }),
+  P({ canonical: "Allstate", names: ["allstate"], category: "VERZEKERING", country: "US" }),
+  P({ canonical: "USAA", names: ["usaa"], category: "VERZEKERING", country: "US" }),
+  P({ canonical: "Liberty Mutual", names: ["liberty mutual"], category: "VERZEKERING", country: "US" }),
+  P({ canonical: "Chase", names: ["chase bank", "jp morgan chase"], category: "BANK", country: "US" }),
+  P({ canonical: "Bank of America", names: ["bank of america", "boa"], category: "BANK", country: "US" }),
+  P({ canonical: "Wells Fargo", names: ["wells fargo"], category: "BANK", country: "US" }),
+  P({ canonical: "Citi", names: ["citibank", "citi"], category: "BANK", country: "US" }),
+  P({ canonical: "Capital One", names: ["capital one"], category: "BANK", country: "US" }),
+  P({ canonical: "US Bank", names: ["us bank", "u.s. bank"], category: "BANK", country: "US" }),
+  P({ canonical: "Discover", names: ["discover bank", "discover card"], category: "BANK", country: "US" }),
+  P({ canonical: "Ally", names: ["ally bank"], category: "BANK", country: "US" }),
+  P({ canonical: "Marcus", names: ["marcus by goldman", "marcus"], category: "BANK", country: "US" }),
+
+  // ===== ES =====
+  P({ canonical: "Movistar", names: ["movistar"], category: "TELECOM", country: "ES" }),
+  P({ canonical: "Orange ES", names: ["orange es", "orange spain"], category: "TELECOM", country: "ES" }),
+  P({ canonical: "Vodafone ES", names: ["vodafone es", "vodafone spain"], category: "TELECOM", country: "ES" }),
+  P({ canonical: "MasMovil", names: ["masmovil", "mas movil"], category: "TELECOM", country: "ES" }),
+  P({ canonical: "Yoigo", names: ["yoigo"], category: "TELECOM", country: "ES" }),
+  P({ canonical: "Iberdrola", names: ["iberdrola"], category: "ENERGIE", country: "ES" }),
+  P({ canonical: "Endesa", names: ["endesa"], category: "ENERGIE", country: "ES" }),
+  P({ canonical: "Naturgy", names: ["naturgy"], category: "ENERGIE", country: "ES" }),
+  P({ canonical: "Repsol", names: ["repsol energia", "repsol"], category: "ENERGIE", country: "ES" }),
+  P({ canonical: "Mapfre", names: ["mapfre"], category: "VERZEKERING", country: "ES" }),
+  P({ canonical: "Mutua Madrileña", names: ["mutua madrileña", "mutua madrilena"], category: "VERZEKERING", country: "ES" }),
+  P({ canonical: "BBVA", names: ["bbva"], category: "BANK", country: "ES" }),
+  P({ canonical: "Santander", names: ["santander"], category: "BANK", country: "ES" }),
+  P({ canonical: "CaixaBank", names: ["caixabank", "la caixa"], category: "BANK", country: "ES" }),
+  P({ canonical: "Sabadell", names: ["banco sabadell", "sabadell"], category: "BANK", country: "ES" }),
+
+  // ===== IT =====
+  P({ canonical: "TIM", names: ["tim italia", "telecom italia"], category: "TELECOM", country: "IT" }),
+  P({ canonical: "Vodafone IT", names: ["vodafone it", "vodafone italia"], category: "TELECOM", country: "IT" }),
+  P({ canonical: "WindTre", names: ["windtre", "wind tre", "wind"], category: "TELECOM", country: "IT" }),
+  P({ canonical: "Iliad", names: ["iliad"], category: "TELECOM", country: "IT" }),
+  P({ canonical: "Fastweb", names: ["fastweb"], category: "TELECOM", country: "IT" }),
+  P({ canonical: "Enel", names: ["enel"], category: "ENERGIE", country: "IT" }),
+  P({ canonical: "Eni Gas e Luce", names: ["eni gas e luce", "eni plenitude it"], category: "ENERGIE", country: "IT" }),
+  P({ canonical: "A2A", names: ["a2a energia"], category: "ENERGIE", country: "IT" }),
+  P({ canonical: "Edison", names: ["edison energia"], category: "ENERGIE", country: "IT" }),
+  P({ canonical: "Generali", names: ["generali"], category: "VERZEKERING", country: "IT" }),
+  P({ canonical: "Unipol", names: ["unipol", "unipolsai"], category: "VERZEKERING", country: "IT" }),
+  P({ canonical: "Allianz IT", names: ["allianz italia"], category: "VERZEKERING", country: "IT" }),
+  P({ canonical: "Intesa Sanpaolo", names: ["intesa sanpaolo", "intesa"], category: "BANK", country: "IT" }),
+  P({ canonical: "UniCredit", names: ["unicredit"], category: "BANK", country: "IT" }),
+  P({ canonical: "BPER", names: ["bper banca", "bper"], category: "BANK", country: "IT" }),
+
+  // ===== INT (global streaming/software) =====
+  P({ canonical: "Netflix", names: ["netflix"], category: "ABONNEMENT", country: "INT" }),
+  P({ canonical: "Disney+", names: ["disney+", "disneyplus", "disney plus"], category: "ABONNEMENT", country: "INT" }),
+  P({ canonical: "HBO Max", names: ["hbo max", "hbomax"], category: "ABONNEMENT", country: "INT" }),
+  P({ canonical: "Apple TV+", names: ["apple tv+", "apple tv plus", "appletv"], category: "ABONNEMENT", country: "INT" }),
+  P({ canonical: "Amazon Prime Video", names: ["prime video", "amazon prime"], category: "ABONNEMENT", country: "INT" }),
+  P({ canonical: "Spotify", names: ["spotify"], category: "ABONNEMENT", country: "INT" }),
+  P({ canonical: "Apple Music", names: ["apple music"], category: "ABONNEMENT", country: "INT" }),
+  P({ canonical: "YouTube Premium", names: ["youtube premium", "youtube music"], category: "ABONNEMENT", country: "INT" }),
+  P({ canonical: "Tidal", names: ["tidal"], category: "ABONNEMENT", country: "INT" }),
+  P({ canonical: "Deezer", names: ["deezer"], category: "ABONNEMENT", country: "INT" }),
+  P({ canonical: "Audible", names: ["audible"], category: "ABONNEMENT", country: "INT" }),
+  P({ canonical: "Microsoft 365", names: ["microsoft 365", "office 365", "ms 365"], category: "ABONNEMENT", country: "INT" }),
+  P({ canonical: "Adobe Creative Cloud", names: ["adobe creative cloud", "adobe cc", "creative cloud"], category: "ABONNEMENT", country: "INT" }),
+  P({ canonical: "iCloud+", names: ["icloud+", "icloud plus", "icloud storage"], category: "ABONNEMENT", country: "INT" }),
+  P({ canonical: "Google One", names: ["google one"], category: "ABONNEMENT", country: "INT" }),
+  P({ canonical: "Dropbox", names: ["dropbox plus", "dropbox pro"], category: "ABONNEMENT", country: "INT" }),
+  P({ canonical: "ChatGPT Plus", names: ["chatgpt plus", "openai plus"], category: "ABONNEMENT", country: "INT" }),
+  P({ canonical: "GitHub Pro", names: ["github copilot", "github pro"], category: "ABONNEMENT", country: "INT" }),
+  P({ canonical: "Notion", names: ["notion plus", "notion pro"], category: "ABONNEMENT", country: "INT" }),
+  P({ canonical: "Revolut", names: ["revolut"], category: "BANK", country: "INT" }),
+  P({ canonical: "N26", names: ["n26"], category: "BANK", country: "INT" }),
+  P({ canonical: "Wise", names: ["wise", "transferwise"], category: "BANK", country: "INT" }),
+  P({ canonical: "Videoland", names: ["videoland"], category: "ABONNEMENT", country: "NL" }),
+  P({ canonical: "ESPN+", names: ["espn+", "espn plus"], category: "ABONNEMENT", country: "NL" }),
+  P({ canonical: "Ziggo Sport", names: ["ziggo sport"], category: "ABONNEMENT", country: "NL" }),
+  P({ canonical: "Viaplay", names: ["viaplay"], category: "ABONNEMENT", country: "INT" }),
+  P({ canonical: "Storytel", names: ["storytel"], category: "ABONNEMENT", country: "INT" }),
+  P({ canonical: "Basic-Fit", names: ["basic-fit", "basicfit", "basic fit"], category: "ABONNEMENT", country: "INT" }),
+  P({ canonical: "SportCity", names: ["sportcity", "sport city"], category: "ABONNEMENT", country: "NL" }),
+  P({ canonical: "Anytime Fitness", names: ["anytime fitness"], category: "ABONNEMENT", country: "INT" }),
+  P({ canonical: "Fit For Free", names: ["fit for free"], category: "ABONNEMENT", country: "NL" }),
+  P({ canonical: "DPD", names: ["dpd"], category: "OVERIG", country: "INT" }),
 ];
 
+// ─────────────────────────────────────────────────────────────
+// Backwards-compat: NL_PROVIDERS in old ProviderRecord shape.
+// Older code imports NL_PROVIDERS and reads .canonical / .aliases / .region.
+// We map every Provider → ProviderRecord (region computed from country).
+// ─────────────────────────────────────────────────────────────
+
+function toRecord(p: Provider): ProviderRecord {
+  return {
+    canonical: p.canonical,
+    category: p.category,
+    region: countryToRegion(p.country),
+    aliases: p.names.map((n) => n.toLowerCase()),
+    network: p.network,
+    country: p.country,
+    locale: p.locale,
+  };
+}
+
+export const NL_PROVIDERS: ProviderRecord[] = PROVIDERS.map(toRecord);
+
+// ─────────────────────────────────────────────────────────────
+// Search helpers
+// ─────────────────────────────────────────────────────────────
+
+function normalize(s: string): string {
+  return s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9 ]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/** Damerau-style Levenshtein with cap=2 for early-exit. */
+export function levenshtein(a: string, b: string, cap = 2): number {
+  if (a === b) return 0;
+  const la = a.length;
+  const lb = b.length;
+  if (Math.abs(la - lb) > cap) return cap + 1;
+  if (la === 0) return lb;
+  if (lb === 0) return la;
+
+  const prev = new Array<number>(lb + 1);
+  const curr = new Array<number>(lb + 1);
+  for (let j = 0; j <= lb; j++) prev[j] = j;
+  for (let i = 1; i <= la; i++) {
+    curr[0] = i;
+    let rowMin = curr[0];
+    for (let j = 1; j <= lb; j++) {
+      const cost = a.charCodeAt(i - 1) === b.charCodeAt(j - 1) ? 0 : 1;
+      curr[j] = Math.min(curr[j - 1] + 1, prev[j] + 1, prev[j - 1] + cost);
+      if (curr[j] < rowMin) rowMin = curr[j];
+    }
+    if (rowMin > cap) return cap + 1;
+    for (let j = 0; j <= lb; j++) prev[j] = curr[j];
+  }
+  return prev[lb];
+}
+
+function escapeRegex(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/** Word-boundary substring test — "ee" inside "greenchoise" is NOT a match. */
+function containsAsWord(haystack: string, needle: string): boolean {
+  if (!needle) return false;
+  const re = new RegExp(`\\b${escapeRegex(needle)}\\b`);
+  return re.test(haystack);
+}
+
+/** Min Levenshtein between input and any whitespace-tokenized word in alias. */
+function minTokenLevenshtein(input: string, alias: string, cap: number): number {
+  const direct = levenshtein(input, alias, cap);
+  if (direct <= cap) return direct;
+  const tokens = alias.split(/\s+/);
+  let best = cap + 1;
+  for (const t of tokens) {
+    if (!t) continue;
+    const d = levenshtein(input, t, cap);
+    if (d < best) best = d;
+  }
+  return best;
+}
+
+function searchMatch(input: string, candidates: Provider[]): Provider | null {
+  const norm = normalize(input);
+  if (!norm) return null;
+
+  // 1. Exact canonical
+  for (const p of candidates) {
+    if (normalize(p.canonical) === norm) return p;
+  }
+
+  // 2. Alias substring with WORD BOUNDARY (longest alias wins).
+  // Two directions:
+  //  a) alias is a whole word inside input ("kpn" in "kpn factuur")
+  //  b) input matches the first token of alias ("vodafone" → "vodafone de")
+  const subMatches: { p: Provider; weight: number }[] = [];
+  for (const p of candidates) {
+    for (const a of p.names) {
+      const na = normalize(a);
+      if (!na) continue;
+      if (containsAsWord(norm, na)) {
+        subMatches.push({ p, weight: na.length + 1000 });
+      } else if (na.startsWith(norm + " ") && norm.length >= 3) {
+        // "vodafone" matches "vodafone de" as prefix-token
+        subMatches.push({ p, weight: norm.length });
+      }
+    }
+  }
+  if (subMatches.length > 0) {
+    subMatches.sort((a, b) => b.weight - a.weight);
+    return subMatches[0].p;
+  }
+
+  // 3. Fuzzy on full alias OR alias tokens
+  let best: { p: Provider; dist: number } | null = null;
+  for (const p of candidates) {
+    for (const a of p.names) {
+      const d = minTokenLevenshtein(norm, normalize(a), 2);
+      if (d <= 2 && (best === null || d < best.dist)) {
+        best = { p, dist: d };
+      }
+    }
+  }
+  return best ? best.p : null;
+}
+
 /**
- * Find provider by free-text input. Strategy:
- *  1. Exact canonical name match (case-insensitive).
- *  2. Alias substring match — longest alias wins to avoid false positives
- *     (e.g. "centraal beheer hypotheek" beats "centraal beheer").
+ * Find a provider by free-text input across all countries.
+ * Strategy: exact canonical → alias word-boundary substring → fuzzy (Levenshtein ≤ 2).
  */
 export function findProvider(input: string): ProviderRecord | null {
   if (!input) return null;
-  const norm = input.toLowerCase().trim();
-  for (const p of NL_PROVIDERS) {
-    if (p.canonical.toLowerCase() === norm) return p;
-  }
-  // Build (provider, alias, length) tuples and sort by alias length desc
-  const matches: { p: ProviderRecord; aliasLen: number }[] = [];
-  for (const p of NL_PROVIDERS) {
-    for (const a of p.aliases) {
-      if (norm.includes(a)) matches.push({ p, aliasLen: a.length });
-    }
-  }
-  if (matches.length === 0) return null;
-  matches.sort((a, b) => b.aliasLen - a.aliasLen);
-  return matches[0].p;
+  const p = searchMatch(input, PROVIDERS);
+  return p ? toRecord(p) : null;
+}
+
+/**
+ * Disambiguate by country — useful when two countries share a name
+ * (e.g. "Allianz" exists in NL/DE/FR/IT).
+ */
+export function findProviderByCountry(input: string, country: Country): ProviderRecord | null {
+  if (!input) return null;
+  const candidates = PROVIDERS.filter((p) => p.country === country);
+  const p = searchMatch(input, candidates);
+  return p ? toRecord(p) : null;
 }
 
 export function listProvidersByCategory(cat: Category): ProviderRecord[] {
-  return NL_PROVIDERS.filter((p) => p.category === cat);
+  return PROVIDERS.filter((p) => p.category === cat).map(toRecord);
 }
 
 export function listProvidersByRegion(region: Region): ProviderRecord[] {
-  return NL_PROVIDERS.filter((p) => p.region === region);
+  return PROVIDERS.filter((p) => countryToRegion(p.country) === region).map(toRecord);
+}
+
+export function listProvidersByCountry(country: Country): Provider[] {
+  return PROVIDERS.filter((p) => p.country === country);
 }
 
 export function allCategories(): Category[] {
   return ["TELECOM", "ENERGIE", "VERZEKERING", "HYPOTHEEK", "BANK", "ABONNEMENT", "OVERIG"];
 }
 
-export function totalProviderCount(): number {
-  return NL_PROVIDERS.length;
+export function allCountries(): Country[] {
+  return ["NL", "BE", "DE", "FR", "UK", "US", "ES", "IT", "INT"];
 }
 
-/**
- * Voor een NL mobiele provider: retourneert het onderliggende netwerk
- * ("KPN" | "Vodafone" | "Odido") of null als het de provider zelf is.
- * Undefined als de provider geen NL telecom-mobiel is (internet/TV, energie etc).
- */
+export function totalProviderCount(): number {
+  return PROVIDERS.length;
+}
+
+/** Map a provider canonical name → its country. Null when unknown. */
+export function providerCountry(canonical: string): Country | null {
+  const p = PROVIDERS.find((x) => x.canonical.toLowerCase() === canonical.toLowerCase());
+  return p ? p.country : null;
+}
+
 export function getProviderNetwork(canonical: string): MobileNetwork | undefined {
-  const p = NL_PROVIDERS.find((x) => x.canonical.toLowerCase() === canonical.toLowerCase());
-  if (!p || p.category !== "TELECOM" || p.region !== "NL") return undefined;
+  const p = PROVIDERS.find((x) => x.canonical.toLowerCase() === canonical.toLowerCase());
+  if (!p || p.category !== "TELECOM" || p.country !== "NL") return undefined;
   return p.network ?? null;
 }
 
-/**
- * Korte label voor UI: "eigen netwerk", "MVNO op KPN-netwerk", etc.
- * Returns null voor non-mobile providers (geen label tonen).
- */
 export function describeNetwork(canonical: string): string | null {
   const network = getProviderNetwork(canonical);
   if (network === undefined) return null;
