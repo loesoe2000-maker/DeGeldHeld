@@ -66,6 +66,7 @@ const API_PROBES: ApiProbe[] = [
   { path: "/api/negotiations/outcome", method: "POST", body: {}, expectJson: true, okStatuses: [400, 401] },
   { path: "/api/checkout", method: "POST", body: {}, expectJson: true, okStatuses: [400, 401] },
   { path: "/api/providers/discover", method: "POST", body: {}, expectJson: true, okStatuses: [400, 401] },
+  { path: "/api/inbound", method: "POST", body: {}, expectJson: true, okStatuses: [400, 401] },
 ];
 
 type Row = {

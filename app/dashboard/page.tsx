@@ -90,6 +90,14 @@ export default async function DashboardPage() {
         </section>
       )}
 
+      <section className="mt-8 rounded-xl border border-slate-200 bg-white p-5">
+        <h2 className="text-lg font-semibold text-slate-900">Snelle upload via email</h2>
+        <p className="mt-1 text-sm text-slate-600">
+          Forward je factuur naar <a href="mailto:inbox@degeldheld.com?subject=Mijn%20factuur" className="font-mono text-brand-700 underline">inbox@degeldheld.com</a>.
+          We analyseren 'm en sturen je een link terug.
+        </p>
+      </section>
+
       {await renderReferralSection(userId)}
 
       <section className="mt-10">
