@@ -127,5 +127,8 @@ function DeleteForm() {
   );
 }
 
-AccountControls.DeleteForm = DeleteForm;
+// Two named exports — Next.js client-component boundaries don't carry
+// static properties across the server/client divide, so the
+// `AccountControls.DeleteForm` pattern crashed in production.
+export { DeleteForm };
 export default AccountControls;

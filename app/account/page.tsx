@@ -1,7 +1,7 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
-import AccountControls from "@/components/AccountControls";
+import AccountControls, { DeleteForm } from "@/components/AccountControls";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -88,7 +88,7 @@ export default async function AccountPage() {
         <p className="mt-1 text-sm text-rose-800">
           Onomkeerbaar. Je e-mailadres, naam, bills en sessies worden anoniem of verwijderd.
         </p>
-        <AccountControls.DeleteForm />
+        <DeleteForm />
       </section>
 
       <div className="mt-10 text-center text-sm text-slate-500">
