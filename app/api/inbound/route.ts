@@ -146,6 +146,7 @@ export async function POST(req: Request) {
         imageHash,
         rawOcr: ocr.rawText.slice(0, 4000),
         position: priorBills,
+        nextRecheckAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
       },
     });
     createdBills.push({ id: bill.id, provider: bill.provider, amountCents: bill.amountCents });

@@ -158,6 +158,11 @@ model Bill {
   position     Int          @default(0)
   paidAt       DateTime?
 
+  // v8 monthly re-check
+  lastRecheckAt    DateTime?
+  nextRecheckAt    DateTime?
+  lastRecheckMailAt DateTime?
+
   user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   negotiation  Negotiation?
 

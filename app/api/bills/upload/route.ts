@@ -128,6 +128,7 @@ export async function POST(req: NextRequest) {
           imageHash,
           rawOcr: ocr.rawText.slice(0, 4000),
           position: priorBills,
+          nextRecheckAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
         },
       });
     }

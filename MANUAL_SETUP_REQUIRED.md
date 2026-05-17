@@ -30,3 +30,23 @@ Activates: `inbox@degeldheld.com` forward → automatic bill OCR + reply.
 The route silently rejects unsigned/invalid payloads with HTTP 401, so
 you can safely leave it deployed before the webhook secret is set; just
 no real requests will land yet.
+
+---
+
+## 2. Monthly market re-check cron — DEEL 2
+
+Activates: nightly cron that re-runs market comparison on bills older
+than 30 days; emails user if savings increased by ≥ €60/yr.
+
+- [x] `vercel.json` cron added (`0 9 * * *` on `/api/cron/monthly-recheck`).
+- [x] Migration `bill_recheck_schedule` applied to prod DB (Bill.lastRecheckAt,
+      nextRecheckAt, lastRecheckMailAt columns).
+- [ ] Ensure `CRON_SECRET` is set in Vercel (it is, from v6) — the
+      cron returns 401 without a `Authorization: Bearer ${CRON_SECRET}` header.
+- [ ] Optional: backfill `nextRecheckAt` on existing bills:
+      ```sql
+      UPDATE "Bill" SET "nextRecheckAt" = "createdAt" + INTERVAL '30 days'
+      WHERE "nextRecheckAt" IS NULL;
+      ```
+
+Anti-spam: at most one re-engagement mail per user per 7 days (DB-guarded).
