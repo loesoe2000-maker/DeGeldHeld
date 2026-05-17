@@ -107,6 +107,6 @@ export async function GET(req: NextRequest) {
         by_category: byCategory,
       },
     },
-    { headers: { "cache-control": "public, max-age=300, s-maxage=300" } },
+    { headers: { "cache-control": "public, s-maxage=300, stale-while-revalidate=3600" } },
   );
 }

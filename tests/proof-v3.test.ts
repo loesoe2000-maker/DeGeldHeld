@@ -73,8 +73,8 @@ describe("api/proof v3 period filter", () => {
   it("response cache-control persists across periods", async () => {
     const r1 = await GET(makeReq("7d"));
     const r2 = await GET(makeReq("all"));
-    expect(r1.headers.get("cache-control")).toContain("max-age=300");
-    expect(r2.headers.get("cache-control")).toContain("max-age=300");
+    expect(r1.headers.get("cache-control")).toContain("s-maxage=300");
+    expect(r2.headers.get("cache-control")).toContain("s-maxage=300");
   });
 
   it("BANK category is preserved in by_category when present", async () => {

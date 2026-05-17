@@ -13,5 +13,11 @@ export async function GET() {
     env_ok: env.ok,
     env_missing: env.missing,
   };
-  return NextResponse.json(body, { status: env.ok ? 200 : 503 });
+  return NextResponse.json(body, {
+    status: env.ok ? 200 : 503,
+    headers: {
+      // tiny TTL so a healthy box doesn't get hammered, but stale-revalidate keeps it fresh
+      "Cache-Control": "public, s-maxage=10, stale-while-revalidate=30",
+    },
+  });
 }

@@ -71,7 +71,7 @@ describe("api/proof GET", () => {
     findMany.mockResolvedValue([]);
     count.mockResolvedValue(0);
     const r = await GET(makeReq());
-    expect(r.headers.get("cache-control")).toContain("max-age=300");
+    expect(r.headers.get("cache-control")).toContain("s-maxage=300");
   });
 
   it("includes generated_at timestamp", async () => {

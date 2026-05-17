@@ -189,6 +189,8 @@ model Negotiation {
   @@index([userId])
   @@index([state])
   @@index([followUpAt])
+  // v6 perf: powers the cron follow-up + dashboard "still-waiting" query.
+  @@index([state, emailSentAt])
 }
 
 model NegotiationRound {
