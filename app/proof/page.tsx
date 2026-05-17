@@ -4,7 +4,33 @@ import Footer from "@/components/Footer";
 import Link from "next/link";
 import { formatEurCents, formatPercent } from "@/lib/format";
 
-export const metadata = { title: "Track record — DeGeldHeld" };
+export const metadata = {
+  title: "Track record",
+  description:
+    "Bekijk hoeveel DeGeldHeld voor klanten heeft bespaard — totale besparing, slaagkans en gemiddelde besparing per onderhandeling, transparant per periode.",
+  openGraph: {
+    title: "DeGeldHeld track record — transparante besparing per maand",
+    description:
+      "Live cijfers: totale besparing, slaagpercentage en gemiddelde besparing per onderhandeling.",
+  },
+};
+
+const datasetLd = {
+  "@context": "https://schema.org",
+  "@type": "Dataset",
+  name: "DeGeldHeld track record",
+  description:
+    "Geanonimiseerde besparingsdata van DeGeldHeld onderhandelingen, vernieuwd per minuut.",
+  url: "https://degeldheld.com/proof",
+  creator: { "@type": "Organization", name: "DeGeldHeld" },
+  distribution: [
+    {
+      "@type": "DataDownload",
+      contentUrl: "https://degeldheld.com/api/proof",
+      encodingFormat: "application/json",
+    },
+  ],
+};
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
@@ -125,6 +151,11 @@ export default async function ProofPage({
   const stats = await loadStats(period, basis, country, category);
   return (
     <>
+      <script
+        type="application/ld+json"
+        // eslint-disable-next-line react/no-danger
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(datasetLd) }}
+      />
       <main className="mx-auto max-w-4xl px-6 py-16">
         <h1 className="text-4xl font-bold text-slate-900 sm:text-5xl">Track record</h1>
         <p className="mt-3 max-w-2xl text-lg text-slate-600">

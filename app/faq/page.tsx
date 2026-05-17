@@ -1,7 +1,11 @@
 import FAQ from "@/components/FAQ";
 import Footer from "@/components/Footer";
 
-export const metadata = { title: "FAQ — DeGeldHeld" };
+export const metadata = {
+  title: "Veelgestelde vragen",
+  description:
+    "Antwoorden op de meest gestelde vragen over DeGeldHeld: hoe werkt de onderhandeling, wat kost het, welke providers, GDPR.",
+};
 
 export default function FAQPage() {
   return (
