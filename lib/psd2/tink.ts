@@ -50,7 +50,11 @@ function getConfig(): TinkConfig {
 }
 
 export function isPsd2Enabled(): boolean {
-  return process.env.PSD2_ENABLED === "true";
+  // Honors legacy PSD2_ENABLED + new FEATURE_PSD2_ENABLED — either flag
+  // can flip it on without code change.
+  if (process.env.PSD2_ENABLED === "true") return true;
+  if (process.env.FEATURE_PSD2_ENABLED === "true") return true;
+  return false;
 }
 
 /**

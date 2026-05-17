@@ -15,7 +15,10 @@ import Groq from "groq-sdk";
 const TEXT_MODEL = "llama-3.3-70b-versatile";
 
 export function isWhatsAppEnabled(): boolean {
-  return process.env.WHATSAPP_ENABLED === "true";
+  // Honors legacy WHATSAPP_ENABLED + new FEATURE_WHATSAPP_ENABLED
+  if (process.env.WHATSAPP_ENABLED === "true") return true;
+  if (process.env.FEATURE_WHATSAPP_ENABLED === "true") return true;
+  return false;
 }
 
 export function verifyTwilioSignature(opts: {

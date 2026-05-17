@@ -111,6 +111,10 @@ async function generateCounterIfNeeded(opts: {
 }
 
 export async function POST(req: NextRequest) {
+  // Feature-flag escape hatch — disables multi-round flow site-wide
+  if (process.env.FEATURE_MULTI_ROUND_ENABLED === "false") {
+    return NextResponse.json({ error: "Multi-round flow is currently disabled" }, { status: 503 });
+  }
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const userId = (session.user as { id: string }).id;
