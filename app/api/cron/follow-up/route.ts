@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { sendEmail } from "@/lib/email";
 import { followUpBrandedHtml, followUpBrandedSubject } from "@/lib/email_templates";
+import { acquireCronLock, releaseCronLock } from "@/lib/cron-lock";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -20,42 +21,47 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const now = new Date();
-  const due = await prisma.negotiation.findMany({
-    where: {
-      state: "AWAITING",
-      followUpAt: { lte: now },
-      closedAt: null,
-    },
-    include: { user: true, bill: true },
-    take: 50, // daily batch cap
-  });
+  const lockId = await acquireCronLock("follow-up");
+  if (!lockId) {
+    return NextResponse.json({ ok: true, skipped: "already-running" });
+  }
 
   let sent = 0;
   let failed = 0;
-  for (const n of due) {
-    try {
-      await sendEmail({
-        to: n.user.email,
-        subject: followUpBrandedSubject(n.bill.provider),
-        html: followUpBrandedHtml({
-          customerName: n.user.name ?? n.user.email,
-          provider: n.bill.provider,
-          negotiationId: n.id,
-          expectedSavingsCents: n.expectedSavingsCents ?? 0,
-        }),
-      });
-      // Push next follow-up 7d into the future (max 2 tries handled at flow layer)
-      await prisma.negotiation.update({
-        where: { id: n.id },
-        data: { followUpAt: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000) },
-      });
-      sent += 1;
-    } catch (e) {
-      console.error(`follow-up failed for ${n.id}`, e);
-      failed += 1;
-    }
-  }
+  let considered = 0;
+  try {
+    const now = new Date();
+    const due = await prisma.negotiation.findMany({
+      where: { state: "AWAITING", followUpAt: { lte: now }, closedAt: null },
+      include: { user: true, bill: true },
+      take: 50,
+    });
+    considered = due.length;
 
-  return NextResponse.json({ ok: true, sent, failed, considered: due.length });
+    for (const n of due) {
+      try {
+        await sendEmail({
+          to: n.user.email,
+          subject: followUpBrandedSubject(n.bill.provider),
+          html: followUpBrandedHtml({
+            customerName: n.user.name ?? n.user.email,
+            provider: n.bill.provider,
+            negotiationId: n.id,
+            expectedSavingsCents: n.expectedSavingsCents ?? 0,
+          }),
+        });
+        await prisma.negotiation.update({
+          where: { id: n.id },
+          data: { followUpAt: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000) },
+        });
+        sent += 1;
+      } catch (e) {
+        console.error(`follow-up failed for ${n.id}`, e);
+        failed += 1;
+      }
+    }
+    return NextResponse.json({ ok: true, sent, failed, considered });
+  } finally {
+    await releaseCronLock({ id: lockId, itemsProcessed: sent, ok: failed === 0 });
+  }
 }

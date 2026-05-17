@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { sendEmail } from "@/lib/email";
 import { followUpBrandedHtml, followUpBrandedSubject } from "@/lib/email_templates";
 import { signOutcomeToken } from "@/lib/outcome_token";
+import { acquireCronLock, releaseCronLock } from "@/lib/cron-lock";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -27,6 +28,18 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const lockId = await acquireCronLock("outcome-followup");
+  if (!lockId) return NextResponse.json({ ok: true, skipped: "already-running" });
+
+  try {
+    return await runOutcomeFollowup(lockId);
+  } catch (e) {
+    await releaseCronLock({ id: lockId, itemsProcessed: 0, ok: false });
+    throw e;
+  }
+}
+
+async function runOutcomeFollowup(lockId: string) {
   const now = new Date();
   const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
@@ -71,6 +84,7 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  await releaseCronLock({ id: lockId, itemsProcessed: sent, ok: failed === 0 });
   return NextResponse.json({
     ok: true,
     sent,

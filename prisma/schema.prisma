@@ -313,6 +313,21 @@ model OcrTrainingSample {
   @@index([billCategory])
 }
 
+// v9 cron-lock — prevent duplicate runs (Vercel can fire same cron twice
+// during rolling deploys; one wins via unique(jobName,runDate)).
+model CronRunLog {
+  id             String    @id @default(cuid())
+  jobName        String                 // 'outcome-followup' | 'monthly-recheck' | 'psd2-sync' | 'follow-up'
+  runDate        String                 // YYYY-MM-DD (UTC)
+  status         String    @default("running")  // running | done | failed
+  itemsProcessed Int       @default(0)
+  startedAt      DateTime  @default(now())
+  completedAt    DateTime?
+
+  @@unique([jobName, runDate])
+  @@index([jobName, startedAt])
+}
+
 model MarketProvider {
   id         String       @id @default(cuid())
   name       String       @unique

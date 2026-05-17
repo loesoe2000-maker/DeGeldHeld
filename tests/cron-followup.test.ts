@@ -15,12 +15,18 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 const findManyMock = vi.fn();
 const updateMock = vi.fn();
 const sendEmailMock = vi.fn();
+const cronCreateMock = vi.fn(async (_a: unknown) => ({ id: "lock-1" }));
+const cronUpdateMock = vi.fn(async (_a: unknown) => ({}));
 
 vi.mock("@/lib/db", () => ({
   prisma: {
     negotiation: {
       findMany: (...args: unknown[]) => findManyMock(...args),
       update: (...args: unknown[]) => updateMock(...args),
+    },
+    cronRunLog: {
+      create: (a: unknown) => cronCreateMock(a),
+      update: (a: unknown) => cronUpdateMock(a),
     },
   },
 }));
@@ -37,6 +43,8 @@ beforeEach(() => {
   findManyMock.mockReset();
   updateMock.mockReset();
   sendEmailMock.mockReset();
+  cronCreateMock.mockReset().mockResolvedValue({ id: "lock-1" });
+  cronUpdateMock.mockReset().mockResolvedValue({});
   process.env.OUTCOME_TOKEN_SECRET = "test-secret-32-bytes-or-more-pls-ok";
   process.env.CRON_SECRET = "test-cron";
   process.env.APP_URL = "https://test.app";

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { sendEmail } from "@/lib/email";
 import { buildComparison } from "@/lib/comparison";
+import { acquireCronLock, releaseCronLock } from "@/lib/cron-lock";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -21,6 +22,18 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const lockId = await acquireCronLock("monthly-recheck");
+  if (!lockId) return NextResponse.json({ ok: true, skipped: "already-running" });
+
+  try {
+    return await runMonthlyRecheck(lockId);
+  } catch (e) {
+    await releaseCronLock({ id: lockId, itemsProcessed: 0, ok: false });
+    throw e;
+  }
+}
+
+async function runMonthlyRecheck(lockId: string) {
   const now = new Date();
   const activeCutoff = new Date(now.getTime() - REENGAGE_WINDOW_MS);
 
@@ -109,5 +122,6 @@ nu <strong>€${Math.round(newSavings / 100)}/jaar</strong> besparing mogelijk (
     updated++;
   }
 
+  await releaseCronLock({ id: lockId, itemsProcessed: mailed, ok: true });
   return NextResponse.json({ ok: true, due: due.length, mailed, skippedNoDelta, skippedCooldown, updated });
 }

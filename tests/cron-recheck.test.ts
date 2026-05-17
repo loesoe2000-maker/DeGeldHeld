@@ -7,12 +7,18 @@ const findFirst = vi.fn();
 const update = vi.fn(async (_args?: unknown) => ({}) as unknown);
 const sendEmail = vi.fn(async (_args?: unknown) => ({ id: "test", skipped: false }));
 
+const cronCreate = vi.fn(async (_a: unknown) => ({ id: "lock-1" }));
+const cronUpdate = vi.fn(async (_a: unknown) => ({}));
 vi.mock("../lib/db", () => ({
   prisma: {
     bill: {
       findMany: (a: unknown) => findMany(a),
       findFirst: (a: unknown) => findFirst(a),
       update: (a: unknown) => update(a),
+    },
+    cronRunLog: {
+      create: (a: unknown) => cronCreate(a),
+      update: (a: unknown) => cronUpdate(a),
     },
   },
 }));
@@ -53,6 +59,8 @@ beforeEach(() => {
   update.mockReset().mockResolvedValue({});
   sendEmail.mockReset().mockResolvedValue({ id: "test", skipped: false });
   buildComparisonMock.mockReset();
+  cronCreate.mockReset().mockResolvedValue({ id: "lock-1" });
+  cronUpdate.mockReset().mockResolvedValue({});
 });
 
 describe("GET /api/cron/monthly-recheck", () => {

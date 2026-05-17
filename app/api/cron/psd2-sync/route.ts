@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { decryptToken } from "@/lib/crypto";
 import { listAccounts, listTransactions, isPsd2Enabled } from "@/lib/psd2/tink";
 import { detectRecurring } from "@/lib/psd2/detect-bills";
+import { acquireCronLock, releaseCronLock } from "@/lib/cron-lock";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -16,6 +17,9 @@ export async function GET(req: NextRequest) {
   if (!isPsd2Enabled()) {
     return NextResponse.json({ ok: true, skipped: "psd2-disabled" });
   }
+
+  const lockId = await acquireCronLock("psd2-sync");
+  if (!lockId) return NextResponse.json({ ok: true, skipped: "already-running" });
 
   const conns = await prisma.bankConnection.findMany({
     where: { status: "active" },
@@ -74,5 +78,6 @@ export async function GET(req: NextRequest) {
       }
     }
   }
+  await releaseCronLock({ id: lockId, itemsProcessed: detected, ok: true });
   return NextResponse.json({ ok: true, conns: conns.length, synced, detected });
 }
