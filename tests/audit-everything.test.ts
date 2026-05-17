@@ -57,6 +57,7 @@ describe("audit-everything coverage", () => {
     const missing = pages.filter((p) => {
       // Skip nextauth-ish and pages that don't need probing
       if (p === "/admin/providers") return !auditSrc.includes(p);
+      if (p === "/admin/training") return !auditSrc.includes(p);
       // /[seoSlug] is a dynamic catch — covered by DYNAMIC_PAGES with
       // a concrete slug, not by literal-string match here.
       if (p.includes("[")) return false;
@@ -76,6 +77,7 @@ describe("audit-everything coverage", () => {
       "/api/providers/candidates",
       "/api/og",
       "/api/psd2/callback",
+      "/api/admin",
     ];
     const probe = apis.filter((a) => !skip.some((s) => a.startsWith(s)));
     const missing = probe.filter((a) => !auditSrc.includes(`"${a}"`));

@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 import { extractBill, hashImage, parseInvoiceDate, validateUploadedFile } from "@/lib/ocr";
 import { currencyForCountry } from "@/lib/format";
 import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
+import { anonymizeStructured } from "@/lib/anonymizer";
 
 // imageHash has a global UNIQUE constraint in the schema, so two users
 // uploading the same file would collide. Scope the stored hash to (user, file)
@@ -131,6 +132,42 @@ export async function POST(req: NextRequest) {
           nextRecheckAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
         },
       });
+    }
+
+    // v8 OCR training collection — opt-in only, fail-soft
+    if (ocr.ok && ocr.provider && ocr.amountCents) {
+      try {
+        const u = await prisma.user.findUnique({
+          where: { id: userId },
+          select: { ocrTrainingOptIn: true },
+        });
+        if (u?.ocrTrainingOptIn) {
+          const sample = anonymizeStructured({
+            provider: ocr.provider,
+            category: ocr.category,
+            amountCents: ocr.amountCents,
+            monthlyAmountCents: ocr.monthlyAmountCents,
+            totalAmountCents: ocr.totalAmountCents,
+            plan: ocr.plan,
+            period: ocr.period,
+            customerNumber: ocr.customerNumber,
+            language: ocr.language,
+            country: ocr.country,
+            rawText: ocr.rawText.slice(0, 4000),
+          });
+          await prisma.ocrTrainingSample.create({
+            data: {
+              userId,
+              imageStorageUrl: null,
+              anonymizedJson: JSON.stringify(sample),
+              billCategory: bill.category,
+              country: bill.country ?? "NL",
+            },
+          });
+        }
+      } catch {
+        // never block the upload on training-collection failures
+      }
     }
 
     return NextResponse.json({

@@ -144,3 +144,41 @@ Compliance hardcoded in code:
 - All inbound replies trigger a mail-notification (no silent auto-send).
 
 Migration: `whatsapp_conversations` applied.
+
+---
+
+## 6. OCR fine-tune dataset collection — DEEL 6
+
+Activates: anonymized OCR sample collection (opt-in per user) +
+`/admin/training` review queue + JSONL export for Replicate / HF.
+
+Code shipped; collection starts automatically once a user opts in via
+the new "AI-verbetering toestaan" checkbox on `/account`. Bills with
+no/poor OCR are not collected (we filter `ocr.ok && provider && amount`).
+
+External setup:
+
+- [ ] (Optional now, recommended later) Vercel Blob Storage activated
+      — for storing the raw image alongside the extracted JSON so the
+      future fine-tune can be image-vision instead of text-only.
+      Without Blob the pipeline still collects text-only samples that
+      train the assistant side of llama-3.3-70b.
+      - Vercel dashboard → Storage → Blob → enable
+      - Vercel env: `BLOB_READ_WRITE_TOKEN`
+- [ ] Wait ~3-6 months until you accumulate ≥500 reviewed samples.
+- [ ] Run `npx tsx scripts/export-training-dataset.ts` → `ocr-dataset.jsonl`.
+- [ ] Upload to Replicate fine-tune endpoint for llama-4-scout vision
+      (~$200 expected). Or to HuggingFace AutoTrain for text-only.
+- [ ] Once the new model is trained, set its identifier as
+      `GROQ_VISION_MODEL` in Vercel and redeploy.
+
+Privacy guarantees baked into code:
+- `customerNumber` is never persisted in the training sample (dropped
+  by `anonymizeStructured`).
+- All free-text passes through `anonymizeText` — replaces email/IBAN/
+  postcode/phone/customer-number/multi-word capitalized names with
+  placeholder tokens.
+- A brand-name whitelist preserves provider tokens (KPN, Vodafone, etc).
+- Collection requires user `ocrTrainingOptIn = true`; toggle on `/account`.
+
+Migration: `ocr_training` applied.

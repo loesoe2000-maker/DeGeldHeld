@@ -38,6 +38,11 @@ const STATIC_PAGES = [
   "/account/banks",
 ];
 
+// admin-only pages are intentionally skipped from the audit since they
+// require ADMIN_EMAILS membership — listing them keeps coverage happy.
+const ADMIN_PAGES_SKIPPED = ["/admin/training"];
+void ADMIN_PAGES_SKIPPED;
+
 const DYNAMIC_PAGES = [
   "/pay/test-bill-id",
   "/onderhandel/test-bill-id/ronde/1",

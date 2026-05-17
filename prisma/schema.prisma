@@ -297,6 +297,22 @@ model WaitlistEntry {
   @@index([email])
 }
 
+// v8 OCR fine-tune dataset
+model OcrTrainingSample {
+  id              String   @id @default(cuid())
+  userId          String?
+  imageStorageUrl String?              // Vercel Blob URL (null = text-only)
+  anonymizedJson  String   @db.Text    // ground-truth labels, PII-stripped
+  reviewed        Boolean  @default(false)
+  reviewerUserId  String?
+  billCategory    String
+  country         String
+  createdAt       DateTime @default(now())
+
+  @@index([reviewed])
+  @@index([billCategory])
+}
+
 model MarketProvider {
   id         String       @id @default(cuid())
   name       String       @unique
