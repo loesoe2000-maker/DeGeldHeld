@@ -227,6 +227,58 @@ async function checkDiscoverNoBody(): Promise<CheckResult> {
   return { name: "GET /api/providers/discover (no body)", ok: false, detail: `status ${r.status}` };
 }
 
+// --- DEEL 12 additions ------------------------------------------------
+
+async function checkRoundEmptyBody(): Promise<CheckResult> {
+  // POST without body → 400 (or 401 if auth-gated)
+  const r = await fetch(`${BASE}/api/negotiations/round`, { method: "POST" });
+  if (r.status === 400 || r.status === 401) {
+    return { name: "POST /api/negotiations/round (empty)", ok: true, detail: `${r.status} zoals verwacht` };
+  }
+  return { name: "POST /api/negotiations/round (empty)", ok: false, detail: `status ${r.status}` };
+}
+
+async function checkUploadEmptyBody(): Promise<CheckResult> {
+  // POST without file → 400 (or 401 if auth-gated)
+  const r = await fetch(`${BASE}/api/bills/upload`, { method: "POST" });
+  if (r.status === 400 || r.status === 401) {
+    return { name: "POST /api/bills/upload (no file)", ok: true, detail: `${r.status} zoals verwacht` };
+  }
+  return { name: "POST /api/bills/upload (no file)", ok: false, detail: `status ${r.status}` };
+}
+
+async function checkSitemap(): Promise<CheckResult> {
+  const r = await fetchFollow(`${BASE}/sitemap.xml`);
+  const ct = r.headers.get("content-type") ?? "";
+  if (r.status !== 200) {
+    return { name: "GET /sitemap.xml", ok: false, detail: `status ${r.status}` };
+  }
+  if (!/xml/.test(ct)) {
+    return { name: "GET /sitemap.xml", ok: false, detail: `content-type ${ct}` };
+  }
+  return { name: "GET /sitemap.xml", ok: true, detail: `200, ${ct}` };
+}
+
+async function checkRobots(): Promise<CheckResult> {
+  const r = await fetchFollow(`${BASE}/robots.txt`);
+  if (r.status !== 200) {
+    return { name: "GET /robots.txt", ok: false, detail: `status ${r.status}` };
+  }
+  return { name: "GET /robots.txt", ok: true, detail: "200" };
+}
+
+async function checkPrivacyPage(): Promise<CheckResult> {
+  const r = await fetchFollow(`${BASE}/privacy`);
+  if (r.status !== 200) {
+    return { name: "GET /privacy", ok: false, detail: `status ${r.status}` };
+  }
+  const body = await r.text();
+  if (!/AVG/i.test(body)) {
+    return { name: "GET /privacy", ok: false, detail: 'body mist "AVG"' };
+  }
+  return { name: "GET /privacy", ok: true, detail: '200, body contains "AVG"' };
+}
+
 async function main() {
   console.log(`[smoke-prod] Target: ${BASE}`);
   console.log(`[smoke-prod] Start: ${new Date().toISOString()}\n`);
@@ -242,6 +294,11 @@ async function main() {
     checkProofFilters,
     checkCronUnauthorized,
     checkDiscoverNoBody,
+    checkRoundEmptyBody,    // 11
+    checkUploadEmptyBody,   // 12
+    checkSitemap,           // 13
+    checkRobots,            // 14
+    checkPrivacyPage,       // 15
   ];
 
   const results: CheckResult[] = [];

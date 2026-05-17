@@ -1,84 +1,127 @@
 # DeGeldHeld
 
 > Automatisch onderhandelen op je Nederlandse maandlasten via AI.
-> Je betaalt alleen 15% van wat we voor je besparen.
+> Eerste onderhandeling gratis, daarna € 4,99 per dossier.
 
-## Stack
+**Status: v6 LIVE** — production hardening sprint complete (rate limits,
+Zod everywhere, global error boundaries + Sentry, mobile/a11y/SEO, trust
+pages, paywall, performance indexes).
 
-- **Next.js 14** (App Router) + TypeScript + Tailwind
-- **Prisma** + Vercel Postgres
-- **NextAuth.js** v5 (magic link via Resend)
-- **Groq** (llama-3.2-90b-vision voor OCR + llama-3.1-70b voor email gen)
-- **Stripe** voor billing (success-fee model)
-- **Sentry** voor error tracking
-- **Vitest** voor tests
+## Feature table
+
+| Capability | Status |
+|---|---|
+| Bill upload (PDF/JPG/PNG) + OCR via Groq vision | stable |
+| Provider/category/amount extraction | stable |
+| Market comparison (14 categories, NL + EU providers) | stable |
+| AI onderhandel-email generation | stable |
+| Multi-round negotiation flow | stable |
+| 7-day outcome follow-up cron | stable |
+| Dashboard + per-user history | stable |
+| Public track record (`/proof`) | stable |
+| Rate limiting on expensive APIs | stable (v6) |
+| Centralised Zod validation on all mutations | stable (v6) |
+| Global error boundaries + Sentry pipeline | stable (v6) |
+| Trust pages: /privacy /voorwaarden /over-ons /contact | stable (v6) |
+| Cookie consent banner | stable (v6) |
+| Per-bill paywall (€4,99 after the first free bill) | beta (v6 — needs live Stripe test) |
+| AVG-erkenning + WCAG 2.1 AA contrast | live (v6) |
+| Provider auto-discovery via web fetch | experimental |
+
+## Tech stack
+
+```mermaid
+flowchart LR
+  user[End user 📱] -->|HTTPS| vercel[Vercel Edge EU]
+  vercel --> next[Next.js 14 App Router]
+  next --> neon[(Neon Postgres EU)]
+  next --> groq[Groq · Llama vision + text]
+  next --> resend[Resend · transactional mail]
+  next --> stripe[Stripe · iDEAL + card]
+  next --> sentry[Sentry · errors]
+  vercel -->|cron 4h / 24h| cron[/api/cron/*/]
+```
 
 ## Quickstart
 
 ```bash
 git clone <this-repo> degeldheld && cd degeldheld
 npm install
-cp .env.example .env.local       # vul secrets in
+cp .env.example .env.local       # fill in secrets
 npx prisma migrate dev
 npm run dev                      # http://localhost:3000
 ```
 
 ## Scripts
 
-| Command | Doel |
+| Command | Purpose |
 |---------|------|
 | `npm run dev` | Next dev server |
-| `npm run build` | Productie build |
-| `npm test` | Vitest run |
-| `npm run smoke` | F0 pre-deploy smoke (env+prisma+tsc+vitest) |
+| `npm run build` | Production build |
+| `npm test -- --run` | Vitest, single pass |
+| `npm run smoke` | F0 pre-deploy smoke (env + prisma + tsc + vitest) |
+| `npm run smoke:prod` | 15 production health checks |
+| `npx tsx scripts/audit-routes.ts` | Production route 404/500 sweep |
+| `npx tsx scripts/mobile-audit.ts` | 375×812 Playwright mobile audit |
+| `npx tsx scripts/a11y-audit.ts` | WCAG 2.1 AA axe-core sweep |
 | `npm run prisma:migrate` | DB migration in dev |
-| `npm run seed` | Seed market_db met 14 NL providers |
+| `npm run prisma:deploy` | DB migration in prod (after `npm install`) |
+| `npm run seed` | Seed market_db with NL providers |
 
-## Architectuur
+## Architecture
 
 ```
 app/
-  page.tsx              landing
-  login/                magic link
+  page.tsx              landing (Hero + Org/WebSite JSON-LD)
+  login/                magic link (NextAuth + Resend)
   dashboard/            user savings overview
   onderhandel/          bill upload → analyse → email gen flow
-  pay/[id]/             stripe checkout completion
+  pay/[id]/             dual flow: paywall (Bill) + success-fee (Negotiation)
+  privacy/  voorwaarden/  over-ons/  contact/   trust pages
   api/
     auth/               NextAuth handler
-    waitlist/           email signup
-    bills/upload/       multipart upload + OCR trigger
-    cron/follow-up/     daily follow-up emails
+    waitlist/           email signup (3/h per IP)
+    bills/upload/       multipart upload + OCR (5/h per user)
+    negotiations/round/ multi-round (10/h per user)
+    providers/discover/ web-fetch provider lookup (5/day per user)
+    checkout/           Stripe checkout (paywall + success-fee)
+    cron/follow-up/     4h follow-up emails (Bearer guard)
+    cron/outcome-followup/  daily outcome ask (Bearer guard)
     webhooks/stripe/    payment events
-    health/             /api/health
-    proof/              public anonymized track record
-components/             React UI components
+    health/             /api/health (10s SWR)
+    proof/              public anonymised track record (300s SWR)
+    og/                 1200×630 OG card renderer (edge runtime)
+  sitemap.ts robots.ts  SEO foundation
+  error.tsx + per-tree error.tsx + global-error.tsx
+components/             React UI; CookieBanner, ErrorBoundary, PaywallButton
 lib/
   env.ts                zod env validation
   db.ts                 Prisma singleton
   ocr.ts                Groq Vision OCR
   market_db.ts          provider tarief lookup
-  comparison.ts         goedkoper-alternatief logica
+  comparison.ts         goedkoper-alternatief logic
   negotiator.ts         Groq email gen
-  payments.ts           Stripe checkout
+  payments.ts           Stripe success-fee + paywall
   email.ts              Resend wrapper
+  rate-limit.ts         sliding-window in-memory
+  schemas/              centralised Zod
 prisma/
-  schema.prisma         9 models, 3 enums
-scripts/
-  smoke_test.ts         F0 contract
-  seed.ts               market_db seed
-  update_prices.ts      handmatige prijs-refresh
-tests/                  vitest, ≥150 tests
+  schema.prisma         models, enums + composite indexes (state,emailSentAt) + (userId,createdAt)
+scripts/                smoke, audits, seed
+tests/                  vitest, ~880 tests
 ```
 
 ## Deploy
 
-Zie [DEPLOY.md](./DEPLOY.md) voor Vercel deploy stappen.
+See [DEPLOY.md](./DEPLOY.md) for Vercel deploy steps. See
+[RUNBOOK.md](./RUNBOOK.md) for env vars, migrations, cron jobs and
+incident response.
 
 ## Track record
 
-`/api/proof` toont geanonimiseerde besparingen (totaal bespaard, gemiddeld
-per onderhandeling, success rate). Bron voor marketing claims.
+`/api/proof` returns anonymised savings stats (totaal bespaard, gemiddeld
+per onderhandeling, success rate). Source of truth for marketing claims.
 
 ## License
 
-Propriëtaire SaaS — © 2026 DeGeldHeld B.V.
+Proprietary SaaS — © 2026 DeGeldHeld B.V.

@@ -1,5 +1,131 @@
 # RUNBOOK.md — DeGeldHeld operations
 
+## Environment variables
+
+| Variable | Where set | Purpose | Required |
+|---|---|---|---|
+| `DATABASE_URL` | Vercel + local `.env` | Postgres (Neon) connection string with pooler. | yes |
+| `DIRECT_URL` | Vercel + local | Direct (non-pooled) URL for `prisma migrate`. | yes |
+| `NEXTAUTH_SECRET` | Vercel + local | NextAuth session encryption. ≥ 32 chars. | yes |
+| `NEXTAUTH_URL` | Vercel | Absolute URL of the app for callback URLs. | yes |
+| `RESEND_API_KEY` | Vercel + local | Magic link + transactional email. | yes |
+| `EMAIL_FROM` | Vercel | `From:` address — must match a verified Resend domain. | yes |
+| `GROQ_API_KEY` | Vercel + local | LLM (vision + text). | yes |
+| `GROQ_VISION_MODEL` | Vercel (optional) | Default `llama-3.2-90b-vision-preview`. | optional |
+| `GROQ_TEXT_MODEL` | Vercel (optional) | Default `llama-3.1-70b-versatile`. | optional |
+| `STRIPE_SECRET_KEY` | Vercel + local | Stripe Checkout. | yes |
+| `STRIPE_WEBHOOK_SECRET` | Vercel | Webhook signature verification — copy from Stripe dashboard → Webhooks. | yes in prod |
+| `SENTRY_DSN` | Vercel | Sentry server + edge. | recommended |
+| `NEXT_PUBLIC_SENTRY_DSN` | Vercel | Client-side Sentry (same DSN, public). | recommended |
+| `CRON_SECRET` | Vercel | Bearer guard for `/api/cron/*`. | yes in prod |
+| `OUTCOME_TOKEN_SECRET` | Vercel (optional) | HMAC for outcome links (falls back to `CRON_SECRET` / `NEXTAUTH_SECRET`). | optional |
+| `APP_URL` | Vercel | Used by sitemap, OG cards, mailers. Default `https://degeldheld.com`. | yes |
+| `APP_NAME` | Vercel (optional) | Default `DeGeldHeld`. | optional |
+| `ADMIN_EMAILS` | Vercel | Comma-separated list of allowed `/admin/*` emails. | yes for admin |
+
+## Migration flow
+
+Local development:
+
+```bash
+# 1. edit prisma/schema.prisma
+# 2. create + apply locally against shadow DB
+npx prisma migrate dev --name <slug>
+# 3. regenerate client
+npx prisma generate
+```
+
+Production deploy:
+
+```bash
+# Either via Vercel "Build Command" (npm run build runs prisma generate)
+# AND a release-phase step. We currently apply migrations manually:
+DATABASE_URL=$PROD_DIRECT_URL npx prisma migrate deploy
+```
+
+Always run `prisma migrate deploy` AFTER a release that introduces a
+new migration directory, otherwise the running server will hit
+"column does not exist" errors on the first request.
+
+## Cron jobs
+
+| Path | Schedule (Vercel) | Purpose |
+|---|---|---|
+| `/api/cron/follow-up` | every 4h | sends follow-up emails for negotiations in AWAITING with `followUpAt <= now` |
+| `/api/cron/outcome-followup` | daily 08:00 UTC | asks user for outcome 7 days after the negotiation email was sent |
+
+Both expect `Authorization: Bearer ${CRON_SECRET}` (configurable via Vercel cron Authorization header).
+
+## How to add a new provider
+
+1. User runs `/onderhandel`, OCR finds an unknown provider, the bot calls
+   `POST /api/providers/discover` to seed a `ProviderCandidate`.
+2. Admin opens `/admin/providers`, reviews and clicks Approve.
+3. Locally: `npx tsx scripts/sync-approved-providers.ts` prints TS stubs.
+4. Paste into `lib/providers.ts` under the correct category.
+5. Commit → push → Vercel deploys.
+
+## Testing Stripe locally
+
+```bash
+# 1. terminal A
+npm run dev
+
+# 2. terminal B — forward webhooks to localhost
+stripe listen --forward-to localhost:3000/api/webhooks/stripe
+# copy the whsec_… into STRIPE_WEBHOOK_SECRET (.env.local)
+
+# 3. terminal C — trigger a paywall checkout
+stripe trigger checkout.session.completed \
+  --add checkout_session:metadata.billId=<billId> \
+  --add checkout_session:metadata.kind=paywall
+```
+
+Stripe test card: `4242 4242 4242 4242` · any future expiry · any CVC.
+
+## Sentry alerts
+
+Configure in Sentry dashboard → Project → Alerts:
+
+- **High error rate**: > 10 events / 5 minutes → email + Slack.
+- **New issue**: any new issue with environment=production → email.
+- **Spike protection**: enabled by default.
+
+Tagged areas (added in DEEL 5): `root`, `dashboard`, `onderhandel`,
+`proof`, `login`, `global-error`. Filter by `tag:area:proof` to see
+only Track Record incidents.
+
+## Incident response checklist
+
+### Database (Neon) down
+
+1. Check status.neon.tech.
+2. `/api/health` will return 503 (env_ok still true, but Prisma will throw).
+3. Mitigation: nothing on our side — wait for Neon. Surface a banner via
+   the existing global error boundary (`app/global-error.tsx`).
+4. Post-mortem: check Sentry for the `PrismaClientInitializationError` count.
+
+### Groq down
+
+1. Confirm at status.groq.com.
+2. Symptoms: OCR uploads hang or return `extracted.provider: "Onbekend"`,
+   negotiation emails fall through to the deterministic template
+   (`generateEmail` fallback path, confidence < 0.5).
+3. Mitigation: nothing acute — graceful degrade kicks in. Optionally
+   lower `GROQ_TEXT_MODEL` to `llama-3.1-8b-instant`.
+
+### Resend down
+
+1. Check status.resend.com.
+2. Magic-link signups will fail silently (we catch the rejection so the
+   user still sees "Check je email").
+3. Mitigation: ask user to email `hallo@degeldheld.com` and create the
+   account manually via Prisma Studio.
+
+### Vercel down
+
+Nothing to do. Wait. Status page: vercel-status.com.
+
 ## Wakkere checks (dagelijks)
 
 ```bash
