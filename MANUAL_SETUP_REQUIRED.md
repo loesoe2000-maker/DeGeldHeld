@@ -67,3 +67,42 @@ timeline.
       appendix once you draft it).
 
 No external service required — fully self-contained.
+
+---
+
+## 4. PSD2 / Tink bank integration — DEEL 4
+
+Activates: `/account/banks` self-service connect → automatic recurring-
+debit detection (KPN €25/mnd, Eneco €120/mnd, etc.) → user converts
+detected items into bills with one click.
+
+Code is **fully shipped**, behind `PSD2_ENABLED=false` (default). The
+`/account/banks` page renders with a yellow "not enabled" banner until
+you flip the flag.
+
+External account & legal (1-2 weeks):
+
+- [ ] Tink developer account at https://console.tink.com — create
+      a production app.
+- [ ] Markets enabled: NL, BE, DE, FR, UK (Tink default).
+- [ ] Redirect URI: `https://degeldheld.com/api/psd2/callback`.
+- [ ] Vercel env vars:
+      - `TINK_CLIENT_ID` — from Tink console
+      - `TINK_CLIENT_SECRET` — from Tink console (write-only)
+      - `TINK_API_BASE` — defaults to `https://api.tink.com` (leave unset)
+      - `TOKEN_ENC_KEY` — `openssl rand -hex 32` for at-rest AES-GCM
+        encryption of OAuth tokens (NOT optional in prod; if missing,
+        falls back to NEXTAUTH_SECRET-derived key which is OK for dev
+        but couples token rotation to session rotation).
+- [ ] Sign a Verwerkers­overeenkomst (DPA) with Tink (template they
+      provide; financial-data processing is high-risk under AVG).
+- [ ] DPIA (Data Protection Impact Assessment) — short doc covering:
+      data sources, retention (BankConnection.expiresAt purge after
+      90d), purpose limitation, user-controlled revoke flow.
+- [ ] Flip `PSD2_ENABLED=true` in Vercel → cron `0 4 * * *`
+      `/api/cron/psd2-sync` starts running.
+
+Migrations `psd2_foundation` applied (BankConnection + DetectedRecurring).
+
+Revoke handling: if Tink returns 401/403, the connection is auto-marked
+`status=expired` (see cron + sync route).

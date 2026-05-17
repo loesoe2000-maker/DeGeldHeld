@@ -68,7 +68,15 @@ describe("audit-everything coverage", () => {
   it("API routes are referenced in audit-everything.ts", () => {
     const apis = listApiRoutes();
     // Exclude routes that need auth tokens (cron, webhooks, providers/candidates, og, auth)
-    const skip = ["/api/cron", "/api/webhooks", "/api/auth", "/api/providers/candidates", "/api/og"];
+    // and routes that require external OAuth redirect state (psd2/callback)
+    const skip = [
+      "/api/cron",
+      "/api/webhooks",
+      "/api/auth",
+      "/api/providers/candidates",
+      "/api/og",
+      "/api/psd2/callback",
+    ];
     const probe = apis.filter((a) => !skip.some((s) => a.startsWith(s)));
     const missing = probe.filter((a) => !auditSrc.includes(`"${a}"`));
     expect(missing, `audit-everything missing API routes: ${missing.join(",")}`).toEqual([]);

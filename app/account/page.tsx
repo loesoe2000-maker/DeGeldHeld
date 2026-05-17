@@ -58,6 +58,19 @@ export default async function AccountPage() {
       />
 
       <section className="mt-8 rounded-xl border border-slate-200 bg-white p-5">
+        <h2 className="text-lg font-semibold text-slate-900">Bank-koppelingen (PSD2)</h2>
+        <p className="mt-1 text-sm text-slate-600">
+          Koppel je bank zodat we maandelijkse lasten automatisch detecteren.
+        </p>
+        <Link
+          href="/account/banks"
+          className="mt-3 inline-block rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+        >
+          Beheren →
+        </Link>
+      </section>
+
+      <section className="mt-8 rounded-xl border border-slate-200 bg-white p-5">
         <h2 className="text-lg font-semibold text-slate-900">Actieve sessies</h2>
         <ul className="mt-3 divide-y divide-slate-100 text-sm">
           {sessions.length === 0 && <li className="py-2 text-slate-500">Geen actieve sessies.</li>}

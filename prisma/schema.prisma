@@ -38,6 +38,8 @@ model User {
   payments      Payment[]
   waitlistEntry WaitlistEntry?
   referralsCreated Referral[] @relation("ReferralOwner")
+  bankConnections  BankConnection[]
+  detectedRecurring DetectedRecurring[]
 
   @@index([email])
 }
@@ -296,6 +298,42 @@ model ProviderCandidate {
 
   @@unique([name, country])
   @@index([status])
+}
+
+// v8 PSD2 — bank-connection via Tink Open Banking
+model BankConnection {
+  id              String    @id @default(cuid())
+  userId          String
+  bankName        String
+  accessTokenEnc  String    @db.Text
+  refreshTokenEnc String?   @db.Text
+  expiresAt       DateTime
+  lastSyncAt      DateTime?
+  status          String    @default("active")  // active | revoked | expired
+  createdAt       DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// Detected recurring debit not yet converted to a Bill — shown on /account/banks
+model DetectedRecurring {
+  id              String    @id @default(cuid())
+  userId          String
+  bankConnectionId String?
+  counterpartyName String
+  monthlyCents    Int
+  category        String    @default("OVERIG")
+  lastSeenAt      DateTime
+  occurrences     Int       @default(2)
+  convertedBillId String?
+  createdAt       DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, convertedBillId])
 }
 
 model Referral {
