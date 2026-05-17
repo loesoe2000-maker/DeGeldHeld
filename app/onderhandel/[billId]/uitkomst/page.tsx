@@ -3,6 +3,8 @@ import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { verifyOutcomeToken } from "@/lib/outcome_token";
 import OutcomeForm from "@/components/OutcomeForm";
+import ShareKit from "@/components/ShareKit";
+import { ensureReferralCode } from "@/lib/referral";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Uitkomst onderhandeling — DeGeldHeld" };
@@ -46,6 +48,16 @@ export default async function UitkomstPage({
   const monthlyCents = bill.monthlyCents ?? bill.amountCents;
 
   if (bill.negotiation.closedAt) {
+    const yearly = bill.negotiation.actualSavingsCents ?? 0;
+    const isSuccess = yearly > 0;
+    let referralCode: string | undefined;
+    if (isSuccess && session?.user) {
+      try {
+        referralCode = await ensureReferralCode((session.user as { id: string }).id);
+      } catch {
+        // no-op
+      }
+    }
     return (
       <main className="mx-auto max-w-2xl px-6 py-16">
         <h1 className="text-3xl font-bold text-slate-900">Uitkomst is al vastgelegd</h1>
@@ -55,6 +67,15 @@ export default async function UitkomstPage({
             <> — €{(bill.negotiation.actualSavingsCents / 100).toFixed(0)}/jaar bespaard.</>
           )}
         </p>
+        {isSuccess && (
+          <div className="mt-10">
+            <ShareKit
+              savedYearlyEur={Math.round(yearly / 100)}
+              provider={bill.provider}
+              referralCode={referralCode}
+            />
+          </div>
+        )}
       </main>
     );
   }
