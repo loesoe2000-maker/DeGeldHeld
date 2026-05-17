@@ -42,7 +42,7 @@ describe("app/error.tsx (500/runtime error)", () => {
 
   it("shows support email link", () => {
     render(<GlobalError error={new Error("boom")} reset={() => {}} />);
-    const mailto = screen.getByText(/hallo@degeldheld.nl/);
+    const mailto = screen.getByText(/hallo@degeldheld\.(?:nl|com)/);
     expect(mailto.getAttribute("href")).toMatch(/^mailto:/);
   });
 

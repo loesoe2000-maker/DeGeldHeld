@@ -7,5 +7,15 @@ if (dsn) {
     dsn,
     tracesSampleRate: 0.1,
     environment: process.env.SENTRY_ENVIRONMENT ?? process.env.NODE_ENV,
+    beforeSend(event) {
+      // strip cookies + auth headers (commonly contain session tokens)
+      if (event.request?.cookies) delete event.request.cookies;
+      if (event.request?.headers) {
+        const h = event.request.headers as Record<string, string>;
+        delete h.cookie;
+        delete h.authorization;
+      }
+      return event;
+    },
   });
 }
