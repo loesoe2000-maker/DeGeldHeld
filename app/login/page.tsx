@@ -25,18 +25,23 @@ function LoginForm() {
           <p className="text-green-600">Check je email voor de login link.</p>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
+            <label htmlFor="login-email" className="block text-sm font-medium text-slate-700">
+              E-mailadres
+            </label>
             <input
+              id="login-email"
               type="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="jouw@email.nl"
-              className="w-full p-3 border rounded"
+              autoComplete="email"
+              className="w-full rounded border p-3"
             />
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-green-600 text-white p-3 rounded font-semibold"
+              className="min-h-[44px] w-full rounded bg-brand-700 p-3 font-semibold text-white disabled:opacity-50"
             >
               {loading ? "Versturen..." : "Stuur magic link"}
             </button>
