@@ -74,6 +74,14 @@ export default function Hero() {
         <p className="mt-6 text-sm text-slate-500">
           Geen kosten vooraf · Niet bespaard? Niets te betalen · NL providers ondersteund
         </p>
+        <p className="mt-4">
+          <a
+            href="/demo"
+            className="text-sm font-medium text-brand-700 underline decoration-dotted underline-offset-4 hover:text-brand-800"
+          >
+            Bekijk hoe het werkt (30 sec) →
+          </a>
+        </p>
       </div>
     </section>
   );
