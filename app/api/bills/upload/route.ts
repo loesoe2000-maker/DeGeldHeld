@@ -108,6 +108,9 @@ export async function POST(req: NextRequest) {
         },
       });
     } else {
+      // DEEL 10 paywall: position is the user's bill-count *before* this
+      // insert (so first ever upload → 0 → free; second → 1 → paywall).
+      const priorBills = await prisma.bill.count({ where: { userId } });
       bill = await prisma.bill.create({
         data: {
           userId,
@@ -124,6 +127,7 @@ export async function POST(req: NextRequest) {
           currency: currencyForCountry(ocr.country),
           imageHash,
           rawOcr: ocr.rawText.slice(0, 4000),
+          position: priorBills,
         },
       });
     }

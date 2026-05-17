@@ -1,12 +1,16 @@
 /**
- * Stripe billing — success-fee model.
- * Charge 15% of jaarbesparing op SUCCESS state.
+ * Stripe billing — two models:
+ *   1. Success-fee (15% of yearly savings) on negotiation outcome — legacy.
+ *   2. Per-bill flat fee paywall after the first free bill — DEEL 10.
  */
 
 import Stripe from "stripe";
+import { prisma } from "./db";
 
 const SUCCESS_FEE_PCT = 0.15;
 const MIN_BILL_CENTS = 500; // €5,00 minimum
+/** Flat per-bill fee charged after the first free bill (DEEL 10). */
+export const PAYWALL_FEE_CENTS = 499; // €4,99
 
 const apiKey = process.env.STRIPE_SECRET_KEY ?? "";
 let _stripe: Stripe | null = null;
@@ -79,6 +83,8 @@ export async function createCheckoutSession(input: CheckoutInput): Promise<Check
 export type WebhookEvent = {
   type: string;
   negotiationId: string | null;
+  billId: string | null;
+  kind: "paywall" | "success-fee" | null;
   paymentIntentId: string | null;
   sessionId: string | null;
 };
@@ -92,11 +98,22 @@ export function verifyAndParseWebhook(
   try {
     const evt = client().webhooks.constructEvent(payload, signature, secret);
     const data = evt.data.object as unknown as Record<string, unknown>;
+    const meta = (data.metadata as Record<string, string> | null) ?? null;
+    const kindRaw = meta?.kind;
     return {
       ok: true,
       event: {
         type: evt.type,
-        negotiationId: ((data.metadata as Record<string, string> | null)?.negotiationId) ?? null,
+        negotiationId: meta?.negotiationId ?? null,
+        billId: meta?.billId ?? null,
+        kind:
+          kindRaw === "paywall" || kindRaw === "success-fee"
+            ? kindRaw
+            : meta?.billId
+              ? "paywall"
+              : meta?.negotiationId
+                ? "success-fee"
+                : null,
         paymentIntentId:
           (typeof data.payment_intent === "string" ? data.payment_intent : null) ??
           (typeof data.id === "string" && evt.type.startsWith("payment_intent.") ? data.id : null),
@@ -118,4 +135,76 @@ export function shouldMarkRefunded(eventType: string): boolean {
 
 export function shouldMarkFailed(eventType: string): boolean {
   return eventType === "payment_intent.payment_failed" || eventType === "checkout.session.expired";
+}
+
+// ---------- DEEL 10 paywall ----------
+
+/**
+ * Returns true when this Bill needs to be paid for before its
+ * Negotiation can be analysed.
+ *
+ * Rules:
+ *   - position 0 (first bill the user ever uploaded) is always free.
+ *   - Subsequent bills require a paid Bill.paidAt.
+ *   - If Bill.paidAt is already set, no further payment is required.
+ */
+export async function requiresPayment(
+  userId: string,
+  billId: string,
+): Promise<boolean> {
+  const bill = await prisma.bill.findFirst({
+    where: { id: billId, userId },
+    select: { position: true, paidAt: true },
+  });
+  if (!bill) return false; // unknown bill — let the calling page decide
+  if (bill.position === 0) return false;
+  return bill.paidAt == null;
+}
+
+export type PaywallCheckoutInput = {
+  userEmail: string;
+  billId: string;
+  appUrl: string;
+};
+
+/**
+ * Stripe Checkout session for the per-bill paywall flow.
+ * Returns a test URL when no real Stripe key is configured (dev/CI).
+ */
+export async function createPaywallCheckoutSession(
+  input: PaywallCheckoutInput,
+): Promise<CheckoutSession> {
+  const amountCents = PAYWALL_FEE_CENTS;
+  if (!apiKey || apiKey === "sk_test_dummy") {
+    return {
+      id: `cs_paywall_${input.billId}`,
+      url: `${input.appUrl}/pay/${input.billId}?test=1`,
+      amountCents,
+      test: true,
+    };
+  }
+
+  const session = await client().checkout.sessions.create({
+    mode: "payment",
+    payment_method_types: ["ideal", "card"],
+    customer_email: input.userEmail,
+    metadata: { billId: input.billId, kind: "paywall" },
+    line_items: [
+      {
+        quantity: 1,
+        price_data: {
+          currency: "eur",
+          unit_amount: amountCents,
+          product_data: {
+            name: "DeGeldHeld — extra onderhandeling",
+            description: "Toegang tot AI-analyse en onderhandel-email voor deze rekening.",
+          },
+        },
+      },
+    ],
+    success_url: `${input.appUrl}/onderhandel/analyse?bill=${input.billId}&paid=1`,
+    cancel_url: `${input.appUrl}/pay/${input.billId}?status=cancelled`,
+  });
+
+  return { id: session.id, url: session.url, amountCents, test: false };
 }

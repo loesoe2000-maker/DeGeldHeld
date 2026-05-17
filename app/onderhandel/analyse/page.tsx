@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import Comparison from "@/components/Comparison";
 import { buildComparison } from "@/lib/comparison";
+import { requiresPayment } from "@/lib/payments";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -11,7 +12,7 @@ export const metadata = { title: "Analyse — DeGeldHeld" };
 export default async function AnalysePage({
   searchParams,
 }: {
-  searchParams: Promise<{ bill?: string }>;
+  searchParams: Promise<{ bill?: string; paid?: string }>;
 }) {
   const session = await auth();
   if (!session?.user) redirect("/login");
@@ -23,6 +24,11 @@ export default async function AnalysePage({
 
   const bill = await prisma.bill.findFirst({ where: { id: billId, userId } });
   if (!bill) redirect("/onderhandel");
+
+  // DEEL 10 paywall — first bill free, others require payment first.
+  if (await requiresPayment(userId, billId)) {
+    redirect(`/pay/${billId}?type=paywall`);
+  }
 
   // Empty bill → OCR couldn't extract usable data. Show a graceful fallback
   // instead of letting Comparison render an empty page or silently failing.

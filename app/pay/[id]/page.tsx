@@ -2,7 +2,9 @@ import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { formatEurCents, formatPercent } from "@/lib/format";
+import { PAYWALL_FEE_CENTS } from "@/lib/payments";
 import PayButton from "@/components/PayButton";
+import PaywallButton from "@/components/PaywallButton";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -13,13 +15,57 @@ export default async function PayPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ status?: string }>;
+  searchParams: Promise<{ status?: string; type?: string }>;
 }) {
   const session = await auth();
   if (!session?.user) redirect("/login");
   const userId = (session.user as { id: string }).id;
   const { id } = await params;
-  const { status } = await searchParams;
+  const { status, type } = await searchParams;
+
+  // DEEL 10 paywall flow — id is a billId, not a negotiationId.
+  if (type === "paywall") {
+    const bill = await prisma.bill.findFirst({ where: { id, userId } });
+    if (!bill) redirect("/dashboard");
+    if (bill.paidAt) redirect(`/onderhandel/analyse?bill=${bill.id}&paid=1`);
+    return (
+      <main className="mx-auto max-w-xl px-6 py-12">
+        <h1 className="text-3xl font-bold text-slate-900">
+          Nog één stap — €{(PAYWALL_FEE_CENTS / 100).toFixed(2)}
+        </h1>
+        <p className="mt-2 text-slate-600">
+          Je eerste onderhandeling was gratis. Voor elke volgende rekening
+          rekenen we een vast bedrag van{" "}
+          <strong>€{(PAYWALL_FEE_CENTS / 100).toFixed(2)}</strong> per dossier —
+          dat dekt de AI-analyse en de gegenereerde onderhandelings-mail.
+        </p>
+
+        <div className="mt-6 rounded-xl border border-slate-200 bg-white p-6">
+          <div className="text-sm text-slate-500">Rekening</div>
+          <div className="text-lg font-semibold">{bill.provider}</div>
+          <div className="text-sm text-slate-500">
+            {bill.plan ?? bill.category} ·{" "}
+            {formatEurCents(bill.monthlyCents ?? bill.amountCents)}/maand
+          </div>
+        </div>
+
+        {status === "cancelled" && (
+          <p className="mt-4 text-sm text-amber-700">
+            Betaling geannuleerd — je kunt het opnieuw proberen.
+          </p>
+        )}
+
+        <div className="mt-6">
+          <PaywallButton billId={bill.id} amountCents={PAYWALL_FEE_CENTS} />
+        </div>
+
+        <p className="mt-4 text-center text-xs text-slate-500">
+          Betaling via Stripe · iDEAL en credit card. Na betaling word je
+          direct teruggestuurd naar de analyse van deze rekening.
+        </p>
+      </main>
+    );
+  }
 
   const negotiation = await prisma.negotiation.findFirst({
     where: { id, userId },

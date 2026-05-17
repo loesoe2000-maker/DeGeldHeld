@@ -148,11 +148,18 @@ model Bill {
   rawOcr       String?      @db.Text
   createdAt    DateTime     @default(now())
 
+  // v6 paywall: position is the 0-indexed rank within this user's bills
+  // (first upload = 0 → free, second onwards → paywall). paidAt is set
+  // by the /api/webhooks/stripe handler when checkout.session.completed.
+  position     Int          @default(0)
+  paidAt       DateTime?
+
   user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   negotiation  Negotiation?
 
   @@index([userId])
   @@index([imageHash])
+  @@index([userId, createdAt])
 }
 
 model Negotiation {

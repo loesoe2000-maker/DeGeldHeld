@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { verifyAndParseWebhook, shouldMarkPaid, shouldMarkRefunded, shouldMarkFailed } from "@/lib/payments";
+import {
+  verifyAndParseWebhook,
+  shouldMarkPaid,
+  shouldMarkRefunded,
+  shouldMarkFailed,
+} from "@/lib/payments";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -14,7 +19,20 @@ export async function POST(req: NextRequest) {
   if (!verified.ok) {
     return NextResponse.json({ error: verified.error }, { status: 400 });
   }
-  const { type, negotiationId, sessionId, paymentIntentId } = verified.event;
+  const { type, negotiationId, billId, kind, sessionId, paymentIntentId } = verified.event;
+
+  // --- DEEL 10 paywall flow: mark the Bill as paid ---
+  if (kind === "paywall" && billId) {
+    if (shouldMarkPaid(type)) {
+      await prisma.bill.update({
+        where: { id: billId },
+        data: { paidAt: new Date() },
+      });
+    }
+    return NextResponse.json({ ok: true, type, kind: "paywall", billId });
+  }
+
+  // --- Legacy success-fee flow ---
   if (!negotiationId) return NextResponse.json({ ok: true, ignored: "no metadata" });
 
   if (shouldMarkPaid(type)) {
