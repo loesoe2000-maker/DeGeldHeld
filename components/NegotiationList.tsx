@@ -2,6 +2,7 @@ import Link from "next/link";
 import { formatEurCents, formatRelativeDate } from "@/lib/format";
 import { negotiationLabel, tierClass } from "@/lib/savings";
 import type { Bill, Negotiation } from "@prisma/client";
+import BillDeleteButton from "@/components/BillDeleteButton";
 
 type Item = Negotiation & {
   bill: Pick<Bill, "provider" | "amountCents" | "category"> & { nextRecheckAt?: Date | null };
@@ -41,11 +42,18 @@ export default function NegotiationList({ items }: { items: Item[] }) {
               </span>
             )}
             <Link
+              href={`/onderhandel/${n.billId}/historie`}
+              className="text-xs text-slate-500 hover:underline"
+            >
+              Tijdlijn
+            </Link>
+            <Link
               href={`/onderhandel/${n.id}`}
               className="text-sm font-medium text-brand-700 hover:underline"
             >
               Bekijk →
             </Link>
+            <BillDeleteButton billId={n.billId} provider={n.bill.provider} />
           </div>
         </li>
       ))}

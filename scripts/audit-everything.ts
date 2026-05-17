@@ -34,12 +34,14 @@ const STATIC_PAGES = [
   "/over-ons",
   "/contact",
   "/demo",
+  "/account",
 ];
 
 const DYNAMIC_PAGES = [
   "/pay/test-bill-id",
   "/onderhandel/test-bill-id/ronde/1",
   "/onderhandel/test-bill-id/uitkomst",
+  "/onderhandel/test-bill-id/historie",
   "/uitnodiging/TEST123",
   "/onderhandelen-met-kpn",
   "/energie-besparen",
@@ -67,6 +69,9 @@ const API_PROBES: ApiProbe[] = [
   { path: "/api/checkout", method: "POST", body: {}, expectJson: true, okStatuses: [400, 401] },
   { path: "/api/providers/discover", method: "POST", body: {}, expectJson: true, okStatuses: [400, 401] },
   { path: "/api/inbound", method: "POST", body: {}, expectJson: true, okStatuses: [400, 401] },
+  { path: "/api/account/export", method: "GET", okStatuses: [200, 401] },
+  { path: "/api/account/delete", method: "POST", body: {}, expectJson: true, okStatuses: [400, 401] },
+  { path: "/api/account/prefs", method: "POST", body: {}, expectJson: true, okStatuses: [400, 401] },
 ];
 
 type Row = {

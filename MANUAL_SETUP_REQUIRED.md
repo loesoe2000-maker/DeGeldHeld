@@ -50,3 +50,20 @@ than 30 days; emails user if savings increased by ≥ €60/yr.
       ```
 
 Anti-spam: at most one re-engagement mail per user per 7 days (DB-guarded).
+
+---
+
+## 3. GDPR delete + export + history — DEEL 3
+
+Activates: AVG art. 17 (delete) + art. 20 (export) endpoints, `/account`
+page, bill-delete on dashboard, per-bill `/onderhandel/[id]/historie`
+timeline.
+
+- [x] Migration `user_gdpr` applied to prod DB (User.notificationsEnabled,
+      deletedAt, ocrTrainingOptIn + Bill.deletedAt columns).
+- [ ] If you have privacy-policy text on `/privacy`, add a paragraph
+      pointing users to `/account` for self-service data export +
+      deletion (template wording in `MANUAL_SETUP_REQUIRED.md` Section 3
+      appendix once you draft it).
+
+No external service required — fully self-contained.

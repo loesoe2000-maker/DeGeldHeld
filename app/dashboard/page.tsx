@@ -22,7 +22,7 @@ export default async function DashboardPage() {
   const userId = (session.user as { id: string }).id;
 
   const negotiations = await prisma.negotiation.findMany({
-    where: { userId },
+    where: { userId, bill: { deletedAt: null } },
     include: { bill: true },
     orderBy: { createdAt: "desc" },
     take: 100,
@@ -58,12 +58,20 @@ export default async function DashboardPage() {
           <h1 className="text-3xl font-bold text-slate-900">Dashboard</h1>
           <p className="mt-1 text-sm text-slate-500">{session.user.email}</p>
         </div>
-        <Link
-          href="/onderhandel"
-          className="rounded-lg bg-brand-600 px-4 py-2 font-medium text-white hover:bg-brand-700"
-        >
-          + Nieuwe factuur
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link
+            href="/account"
+            className="text-sm font-medium text-slate-600 hover:underline"
+          >
+            Account
+          </Link>
+          <Link
+            href="/onderhandel"
+            className="rounded-lg bg-brand-600 px-4 py-2 font-medium text-white hover:bg-brand-700"
+          >
+            + Nieuwe factuur
+          </Link>
+        </div>
       </header>
 
       <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-4">

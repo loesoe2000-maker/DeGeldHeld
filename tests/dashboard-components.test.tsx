@@ -1,5 +1,12 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
+
+// BillDeleteButton (rendered by NegotiationList) imports useRouter from
+// next/navigation, which isn't mounted in unit-test env. Stub.
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ refresh: () => {}, push: () => {} }),
+}));
+
 import SavingsCard from "../components/SavingsCard";
 import EmptyState from "../components/EmptyState";
 import NegotiationList from "../components/NegotiationList";

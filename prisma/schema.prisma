@@ -25,6 +25,11 @@ model User {
   // v7 referrals — eigen referral-code voor delen; null tot eerste share
   referralCode  String?   @unique
 
+  // v8 GDPR + email prefs
+  notificationsEnabled Boolean  @default(true)
+  deletedAt            DateTime?
+  ocrTrainingOptIn     Boolean  @default(false)
+
   // app data
   accounts      Account[]
   sessions      Session[]
@@ -162,6 +167,7 @@ model Bill {
   lastRecheckAt    DateTime?
   nextRecheckAt    DateTime?
   lastRecheckMailAt DateTime?
+  deletedAt        DateTime?
 
   user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   negotiation  Negotiation?
