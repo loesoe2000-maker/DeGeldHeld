@@ -591,6 +591,30 @@ export async function extractBill(imageBuf: Buffer, mimeType: string): Promise<O
   return extractFromImage(imageBuf, mimeType, imageHash);
 }
 
+/**
+ * Map the internal PDF status marker to a user-facing message (NL).
+ * Returns null when the input isn't a PDF marker (regular image-OCR).
+ */
+export function pdfFallbackMessage(rawText: string): string | null {
+  if (!rawText) return null;
+  if (rawText.startsWith("PDF_SCAN_NO_TEXT")) {
+    return "Deze PDF lijkt een ingescande afbeelding — onze tekst-OCR werkt op tekst-gebaseerde PDFs. Upload tijdelijk een foto van de factuur.";
+  }
+  if (rawText.startsWith("PDF_EXTRACT_FAIL")) {
+    return "We konden deze PDF niet uitlezen. Probeer 'm opnieuw te downloaden bij je provider of upload een foto.";
+  }
+  if (rawText.startsWith("PDF_LLM_ERR")) {
+    return "De automatische analyse gaf een fout. Probeer over een paar minuten opnieuw — meestal ligt het aan de AI-service.";
+  }
+  if (rawText.startsWith("PDF_PARSE_LOW_CONFIDENCE")) {
+    return "We lazen de PDF maar konden het bedrag of provider niet zeker bepalen. Vul de gegevens handmatig in.";
+  }
+  if (rawText.startsWith("PDF_OCR_SKIPPED_NO_API_KEY")) {
+    return "AI-extractie is op deze omgeving uitgeschakeld. Vul de gegevens handmatig in.";
+  }
+  return null;
+}
+
 export function validateUploadedFile(opts: {
   size: number;
   type: string;

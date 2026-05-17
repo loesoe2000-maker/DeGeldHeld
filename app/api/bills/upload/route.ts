@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import crypto from "node:crypto";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { extractBill, hashImage, parseInvoiceDate, validateUploadedFile } from "@/lib/ocr";
+import { extractBill, hashImage, parseInvoiceDate, validateUploadedFile, pdfFallbackMessage } from "@/lib/ocr";
 import { currencyForCountry } from "@/lib/format";
 import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import { anonymizeStructured } from "@/lib/anonymizer";
@@ -168,11 +168,16 @@ export async function POST(req: NextRequest) {
       billCountry: bill.country,
     });
 
+    const pdfMessage = file.type.toLowerCase() === "application/pdf"
+      ? pdfFallbackMessage(ocr.rawText)
+      : null;
+
     return NextResponse.json({
       ok: ocr.ok,
       billId: bill.id,
       needsManual: ocr.needsManual ?? !ocr.ok,
       needsManualProvider: ocr.needsManualProvider ?? false,
+      pdfMessage,
       extracted: {
         provider: ocr.provider,
         category: ocr.category,
