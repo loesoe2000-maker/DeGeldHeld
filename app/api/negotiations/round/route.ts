@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { z } from "zod";
 import {
   analyseProviderResponse,
   actionToState,
@@ -12,14 +11,10 @@ import { generateEmail } from "@/lib/negotiator";
 import { buildComparison } from "@/lib/comparison";
 import { extractBill } from "@/lib/ocr";
 import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
+import { negotiationRoundSchema, firstIssueMessage } from "@/lib/schemas";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-const schema = z.object({
-  negotiationId: z.string().min(1),
-  providerResponse: z.string().optional(),
-});
 
 const MAX_OCR_SIZE = 10 * 1024 * 1024;
 
@@ -54,8 +49,8 @@ async function readBody(req: NextRequest): Promise<{
 
   try {
     const json = (await req.json()) as Record<string, unknown>;
-    const parsed = schema.safeParse(json);
-    if (!parsed.success) return { error: "Validation failed" };
+    const parsed = negotiationRoundSchema.safeParse(json);
+    if (!parsed.success) return { error: firstIssueMessage(parsed.error) };
     return parsed.data;
   } catch {
     return { error: "Invalid JSON" };

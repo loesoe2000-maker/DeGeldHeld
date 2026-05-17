@@ -1,15 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { z } from "zod";
+import { negotiationSentSchema, firstIssueMessage } from "@/lib/schemas";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-const schema = z.object({
-  negotiationId: z.string().min(1).optional(),
-  billId: z.string().min(1).optional(),
-});
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -24,12 +19,9 @@ export async function POST(req: NextRequest) {
   } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
-  const parsed = schema.safeParse(body);
-  if (!parsed.success || (!parsed.data.negotiationId && !parsed.data.billId)) {
-    return NextResponse.json(
-      { error: "negotiationId of billId vereist" },
-      { status: 400 },
-    );
+  const parsed = negotiationSentSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: firstIssueMessage(parsed.error) }, { status: 400 });
   }
 
   const where = parsed.data.negotiationId

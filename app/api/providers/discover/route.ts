@@ -2,16 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { discoverProvider } from "@/lib/provider_discovery";
-import { z } from "zod";
+import { providerDiscoverSchema, firstIssueMessage } from "@/lib/schemas";
 import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-const schema = z.object({
-  name: z.string().min(2).max(120),
-  country: z.string().min(2).max(3).toUpperCase(),
-});
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -30,9 +25,9 @@ export async function POST(req: NextRequest) {
   } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
-  const parsed = schema.safeParse(body);
+  const parsed = providerDiscoverSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: "Validation failed" }, { status: 400 });
+    return NextResponse.json({ error: firstIssueMessage(parsed.error) }, { status: 400 });
   }
 
   const { name, country } = parsed.data;

@@ -1,14 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { isAdmin } from "@/lib/admin_auth";
-import { z } from "zod";
+import { providerCandidatePatchSchema, firstIssueMessage } from "@/lib/schemas";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-const schema = z.object({
-  status: z.enum(["APPROVED", "REJECTED"]),
-});
 
 export async function PATCH(
   req: NextRequest,
@@ -24,9 +20,9 @@ export async function PATCH(
   } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
-  const parsed = schema.safeParse(body);
+  const parsed = providerCandidatePatchSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: "Validation failed" }, { status: 400 });
+    return NextResponse.json({ error: firstIssueMessage(parsed.error) }, { status: 400 });
   }
   const updated = await prisma.providerCandidate.update({
     where: { id },

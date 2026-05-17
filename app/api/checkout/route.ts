@@ -2,13 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { createCheckoutSession } from "@/lib/payments";
-import { z } from "zod";
+import { checkoutSchema, firstIssueMessage } from "@/lib/schemas";
 import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-const schema = z.object({ negotiationId: z.string().min(1) });
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -24,11 +22,15 @@ export async function POST(req: NextRequest) {
   } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
-  const parsed = schema.safeParse(body);
-  if (!parsed.success) return NextResponse.json({ error: "Validation failed" }, { status: 400 });
+  const parsed = checkoutSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: firstIssueMessage(parsed.error) }, { status: 400 });
+  }
+
+  const { negotiationId } = parsed.data;
 
   const negotiation = await prisma.negotiation.findFirst({
-    where: { id: parsed.data.negotiationId, userId },
+    where: { id: negotiationId, userId },
   });
   if (!negotiation) return NextResponse.json({ error: "Not found" }, { status: 404 });
   if (negotiation.state !== "SUCCESS") {

@@ -3,18 +3,10 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { outcomeToState, type OutcomeChoice } from "@/lib/flow";
 import { verifyOutcomeToken } from "@/lib/outcome_token";
-import { z } from "zod";
+import { negotiationOutcomeSchema, firstIssueMessage } from "@/lib/schemas";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-const schema = z.object({
-  negotiationId: z.string().min(1),
-  outcome: z.enum(["SUCCESS_SAVED", "FAILED_NO_DEAL", "STILL_WAITING"]),
-  actualSavingsCents: z.number().int().min(0).optional(),
-  /** Optional HMAC token from follow-up email link — allows write without session. */
-  token: z.string().optional(),
-});
 
 export async function POST(req: NextRequest) {
   let body: unknown;
@@ -23,9 +15,9 @@ export async function POST(req: NextRequest) {
   } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
-  const parsed = schema.safeParse(body);
+  const parsed = negotiationOutcomeSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: "Validation failed" }, { status: 400 });
+    return NextResponse.json({ error: firstIssueMessage(parsed.error) }, { status: 400 });
   }
 
   const { negotiationId, outcome, actualSavingsCents, token } = parsed.data;
