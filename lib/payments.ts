@@ -152,6 +152,20 @@ export async function requiresPayment(
   userId: string,
   billId: string,
 ): Promise<boolean> {
+  // Feature-flag escape hatch: setting FEATURE_PAYWALL_ENABLED=false in
+  // Vercel disables the paywall site-wide without a code revert.
+  if (process.env.FEATURE_PAYWALL_ENABLED === "false") return false;
+
+  // Admin bypass — admins (per ADMIN_EMAILS env var) skip the paywall so we
+  // can test the full flow end-to-end without paying ourselves. The paywall
+  // remains active for everyone else.
+  const adminList = (process.env.ADMIN_EMAILS ?? "").toLowerCase();
+  if (adminList) {
+    const u = await prisma.user.findUnique({ where: { id: userId }, select: { email: true } });
+    const adminEmails = adminList.split(",").map((e) => e.trim()).filter(Boolean);
+    if (u?.email && adminEmails.includes(u.email.toLowerCase())) return false;
+  }
+
   const bill = await prisma.bill.findFirst({
     where: { id: billId, userId },
     select: { position: true, paidAt: true },
