@@ -12,6 +12,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:golden": "vitest run tests/round-analysis-golden.test.ts",
+    "test:integration": "vitest --config vitest.integration.config.ts run",
     "test:e2e": "playwright test",
     "smoke": "tsx scripts/smoke_test.ts",
     "smoke:prod": "tsx scripts/smoke-prod.ts",

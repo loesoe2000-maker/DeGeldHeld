@@ -1,0 +1,39 @@
+name: Integration tests
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  integration:
+    name: Real-Groq + real-Neon integration
+    timeout-minutes: 20
+    runs-on: ubuntu-latest
+    # Skip the whole job when secrets aren't configured (forks, etc.) —
+    # the workflow appears as "skipped" rather than failed.
+    if: ${{ secrets.GROQ_API_KEY_TEST && secrets.DATABASE_URL_TEST }}
+
+    env:
+      GROQ_API_KEY_TEST: ${{ secrets.GROQ_API_KEY_TEST }}
+      DATABASE_URL_TEST: ${{ secrets.DATABASE_URL_TEST }}
+      # Base env required for prisma + auth imports to resolve
+      DATABASE_URL: ${{ secrets.DATABASE_URL_TEST }}
+      DIRECT_URL: ${{ secrets.DATABASE_URL_TEST }}
+      NEXTAUTH_SECRET: ci-test-secret-32-bytes-padding-xx
+      NEXTAUTH_URL: http://localhost:3000
+      RESEND_API_KEY: re_test_dummy
+      EMAIL_FROM: test@degeldheld.test
+      STRIPE_SECRET_KEY: sk_test_dummy
+      APP_URL: http://localhost:3000
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+      - run: npm ci --legacy-peer-deps
+      - run: npx prisma generate
+      - run: npx prisma migrate deploy
+      - run: npm run test:integration
