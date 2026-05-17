@@ -345,3 +345,119 @@ pg_dump $DATABASE_URL > backup-$(date +%Y%m%d).sql
 - Stripe support: dashboard → Help (24/7)
 - Resend support: support@resend.com
 - Vercel support: vercel.com/help
+
+---
+
+# v9 hardening operations
+
+## Emergency rollback (30 seconds, no code revert)
+
+If a deploy breaks production:
+
+1. Go to Vercel dashboard → Project → Settings → Environment Variables
+2. Find or add the relevant `FEATURE_*` variable:
+   | Feature | Env var | Value to disable |
+   |---|---|---|
+   | Paywall | `FEATURE_PAYWALL_ENABLED` | `false` |
+   | Multi-round | `FEATURE_MULTI_ROUND_ENABLED` | `false` |
+   | PSD2 (Tink) | `FEATURE_PSD2_ENABLED` | `false` |
+   | WhatsApp | `FEATURE_WHATSAPP_ENABLED` | `false` |
+   | PDF OCR | `FEATURE_PDF_OCR_ENABLED` | `false` |
+   | Email inbound | `FEATURE_EMAIL_INBOUND_ENABLED` | `false` |
+   | Referral | `FEATURE_REFERRAL_ENABLED` | `false` |
+3. Click Save → Vercel triggers a fresh deploy of the latest commit
+   with new env values (~30 seconds)
+4. If env-toggle isn't enough: `vercel rollback` CLI or dashboard
+   → Deployments → previous deploy → Promote to production
+
+## Key rotation (TOKEN_ENC_KEY)
+
+If you suspect a leak of the at-rest encryption key:
+
+1. Generate new key: `openssl rand -hex 32`
+2. In Vercel env:
+   - Move current `TOKEN_ENC_KEY_PRIMARY` → `TOKEN_ENC_KEY_FALLBACK`
+   - Set new key as `TOKEN_ENC_KEY_PRIMARY`
+3. Redeploy (Vercel does it automatically on env change)
+4. Run rotation locally against prod DB:
+   ```bash
+   DATABASE_URL=$PROD_DIRECT_URL \
+     TOKEN_ENC_KEY_PRIMARY=$NEW_KEY \
+     TOKEN_ENC_KEY_FALLBACK=$OLD_KEY \
+     npm run rotate-keys
+   ```
+   Output: `scanned=X rotated=Y skipped=Z failed=N`. If `failed=0`:
+5. Remove `TOKEN_ENC_KEY_FALLBACK` from Vercel env + redeploy
+
+If any record fails to rotate (`failed > 0`), leave the fallback in
+place until you've manually investigated — re-running rotate-keys is
+idempotent.
+
+## Cron job recovery
+
+A cron run that crashes mid-way leaves a `running` row in
+`CronRunLog` that blocks all future runs for that UTC day.
+
+To clear (Prisma Studio or psql):
+```sql
+DELETE FROM "CronRunLog"
+  WHERE "jobName" = '<job>'
+  AND "status" = 'running'
+  AND "startedAt" < (NOW() - INTERVAL '2 hours');
+```
+
+To inspect recent runs:
+```sql
+SELECT "jobName", "runDate", "status", "itemsProcessed",
+       "startedAt", "completedAt"
+  FROM "CronRunLog"
+  ORDER BY "startedAt" DESC LIMIT 20;
+```
+
+## OCR fixture testing (new bills)
+
+When you want to extend the OCR validation suite:
+
+1. Anonymize a new PDF fixture under `tests/fixtures/bills/<slug>.pdf`
+2. Create matching `<slug>.expected.json`:
+   ```json
+   {
+     "provider": "ExactName",
+     "monthlyCents": 2965,
+     "totalCents": 2965,
+     "category": "TELECOM",
+     "country": "NL"
+   }
+   ```
+3. Add spec to `scripts/generate-ocr-fixtures.ts` if you want it
+   auto-regenerable.
+4. Run `npm test -- --run tests/ocr-fixtures.test.ts` (structure
+   check), or with `GROQ_API_KEY=<real-key>` for the accuracy gate.
+
+## Sentry alert tuning
+
+When false-positive errors fire from Sentry:
+
+1. Open the issue in Sentry dashboard
+2. Add a rule: Project → Alerts → Issue Alerts → "Filter out events
+   where: stage equals `<noise-stage>`"
+3. Or use `Sentry.ignoreErrors` in `sentry.server.config.ts` for
+   specific message patterns
+
+Per-route tags currently active: `route=<api/...>`, `stage=<form|ocr|db|...>`.
+Filter by `tag:route:bills/upload` to see only upload-pipeline crashes.
+
+## Self-review smell detector
+
+Before merging a feature branch:
+
+```bash
+npx tsx scripts/self-review.ts
+```
+
+Flags: `any` casts, `@ts-ignore` without reason, `console.log`,
+functions >100 lines, raw `process.env.X` reads (should go via
+`lib/env.ts` or `lib/feature-flags.ts`), hardcoded URLs in `lib/`.
+
+Tests `tests/self-review.test.ts` enforce zero `any`/`ts-ignore`/
+`console.log` as a hard gate — adding any of those will fail CI.

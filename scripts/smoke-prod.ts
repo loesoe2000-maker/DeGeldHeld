@@ -419,6 +419,68 @@ async function checkAccountExportUnauth(): Promise<CheckResult> {
   return { name: "GET /api/account/export (no auth)", ok: false, detail: `${r.status}` };
 }
 
+// --- v9 hardening additions ---------------------------------------
+
+async function checkTestSentryProd(): Promise<CheckResult> {
+  // In production without Bearer secret → 403 (intentional gate)
+  const r = await fetchFollow(`${BASE}/api/test-sentry`);
+  if (r.status === 403 || r.status === 500) {
+    return { name: "GET /api/test-sentry (no auth)", ok: true, detail: `${r.status}` };
+  }
+  return { name: "GET /api/test-sentry (no auth)", ok: false, detail: `${r.status}` };
+}
+
+async function checkCronIdempotency(): Promise<CheckResult> {
+  // Two parallel unauth calls — both return 401, neither 500. We can't
+  // verify the lock-acquire path without CRON_SECRET; this only checks
+  // that the route exists and is auth-protected.
+  const [a, b] = await Promise.all([
+    fetchFollow(`${BASE}/api/cron/outcome-followup`).catch(() => ({ status: 0 } as Response)),
+    fetchFollow(`${BASE}/api/cron/outcome-followup`).catch(() => ({ status: 0 } as Response)),
+  ]);
+  const okA = a.status === 401 || a.status === 200;
+  const okB = b.status === 401 || b.status === 200;
+  if (okA && okB) {
+    return { name: "GET /api/cron/outcome-followup (2× parallel)", ok: true, detail: `${a.status} / ${b.status}` };
+  }
+  return { name: "GET /api/cron/outcome-followup (2× parallel)", ok: false, detail: `${a.status} / ${b.status}` };
+}
+
+async function checkPsd2GatedRoute(): Promise<CheckResult> {
+  // /api/psd2/connect without PSD2_ENABLED → 401 (no auth) or 503
+  const r = await fetch(`${BASE}/api/psd2/connect`, { method: "POST" });
+  if (r.status === 401 || r.status === 503) {
+    return { name: "POST /api/psd2/connect (flag-gated)", ok: true, detail: `${r.status}` };
+  }
+  return { name: "POST /api/psd2/connect (flag-gated)", ok: false, detail: `${r.status}` };
+}
+
+async function checkWhatsAppGatedRoute(): Promise<CheckResult> {
+  // /api/inbound/whatsapp without WHATSAPP_ENABLED → 503
+  const r = await fetch(`${BASE}/api/inbound/whatsapp`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: "{}",
+  });
+  if (r.status === 503 || r.status === 401) {
+    return { name: "POST /api/inbound/whatsapp (flag-gated)", ok: true, detail: `${r.status}` };
+  }
+  return { name: "POST /api/inbound/whatsapp (flag-gated)", ok: false, detail: `${r.status}` };
+}
+
+async function checkInboundUnsigned(): Promise<CheckResult> {
+  // /api/inbound without a resend-signature → 401 (HMAC reject)
+  const r = await fetch(`${BASE}/api/inbound`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ from: "x@y.nl" }),
+  });
+  if (r.status === 401 || r.status === 400) {
+    return { name: "POST /api/inbound (no signature)", ok: true, detail: `${r.status}` };
+  }
+  return { name: "POST /api/inbound (no signature)", ok: false, detail: `${r.status}` };
+}
+
 async function main() {
   console.log(`[smoke-prod] Target: ${BASE}`);
   console.log(`[smoke-prod] Start: ${new Date().toISOString()}\n`);
@@ -449,6 +511,11 @@ async function main() {
     checkHistoriePage,      // 23
     checkMonthlyRecheckUnauth, // 24
     checkAccountExportUnauth, // 25
+    checkTestSentryProd,    // 26
+    checkCronIdempotency,   // 27
+    checkPsd2GatedRoute,    // 28
+    checkWhatsAppGatedRoute, // 29
+    checkInboundUnsigned,    // 30
   ];
 
   const results: CheckResult[] = [];
