@@ -77,6 +77,7 @@ describe("audit-everything coverage", () => {
       "/api/og",
       "/api/psd2/callback",
       "/api/admin",
+      "/api/test-sentry",
     ];
     const probe = apis.filter((a) => !skip.some((s) => a.startsWith(s)));
     const missing = probe.filter((a) => !auditSrc.includes(`"${a}"`));

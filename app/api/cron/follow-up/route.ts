@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { sendEmail } from "@/lib/email";
 import { followUpBrandedHtml, followUpBrandedSubject } from "@/lib/email_templates";
 import { acquireCronLock, releaseCronLock } from "@/lib/cron-lock";
+import * as Sentry from "@sentry/nextjs";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -57,6 +58,10 @@ export async function GET(req: NextRequest) {
         sent += 1;
       } catch (e) {
         console.error(`follow-up failed for ${n.id}`, e);
+        Sentry.captureException(e as Error, {
+          tags: { route: "cron/follow-up", stage: "send" },
+          extra: { negotiationId: n.id },
+        });
         failed += 1;
       }
     }

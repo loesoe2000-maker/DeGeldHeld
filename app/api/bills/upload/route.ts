@@ -3,6 +3,7 @@ import crypto from "node:crypto";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { extractBill, hashImage, parseInvoiceDate, validateUploadedFile, pdfFallbackMessage } from "@/lib/ocr";
+import * as Sentry from "@sentry/nextjs";
 import { currencyForCountry } from "@/lib/format";
 import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import { anonymizeStructured } from "@/lib/anonymizer";
@@ -196,6 +197,7 @@ export async function POST(req: NextRequest) {
   } catch (e) {
     const err = e as Error;
     console.error(`[upload] crash at stage=${stage}:`, err.message, err.stack);
+    Sentry.captureException(err, { tags: { route: "bills/upload", stage } });
     return NextResponse.json(
       { error: `Upload fout (${stage}): ${err.message}`, stage },
       { status: 500 },
