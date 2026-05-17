@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { discoverProvider } from "@/lib/provider_discovery";
 import { z } from "zod";
+import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -12,28 +13,16 @@ const schema = z.object({
   country: z.string().min(2).max(3).toUpperCase(),
 });
 
-/**
- * Per-user rate limit: 5 discoveries / hour to avoid WebFetch abuse + Groq cost.
- * Stored in-memory; production would use Redis.
- */
-const userBuckets = new Map<string, number[]>();
-const PER_HOUR = 5;
-
-function checkRate(userId: string): boolean {
-  const now = Date.now();
-  const events = (userBuckets.get(userId) ?? []).filter((t) => now - t < 60 * 60 * 1000);
-  if (events.length >= PER_HOUR) return false;
-  events.push(now);
-  userBuckets.set(userId, events);
-  return true;
-}
-
 export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const userId = (session.user as { id: string }).id;
+
+  // 5 per day per user — WebFetch + Groq cost adds up quickly
+  const rl = rateLimit({ key: `discover:${userId}`, max: 5, windowSec: 24 * 3600 });
+  if (!rl.ok) return rateLimitResponse(rl);
 
   let body: unknown;
   try {
@@ -44,10 +33,6 @@ export async function POST(req: NextRequest) {
   const parsed = schema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: "Validation failed" }, { status: 400 });
-  }
-
-  if (!checkRate(userId)) {
-    return NextResponse.json({ error: "Te veel verzoeken — probeer over een uur opnieuw" }, { status: 429 });
   }
 
   const { name, country } = parsed.data;

@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { createCheckoutSession } from "@/lib/payments";
 import { z } from "zod";
+import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -13,6 +14,9 @@ export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const userId = (session.user as { id: string }).id;
+
+  const rl = rateLimit({ key: `checkout:${userId}`, max: 10, windowSec: 3600 });
+  if (!rl.ok) return rateLimitResponse(rl);
 
   let body: unknown;
   try {

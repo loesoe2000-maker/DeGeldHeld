@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { extractBill, hashImage, parseInvoiceDate, validateUploadedFile } from "@/lib/ocr";
 import { currencyForCountry } from "@/lib/format";
+import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 // imageHash has a global UNIQUE constraint in the schema, so two users
 // uploading the same file would collide. Scope the stored hash to (user, file)
@@ -49,6 +50,9 @@ export async function POST(req: NextRequest) {
         { status: 401 },
       );
     }
+
+    const rl = rateLimit({ key: `upload:${userId}`, max: 5, windowSec: 3600 });
+    if (!rl.ok) return rateLimitResponse(rl);
 
     stage = "form";
     const form = await req.formData();

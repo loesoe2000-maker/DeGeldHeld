@@ -2,11 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { waitlistSchema } from "@/lib/validation";
 import { sendEmail, welcomeEmailHtml } from "@/lib/email";
+import { rateLimit, rateLimitResponse, ipFromRequest } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
+  const rl = rateLimit({ key: `waitlist:${ipFromRequest(req)}`, max: 3, windowSec: 3600 });
+  if (!rl.ok) return rateLimitResponse(rl);
+
   let body: unknown;
   try {
     body = await req.json();

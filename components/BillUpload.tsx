@@ -80,9 +80,16 @@ export default function BillUpload({ onUploaded }: { onUploaded?: (r: UploadResp
             setError("Bestand te groot voor server. Probeer < 4 MB.");
           } else if (res.status === 401 || res.status === 403) {
             setError("Je sessie is verlopen — log opnieuw in.");
+          } else if (res.status === 429) {
+            setError("Even rustig — je hebt veel uploads in korte tijd. Probeer over 1 uur opnieuw.");
           } else {
             setError(`Server gaf onverwacht antwoord (${res.status}). Probeer opnieuw.`);
           }
+          return;
+        }
+
+        if (res.status === 429) {
+          setError("Even rustig — je hebt veel uploads in korte tijd. Probeer over 1 uur opnieuw.");
           return;
         }
 

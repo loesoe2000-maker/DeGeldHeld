@@ -22,17 +22,26 @@ vi.mock("../lib/email", async () => {
 });
 
 import { POST } from "../app/api/waitlist/route";
+import { __resetRateLimit } from "../lib/rate-limit";
 
+// Each request gets a unique x-forwarded-for so rate-limit buckets don't
+// collide across test cases (default would all be "anon" → 3/hour limit).
+let __ipCounter = 0;
 function makeReq(body: unknown): Request {
+  __ipCounter += 1;
   return new Request("http://localhost/api/waitlist", {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers: {
+      "content-type": "application/json",
+      "x-forwarded-for": `10.0.0.${__ipCounter}`,
+    },
     body: typeof body === "string" ? body : JSON.stringify(body),
   });
 }
 
 describe("api/waitlist POST", () => {
   beforeEach(() => {
+    __resetRateLimit();
     mockFindUnique.mockReset();
     mockCreate.mockReset();
     mockSendEmail.mockReset();

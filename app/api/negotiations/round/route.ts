@@ -11,6 +11,7 @@ import {
 import { generateEmail } from "@/lib/negotiator";
 import { buildComparison } from "@/lib/comparison";
 import { extractBill } from "@/lib/ocr";
+import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -67,6 +68,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const userId = (session.user as { id: string }).id;
+
+  const rl = rateLimit({ key: `round:${userId}`, max: 10, windowSec: 3600 });
+  if (!rl.ok) return rateLimitResponse(rl);
 
   const body = await readBody(req);
   if ("error" in body) {
