@@ -39,10 +39,24 @@ Test-suite: **956+ passing**, TS `--noEmit` clean.
 
 ## Smoke 20 (laatste run op productie)
 
-Zie `npm run smoke:prod` output. Pre-deploy snapshot 18/20:
-- 2× 404 op `/onderhandelen-met-kpn` en `/energie-besparen` — verwacht
-  tot Vercel deploy van commit e3a8f1b is gepropageerd. Lokaal build
-  bevestigt: beide pages worden als ○ static gegenereerd.
+```
+[smoke-prod] Target: https://degeldheld.com
+[smoke-prod] 20/20 groen
+```
+
+Inclusief de v7-specifieke checks: /demo, /onderhandelen-met-kpn,
+/energie-besparen, /uitnodiging/TEST00 (200 of 404, geen 500),
+POST /api/negotiations/X/feedback (401 zonder auth).
+
+### SEO routing fix (commit de85c3d)
+
+Originele sprint-doc specificeerde `app/onderhandelen-met-[provider]/`
+en `app/[category]-besparen/` folder-namen. Next.js 14 App Router
+genereert hier static templates maar nooit per-slug HTML — alle 34 SEO
+pages 404'den live. **Fix**: één gedeelde `app/[seoSlug]/page.tsx` met
+generateStaticParams over beide slug-families + dynamicParams=false.
+URL's blijven hetzelfde (/onderhandelen-met-kpn, /energie-besparen),
+maar nu correct gerendered. Lokaal én op prod geverifieerd.
 
 ## Migraties (prod-DB live)
 
@@ -67,6 +81,35 @@ Beide toegepast via `npx prisma migrate deploy`.
   stap, beschreven in script).
 - **Lighthouse Perf ≥80**: nog niet automatisch in smoke (geen lokale
   Lighthouse-runner in CI). Mobile-audit dekt wel touch-targets + a11y.
+
+## Eindrapport (sprint-template)
+
+```
+BEAT_TRIM_SPRINT v7 — Final report
+
+THEMA A: stability
+  DEEL 1  ✓ b19b00a — N routes audited, 5 TS+test errors fixed
+  DEEL 2  ✓ adbbc30 — provider integrity gate live, 0 fake emails
+  DEEL 3  ✓ c255e92 — PDF support via pdfjs+text-LLM live
+
+THEMA B: trim-buster
+  DEEL 4  ✓ 3fdaea4 — 3 categories deep-compare, 18 tests
+  DEEL 5  ✓ 6f0f5db — feedback loop + mail-quality dashboard live
+  DEEL 6  ✓ d35ec58 — demo mode with 3 fixtures live
+  DEEL 7  ✓ 41effb1 — referral system + paywall-skip live
+
+THEMA C: distribution
+  DEEL 8  ✓ e3a8f1b + de85c3d — 34 SEO pages via [seoSlug] dispatcher
+  DEEL 9  ✓ e8d8bc5 — share kit + 1080×1920 IG PNG live
+  DEEL 10 ✓ fde5cdd — deep health + sentry + analytics + uptime script
+
+THEMA D: verify
+  DEEL 11 ✓ 95c6a5f — smoke 20/20, status/readme/runbook updated
+
+Skipped: none
+Open issues: scan-PDFs leeg → needsManual; UptimeRobot setup is one-shot manual
+Bug-jacht onderweg: SEO mid-segment dynamic params don't work — fixed via single [seoSlug] route
+```
 
 ## Niet gepland in deze sprint — toekomst
 
