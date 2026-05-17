@@ -2,16 +2,13 @@ import { describe, it, expect } from "vitest";
 import { extractBill, VISION_MODELS } from "../lib/ocr";
 
 describe("ocr/VISION_MODELS cascade order", () => {
-  it("first try is 90b vision", () => {
-    expect(VISION_MODELS[0]).toMatch(/90b-vision/);
+  it("uses llama-4-scout (free-tier whitelisted)", () => {
+    expect(VISION_MODELS[0]).toMatch(/llama-4-scout/);
   });
 
-  it("fallback is 11b vision", () => {
-    expect(VISION_MODELS[1]).toMatch(/11b-vision/);
-  });
-
-  it("exactly 2 models in cascade", () => {
-    expect(VISION_MODELS).toHaveLength(2);
+  it("single model — no maverick (not on free tier)", () => {
+    expect(VISION_MODELS).toHaveLength(1);
+    expect(VISION_MODELS.join(",")).not.toMatch(/maverick/);
   });
 });
 

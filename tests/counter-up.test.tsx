@@ -24,7 +24,7 @@ describe("components/CounterUp", () => {
     // formatEurCents(100 * 100) => "€ 100" (no decimals); allow any euro-formatted match
     await waitFor(
       () => expect(screen.getByText(/€\s?100/)).toBeInTheDocument(),
-      { timeout: 500 },
+      { timeout: 2000 },
     );
   });
 

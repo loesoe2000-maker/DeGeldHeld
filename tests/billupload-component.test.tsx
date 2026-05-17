@@ -35,6 +35,9 @@ describe("components/BillUpload", () => {
   it("calls onUploaded callback on success", async () => {
     (fetch as unknown as { mockResolvedValue: (v: unknown) => void }).mockResolvedValue({
       ok: true,
+      status: 200,
+      headers: { get: () => "application/json" },
+      text: async () => JSON.stringify({ ok: true, billId: "b1", needsManual: false }),
       json: async () => ({ ok: true, billId: "b1", needsManual: false }),
     });
     const onUploaded = vi.fn();
@@ -50,6 +53,9 @@ describe("components/BillUpload", () => {
   it("shows error from server response", async () => {
     (fetch as unknown as { mockResolvedValue: (v: unknown) => void }).mockResolvedValue({
       ok: false,
+      status: 400,
+      headers: { get: () => "application/json" },
+      text: async () => JSON.stringify({ error: "Upload mislukt" }),
       json: async () => ({ error: "Upload mislukt" }),
     });
     render(<BillUpload />);

@@ -328,7 +328,7 @@ ${input.customerName}${input.customerEmail ? `\n${input.customerEmail}` : ""}`;
       language,
       reasoning: "Fallback template (no LLM) — but with concrete alternative, target amount and 14-day deadline.",
       expectedSavingsCents: best?.yearlySavingsCents ?? Math.round(input.currentMonthlyCents * 12 * 0.15),
-      confidence: 0.55,
+      confidence: 0.45,
     };
   }
 
@@ -353,7 +353,7 @@ ${input.customerName}${input.customerEmail ? `\n${input.customerEmail}` : ""}`;
     language,
     reasoning: "Fallback template (geen LLM) — maar met concreet alternatief, doelbedrag en 14-dagen deadline.",
     expectedSavingsCents: best?.yearlySavingsCents ?? Math.round(input.currentMonthlyCents * 12 * 0.15),
-    confidence: 0.55,
+    confidence: 0.45,
   };
 }
 

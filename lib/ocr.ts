@@ -109,13 +109,11 @@ Voorbeeld JSON output (KPN met eenmalige post):
 Voorbeeld JSON output (Vodafone pure abonnement):
 {"provider":"Vodafone","monthly_subscription_eur":29.95,"total_eur":29.95,"one_time_items":[],"plan":"Red Unlimited","period":"mei 2026","customer_number":"87654321","language":"nl","confidence":0.94}`;
 
-// Groq deprecated the llama-3.2-*-vision-preview models in 2025.
-// Current vision-capable Groq models (as of May 2026):
-//   - meta-llama/llama-4-maverick-17b-128e-instruct  (large, best quality)
-//   - meta-llama/llama-4-scout-17b-16e-instruct      (smaller, faster fallback)
-// Override with GROQ_VISION_MODEL env var if needed.
+// Groq free-tier whitelist (mei 2026):
+//   - vision: meta-llama/llama-4-scout-17b-16e-instruct
+//   - text:   llama-3.3-70b-versatile
+// Override with GROQ_VISION_MODEL env var if a paid tier becomes available.
 export const VISION_MODELS = [
-  "meta-llama/llama-4-maverick-17b-128e-instruct",
   "meta-llama/llama-4-scout-17b-16e-instruct",
 ];
 
