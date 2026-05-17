@@ -52,7 +52,7 @@ export default async function EmailPage({
   }
 
   // Persist to negotiation
-  await prisma.negotiation.upsert({
+  const negotiation = await prisma.negotiation.upsert({
     where: { billId: bill.id },
     update: {
       state: "EMAIL_GEN",
@@ -74,6 +74,7 @@ export default async function EmailPage({
       confidence: result.confidence,
       reasoning: result.reasoning,
     },
+    select: { id: true },
   });
 
   return (
@@ -93,6 +94,7 @@ export default async function EmailPage({
           tonality={result.tonality}
           language={result.language}
           billId={bill.id}
+          negotiationId={negotiation.id}
         />
       </div>
     </main>

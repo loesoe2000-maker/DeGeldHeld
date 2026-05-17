@@ -88,6 +88,9 @@ describe("components/NegotiationList", () => {
     closedAt: null,
     createdAt: new Date(),
     updatedAt: new Date(),
+    userRating: null,
+    mailUsed: false,
+    providerResponded: null,
     bill: { provider: "T-Mobile", amountCents: 4250, category: "TELECOM" as const },
   };
 

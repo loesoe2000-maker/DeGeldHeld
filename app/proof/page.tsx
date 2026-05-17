@@ -136,10 +136,59 @@ function buildHref(p: Record<string, string | null>): string {
   return s ? `/proof?${s}` : "/proof";
 }
 
+async function loadMailQuality() {
+  const recent = await prisma.negotiation.findMany({
+    where: { emailSentAt: { not: null } },
+    select: {
+      userRating: true,
+      mailUsed: true,
+      providerResponded: true,
+      strategy: true,
+      state: true,
+      bill: { select: { provider: true } },
+    },
+    take: 2000,
+    orderBy: { createdAt: "desc" },
+  });
+  const total = recent.length;
+  const thumbsUp = recent.filter((r) => r.userRating === 1).length;
+  const thumbsDown = recent.filter((r) => r.userRating === -1).length;
+  const mailUsed = recent.filter((r) => r.mailUsed).length;
+  const responded = recent.filter((r) => r.providerResponded === true).length;
+  const success = recent.filter((r) => r.state === "SUCCESS" || r.state === "BILLED" || r.state === "ACCEPTED").length;
+
+  type Bucket = { name: string; total: number; success: number };
+  const byStrategy = new Map<string, Bucket>();
+  const byProvider = new Map<string, Bucket>();
+  for (const r of recent) {
+    const s = r.strategy ?? "ONBEKEND";
+    const p = r.bill.provider;
+    const sb = byStrategy.get(s) ?? { name: s, total: 0, success: 0 };
+    sb.total++;
+    if (r.state === "SUCCESS" || r.state === "BILLED" || r.state === "ACCEPTED") sb.success++;
+    byStrategy.set(s, sb);
+    const pb = byProvider.get(p) ?? { name: p, total: 0, success: 0 };
+    pb.total++;
+    if (r.state === "SUCCESS" || r.state === "BILLED" || r.state === "ACCEPTED") pb.success++;
+    byProvider.set(p, pb);
+  }
+
+  return {
+    total,
+    thumbsUpPct: total > 0 ? thumbsUp / total : 0,
+    thumbsDownPct: total > 0 ? thumbsDown / total : 0,
+    mailUsedPct: total > 0 ? mailUsed / total : 0,
+    respondedPct: total > 0 ? responded / total : 0,
+    overallSuccessPct: total > 0 ? success / total : 0,
+    byStrategy: Array.from(byStrategy.values()).sort((a, b) => b.total - a.total).slice(0, 8),
+    byProvider: Array.from(byProvider.values()).filter((b) => b.total >= 3).sort((a, b) => b.total - a.total).slice(0, 10),
+  };
+}
+
 export default async function ProofPage({
   searchParams,
 }: {
-  searchParams: Promise<{ period?: string; basis?: string; country?: string; category?: string }>;
+  searchParams: Promise<{ period?: string; basis?: string; country?: string; category?: string; view?: string }>;
 }) {
   const params = await searchParams;
   const period: Period = (PERIODS as string[]).includes(params.period ?? "")
@@ -148,7 +197,9 @@ export default async function ProofPage({
   const basis: Basis = params.basis === "expected" ? "expected" : "actual";
   const country = COUNTRY_OPTIONS.includes(params.country ?? "") ? params.country! : null;
   const category = CATEGORY_OPTIONS.includes(params.category ?? "") ? params.category! : null;
+  const view = params.view === "mail-quality" ? "mail-quality" : "default";
   const stats = await loadStats(period, basis, country, category);
+  const mq = view === "mail-quality" ? await loadMailQuality() : null;
   return (
     <>
       <script
@@ -284,6 +335,55 @@ export default async function ProofPage({
           </p>
         </section>
 
+        {mq && (
+          <section data-testid="mail-quality-view" className="mt-12 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 className="text-2xl font-bold text-slate-900">Mail kwaliteit</h2>
+            <p className="mt-1 text-sm text-slate-500">
+              Hoe goed werken de gegenereerde mails? Op basis van {mq.total} feedback-events.
+            </p>
+            <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-5">
+              <MqStat label="👍 Goede mail" pct={mq.thumbsUpPct} />
+              <MqStat label="👎 Voelt off" pct={mq.thumbsDownPct} />
+              <MqStat label="Gekopieerd" pct={mq.mailUsedPct} />
+              <MqStat label="Provider antwoordde" pct={mq.respondedPct} />
+              <MqStat label="Slagingskans" pct={mq.overallSuccessPct} />
+            </div>
+            <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-2">
+              <div>
+                <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Per strategie</h3>
+                <ul className="mt-3 divide-y divide-slate-100">
+                  {mq.byStrategy.map((b) => (
+                    <li key={b.name} className="flex items-center justify-between py-2 text-sm">
+                      <span className="font-medium text-slate-700">{b.name.replace(/_/g, " ")}</span>
+                      <span className="tabular-nums text-slate-500">{b.success}/{b.total} ({Math.round(b.success * 100 / Math.max(1, b.total))}%)</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Per provider (≥3 cases)</h3>
+                <ul className="mt-3 divide-y divide-slate-100">
+                  {mq.byProvider.map((b) => (
+                    <li key={b.name} className="flex items-center justify-between py-2 text-sm">
+                      <span className="font-medium text-slate-700">{b.name}</span>
+                      <span className="tabular-nums text-slate-500">{b.success}/{b.total} ({Math.round(b.success * 100 / Math.max(1, b.total))}%)</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </section>
+        )}
+
+        <section className="mt-8 flex justify-center">
+          <Link
+            href={view === "mail-quality" ? "/proof" : "/proof?view=mail-quality"}
+            className="rounded-full border border-slate-300 px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50"
+          >
+            {view === "mail-quality" ? "← Terug naar besparingen" : "Bekijk mail-kwaliteit →"}
+          </Link>
+        </section>
+
         <section className="mt-12 text-center">
           <a
             href="/onderhandel"
@@ -298,6 +398,15 @@ export default async function ProofPage({
       </main>
       <Footer />
     </>
+  );
+}
+
+function MqStat({ label, pct }: { label: string; pct: number }) {
+  return (
+    <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+      <div className="text-xs font-medium uppercase tracking-wide text-slate-500">{label}</div>
+      <div className="mt-1 text-2xl font-semibold tabular-nums text-slate-900">{Math.round(pct * 100)}%</div>
+    </div>
   );
 }
 

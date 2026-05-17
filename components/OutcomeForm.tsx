@@ -15,9 +15,18 @@ export default function OutcomeForm({
   const router = useRouter();
   const [choice, setChoice] = useState<Choice | null>(null);
   const [newAmount, setNewAmount] = useState("");
+  const [providerResponded, setProviderResponded] = useState(true);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
+
+  async function postFeedback(payload: Record<string, unknown>) {
+    void fetch(`/api/negotiations/${negotiationId}/feedback`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(payload),
+    }).catch(() => {});
+  }
 
   async function submit(c: Choice, body: Record<string, unknown> = {}) {
     setPending(true);
@@ -52,6 +61,7 @@ export default function OutcomeForm({
     }
     const newCents = Math.round(n * 100);
     const savedCents = currentMonthlyCents - newCents;
+    void postFeedback({ providerResponded });
     submit("SUCCESS_SAVED", { actualSavingsCents: savedCents });
   }
 
@@ -83,6 +93,15 @@ export default function OutcomeForm({
           className="w-full rounded-lg border border-slate-300 px-3 py-2 text-base"
           required
         />
+        <label className="flex items-center gap-2 text-sm text-slate-700">
+          <input
+            type="checkbox"
+            checked={providerResponded}
+            onChange={(e) => setProviderResponded(e.target.checked)}
+            className="h-4 w-4 rounded border-slate-300"
+          />
+          Provider antwoordde op de mail
+        </label>
         {error && <p className="text-sm text-red-600">{error}</p>}
         <div className="flex gap-2">
           <button

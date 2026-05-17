@@ -14,6 +14,7 @@ export default function EmailDisplay({
   tonality,
   language,
   billId,
+  negotiationId,
 }: {
   subject: string;
   body: string;
@@ -24,8 +25,10 @@ export default function EmailDisplay({
   tonality?: string;
   language?: string;
   billId?: string;
+  negotiationId?: string;
 }) {
   const [copied, setCopied] = useState(false);
+  const [rated, setRated] = useState<number | null>(null);
   async function copyAll() {
     const text = `Onderwerp: ${subject}\n\n${body}`;
     try {
@@ -43,6 +46,23 @@ export default function EmailDisplay({
         body: JSON.stringify({ billId }),
       }).catch(() => {});
     }
+    if (negotiationId) {
+      void fetch(`/api/negotiations/${negotiationId}/feedback`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ mailUsed: true }),
+      }).catch(() => {});
+    }
+  }
+
+  async function rate(value: -1 | 1) {
+    setRated(value);
+    if (!negotiationId) return;
+    void fetch(`/api/negotiations/${negotiationId}/feedback`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ userRating: value }),
+    }).catch(() => {});
   }
 
   const whatsappUrl = buildWhatsAppShareUrl({ subject, body });
@@ -122,6 +142,41 @@ export default function EmailDisplay({
             >
               Markeer uitkomst
             </a>
+          </div>
+        </div>
+      )}
+
+      {negotiationId && (
+        <div data-testid="feedback-bar" className="rounded-xl border border-slate-200 bg-white p-4">
+          <div className="text-sm font-medium text-slate-700">Hoe vind je deze mail?</div>
+          <div className="mt-2 flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={() => rate(1)}
+              aria-label="Goede mail"
+              className={`rounded-lg border px-4 py-2 text-sm font-medium ${
+                rated === 1
+                  ? "border-emerald-500 bg-emerald-50 text-emerald-700"
+                  : "border-slate-300 text-slate-700 hover:bg-slate-50"
+              }`}
+            >
+              👍 Goede mail
+            </button>
+            <button
+              type="button"
+              onClick={() => rate(-1)}
+              aria-label="Voelt off"
+              className={`rounded-lg border px-4 py-2 text-sm font-medium ${
+                rated === -1
+                  ? "border-rose-500 bg-rose-50 text-rose-700"
+                  : "border-slate-300 text-slate-700 hover:bg-slate-50"
+              }`}
+            >
+              👎 Voelt off
+            </button>
+            {rated != null && (
+              <span className="self-center text-xs text-slate-500">Bedankt — gebruikt om de AI te verbeteren.</span>
+            )}
           </div>
         </div>
       )}

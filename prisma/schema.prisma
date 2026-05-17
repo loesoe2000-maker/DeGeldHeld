@@ -181,6 +181,11 @@ model Negotiation {
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
 
+  // v7 feedback loop — does the AI mail actually work?
+  userRating          Int?      // -1 thumbs-down / 0 neutraal / 1 thumbs-up
+  mailUsed            Boolean   @default(false)  // user kopieerde/verstuurde
+  providerResponded   Boolean?  // user gaf aan dat provider antwoordde
+
   user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   bill    Bill     @relation(fields: [billId], references: [id], onDelete: Cascade)
   payment Payment?
