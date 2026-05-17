@@ -45,7 +45,7 @@ export default function FAQ() {
                   <button
                     type="button"
                     onClick={() => setOpen(isOpen ? null : i)}
-                    className="flex w-full items-center justify-between text-left text-lg font-semibold text-slate-900"
+                    className="flex min-h-[44px] w-full items-center justify-between text-left text-lg font-semibold text-slate-900"
                     aria-expanded={isOpen}
                     aria-controls={`faq-${i}`}
                   >

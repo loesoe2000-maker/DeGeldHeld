@@ -311,7 +311,7 @@ function FilterPill({
   return (
     <Link
       href={href}
-      className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${
+      className={`inline-flex min-h-[44px] items-center rounded-md px-3 py-2 text-sm font-medium transition ${
         active ? activeCls : "text-slate-600 hover:bg-white hover:text-slate-900"
       }`}
       aria-current={active ? "page" : undefined}
