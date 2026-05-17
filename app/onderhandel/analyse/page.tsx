@@ -4,6 +4,9 @@ import { prisma } from "@/lib/db";
 import Comparison from "@/components/Comparison";
 import { buildComparison } from "@/lib/comparison";
 import { requiresPayment } from "@/lib/payments";
+import { compareEnergy } from "@/lib/categories/energie";
+import { compareInsurance, type InsuranceCoverageType } from "@/lib/categories/verzekering";
+import { compareMortgage } from "@/lib/categories/hypotheek";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -137,6 +140,69 @@ export default async function AnalysePage({
       <div className="mt-8">
         <Comparison result={comparison} />
       </div>
+
+      {bill.category === "ENERGIE" && (() => {
+        const r = compareEnergy({
+          kwhPriceCents: null,
+          m3PriceCents: null,
+          vastrechtCents: null,
+          contractType: "variabel",
+        });
+        return (
+          <div data-testid="cat-energie" className="mt-8 rounded-xl border border-emerald-200 bg-emerald-50 p-5 text-sm text-emerald-900">
+            <h2 className="text-base font-semibold">Energie-tarief vergelijking</h2>
+            <p className="mt-1">Markt-mediaan kWh (variabel): <strong>€{(r.marketKwhCents / 100).toFixed(2)}</strong>, gas m³: <strong>€{(r.marketM3Cents / 100).toFixed(2)}</strong>.</p>
+            <p className="mt-1">Geschatte jaarbesparing bij overstap naar markt-tarief: <strong>€{(r.annualSavingsCents / 100).toFixed(0)}</strong>.</p>
+            {r.notes.map((n, i) => <p key={i} className="mt-1 opacity-80">{n}</p>)}
+          </div>
+        );
+      })()}
+
+      {bill.category === "VERZEKERING" && (() => {
+        const r = compareInsurance({
+          type: "UNKNOWN" as InsuranceCoverageType,
+          premiumMonthlyCents: bill.monthlyCents ?? bill.amountCents,
+          deductibleCents: null,
+        });
+        return (
+          <div data-testid="cat-verzekering" className="mt-8 rounded-xl border border-sky-200 bg-sky-50 p-5 text-sm text-sky-900">
+            <h2 className="text-base font-semibold">Verzekering-vergelijking</h2>
+            <p className="mt-1">Je premie zit in het <strong>{r.percentile === "high" ? "duurste kwartiel" : r.percentile === "low" ? "goedkoopste kwartiel" : "midden"}</strong> van de markt.</p>
+            {r.alternatives.length > 0 ? (
+              <ul className="mt-2 list-disc pl-5">
+                {r.alternatives.map((a) => (
+                  <li key={a.name}>
+                    <strong>{a.name}</strong>: €{(a.premiumMonthlyCents / 100).toFixed(2)}/mnd ({a.notes}) — bespaart €{(a.yearlySavingsCents / 100).toFixed(0)}/jaar
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-1">Geen goedkopere alternatieven gevonden met vergelijkbare dekking.</p>
+            )}
+          </div>
+        );
+      })()}
+
+      {bill.category === "HYPOTHEEK" && (() => {
+        // Conservative defaults — real OCR-detection lands in v8.
+        const r = compareMortgage({
+          restschuldCents: 25_000_000,
+          rentePercentage: 4.8,
+          rentevasteJaren: 10,
+          looptijdJaren: 25,
+          maandlastCents: bill.monthlyCents ?? bill.amountCents,
+        });
+        return (
+          <div data-testid="cat-hypotheek" className="mt-8 rounded-xl border border-purple-200 bg-purple-50 p-5 text-sm text-purple-900">
+            <h2 className="text-base font-semibold">Hypotheek oversluit-kalkulator</h2>
+            <p className="mt-1">Markt-rente {r.marketRatePct}% vs jouw geschatte {r.yourRatePct}% — verschil <strong>{r.rateDeltaPct}%</strong>.</p>
+            <p className="mt-1">Bruto jaarbesparing: €{(r.yearlySavingsGrossCents / 100).toFixed(0)} (na oversluitkosten: €{(r.yearlySavingsNetCents / 100).toFixed(0)}/jaar gemiddeld).</p>
+            <p className="mt-1"><strong>{r.oversluitWorthIt ? "Oversluiten is rendabel" : "Oversluiten loont waarschijnlijk niet"}</strong> — terugverdientijd {r.paybackMonths >= 0 ? `${r.paybackMonths} maanden` : "n.v.t."}.</p>
+            {r.notes.map((n, i) => <p key={i} className="mt-1 opacity-80">{n}</p>)}
+          </div>
+        );
+      })()}
+
       <div className="mt-10 flex gap-3">
         <Link
           href={`/onderhandel/email?bill=${bill.id}`}
