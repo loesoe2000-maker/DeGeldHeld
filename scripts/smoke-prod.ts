@@ -332,6 +332,93 @@ async function checkFeedbackUnauth(): Promise<CheckResult> {
   return { name: "POST /api/negotiations/X/feedback (no auth)", ok: false, detail: `status ${r.status}` };
 }
 
+// --- v8 AFTER_V7 additions ------------------------------------------
+
+async function checkAccount(): Promise<CheckResult> {
+  // No-auth → expect redirect chain to /login (no 500)
+  let currentUrl = `${BASE}/account`;
+  for (let hop = 0; hop < 5; hop++) {
+    const r = await fetchWithTimeout(currentUrl);
+    if ([301, 302, 307].includes(r.status)) {
+      const loc = r.headers.get("location") ?? "";
+      if (loc.includes("/login")) {
+        return { name: "GET /account (no cookie)", ok: true, detail: `→ ${loc}` };
+      }
+      currentUrl = loc.startsWith("http") ? loc : `${BASE}${loc}`;
+      continue;
+    }
+    if (r.status === 200) {
+      const body = await r.text();
+      if (body.includes("Download al je data") || body.includes("login") || body.includes("Inloggen")) {
+        return { name: "GET /account (no cookie)", ok: true, detail: `200 na ${hop} hops` };
+      }
+    }
+    return { name: "GET /account (no cookie)", ok: false, detail: `onverwacht ${r.status}` };
+  }
+  return { name: "GET /account (no cookie)", ok: false, detail: "redirect chain te diep" };
+}
+
+async function checkAccountBanks(): Promise<CheckResult> {
+  // Without auth → redirect-chain to /login (200 on /login is fine)
+  let currentUrl = `${BASE}/account/banks`;
+  for (let hop = 0; hop < 5; hop++) {
+    const r = await fetchWithTimeout(currentUrl);
+    if ([301, 302, 307].includes(r.status)) {
+      const loc = r.headers.get("location") ?? "";
+      if (loc.includes("/login")) {
+        return { name: "GET /account/banks (no cookie)", ok: true, detail: `→ ${loc}` };
+      }
+      currentUrl = loc.startsWith("http") ? loc : `${BASE}${loc}`;
+      continue;
+    }
+    if (r.status === 200) {
+      return { name: "GET /account/banks (no cookie)", ok: true, detail: `200 na ${hop} hops` };
+    }
+    return { name: "GET /account/banks (no cookie)", ok: false, detail: `${r.status}` };
+  }
+  return { name: "GET /account/banks (no cookie)", ok: false, detail: "redirect chain te diep" };
+}
+
+async function checkHistoriePage(): Promise<CheckResult> {
+  // Bill-id is fake → redirect to /login or notFound; we only care it's not 500
+  let currentUrl = `${BASE}/onderhandel/fake-bill-id/historie`;
+  for (let hop = 0; hop < 5; hop++) {
+    const r = await fetchWithTimeout(currentUrl);
+    if ([301, 302, 307].includes(r.status)) {
+      const loc = r.headers.get("location") ?? "";
+      currentUrl = loc.startsWith("http") ? loc : `${BASE}${loc}`;
+      continue;
+    }
+    if (r.status === 404 || r.status === 200) {
+      return { name: "GET /onderhandel/X/historie", ok: true, detail: `${r.status}` };
+    }
+    return { name: "GET /onderhandel/X/historie", ok: false, detail: `${r.status}` };
+  }
+  return { name: "GET /onderhandel/X/historie", ok: false, detail: "redirect chain te diep" };
+}
+
+async function checkMonthlyRecheckUnauth(): Promise<CheckResult> {
+  const r = await fetchFollow(`${BASE}/api/cron/monthly-recheck`);
+  if (r.status === 401 || r.status === 200) {
+    return { name: "GET /api/cron/monthly-recheck (no auth)", ok: true, detail: `${r.status}` };
+  }
+  return { name: "GET /api/cron/monthly-recheck (no auth)", ok: false, detail: `${r.status}` };
+}
+
+async function checkAccountExportUnauth(): Promise<CheckResult> {
+  // Without auth: expect redirect chain to /login (server-component route does
+  // not call route.ts directly — it's a Next.js Route Handler at /api/account/export).
+  const r = await fetchFollow(`${BASE}/api/account/export`);
+  if (r.status === 401) {
+    return { name: "GET /api/account/export (no auth)", ok: true, detail: "401 zoals verwacht" };
+  }
+  // Some deployments redirect via middleware — also acceptable as long as it's not 5xx
+  if (r.status >= 300 && r.status < 400) {
+    return { name: "GET /api/account/export (no auth)", ok: true, detail: `${r.status} redirect` };
+  }
+  return { name: "GET /api/account/export (no auth)", ok: false, detail: `${r.status}` };
+}
+
 async function main() {
   console.log(`[smoke-prod] Target: ${BASE}`);
   console.log(`[smoke-prod] Start: ${new Date().toISOString()}\n`);
@@ -357,6 +444,11 @@ async function main() {
     checkSeoEnergie,        // 18
     checkReferralLanding,   // 19
     checkFeedbackUnauth,    // 20
+    checkAccount,           // 21
+    checkAccountBanks,      // 22
+    checkHistoriePage,      // 23
+    checkMonthlyRecheckUnauth, // 24
+    checkAccountExportUnauth, // 25
   ];
 
   const results: CheckResult[] = [];

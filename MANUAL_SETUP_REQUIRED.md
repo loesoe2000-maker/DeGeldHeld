@@ -4,7 +4,20 @@ External services / accounts / approvals you (the human) still need to
 arrange. Code is fully in place; flip the corresponding feature-flag or
 add the env var to activate.
 
-Last updated by sprint: DEEL 1 (more sections appended later).
+Last updated: 2026-05-17 (DEEL 7 wrap-up).
+
+## Prioritized roadmap
+
+**Direct activeerbaar (~1 uur werk total)**
+1. Resend inbound webhook + MX record → §1 (email-forward live)
+2. Vercel Blob Storage (optional, voor §6 vision-fine-tune later)
+
+**1-2 weken externe approval (begin nu)**
+3. Twilio + WhatsApp Business sender approval → §5
+4. Tink developer account + DPIA + verwerkersovereenkomst → §4
+
+**Wacht op data (3-6 maanden)**
+5. OCR fine-tune training run op Replicate of HF → §6
 
 ## Status legend
 

@@ -66,6 +66,54 @@ Both expect `Authorization: Bearer ${CRON_SECRET}` (configurable via Vercel cron
 | `scripts/verify-providers.ts` | MX + HEAD-check op retentie-data | Wekelijks (cron op github actions) |
 | `scripts/prompt-tuner.ts` | Print 30d mail-feedback rapport per strategy/provider | Nightly (handmatig of cron) |
 | `scripts/setup-uptime.ts` | Eenmalige UptimeRobot monitor-setup | Eenmalig per env |
+| `scripts/export-training-dataset.ts` | Reviewed OCR samples → JSONL voor fine-tune | Wanneer ≥500 reviewed |
+
+## v8 cron jobs
+
+| Path | Schedule | Doet |
+|---|---|---|
+| `/api/cron/monthly-recheck` | 09:00 UTC | Re-runs markt-vergelijking op bills ≥30d oud + mailt user bij ≥€60/jr delta |
+| `/api/cron/psd2-sync` | 04:00 UTC | Pull 90d transacties via Tink, upsert DetectedRecurring (alleen als PSD2_ENABLED=true) |
+
+Beide cron's vereisen Bearer ${CRON_SECRET}.
+
+## v8 feature flags
+
+| Env var | Default | Doel |
+|---|---|---|
+| `PSD2_ENABLED` | false | Activeert Tink Open Banking flows + cron |
+| `WHATSAPP_ENABLED` | false | Activeert Twilio inbound + AI counter UI |
+| `RESEND_WEBHOOK_SECRET` | unset | Resend inbound mail-forward (`inbox@degeldheld.com`) |
+
+Zie `MANUAL_SETUP_REQUIRED.md` voor exact welke externe accounts +
+keys nog nodig zijn voordat een flag op `true` kan.
+
+## v8 inbound webhook URLs
+
+- Resend → `POST https://degeldheld.com/api/inbound`
+  (signed via `resend-signature` header, HMAC-SHA256(secret, raw-body))
+- Twilio WhatsApp → `POST https://degeldheld.com/api/inbound/whatsapp`
+  (signed via `x-twilio-signature`, HMAC-SHA1 over URL + sorted params)
+- 360dialog (alt) → same URL with `x-360dialog-secret` shared-secret header
+
+## v8 incident response
+
+### Tink token expiry
+Auto-handled: cron + sync route mark `BankConnection.status='expired'`
+on Tink 401/403. User sees `/account/banks` with "Re-connect" prompt.
+No on-call action required.
+
+### WhatsApp Business account ban / Twilio suspension
+- Set `WHATSAPP_ENABLED=false` in Vercel → UI shows "nog niet
+  geactiveerd" banner; existing WhatsAppThread rows are preserved.
+- Existing email-flow (negotiator + outcome-followup) keeps working.
+
+### Dataset deletion request (AVG art. 17 specifically for training)
+- `/account` → "Verwijder mijn account" cascades soft-delete of
+  bills + sessions, but `OcrTrainingSample` rows are not user-linked
+  with `onDelete: Cascade` — they were already anonymized. To purge:
+  `DELETE FROM "OcrTrainingSample" WHERE "userId" = '<id>';`
+  via Prisma Studio or psql.
 
 ## Referrals beheren
 
