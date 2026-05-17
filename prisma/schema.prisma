@@ -207,12 +207,44 @@ model Negotiation {
   bill    Bill     @relation(fields: [billId], references: [id], onDelete: Cascade)
   payment Payment?
   rounds  NegotiationRound[]
+  whatsappThread WhatsAppThread?
 
   @@index([userId])
   @@index([state])
   @@index([followUpAt])
   // v6 perf: powers the cron follow-up + dashboard "still-waiting" query.
   @@index([state, emailSentAt])
+}
+
+// v8 WhatsApp tracking (provider conversation via Twilio/360dialog)
+model WhatsAppThread {
+  id              String   @id @default(cuid())
+  negotiationId   String   @unique
+  providerNumber  String
+  ourNumber       String
+  userPhoneNumber String?
+  status          String   @default("active")
+  createdAt       DateTime @default(now())
+
+  negotiation Negotiation @relation(fields: [negotiationId], references: [id], onDelete: Cascade)
+  messages    WhatsAppMessage[]
+
+  @@index([providerNumber])
+}
+
+model WhatsAppMessage {
+  id              String   @id @default(cuid())
+  threadId        String
+  direction       String              // "inbound" | "outbound"
+  body            String   @db.Text
+  mediaUrl        String?
+  // AI counter-draft awaiting user confirm. False = real message sent/received.
+  pendingApproval Boolean  @default(false)
+  receivedAt      DateTime @default(now())
+
+  thread WhatsAppThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+
+  @@index([threadId])
 }
 
 model NegotiationRound {

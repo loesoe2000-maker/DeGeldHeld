@@ -106,3 +106,41 @@ Migrations `psd2_foundation` applied (BankConnection + DetectedRecurring).
 
 Revoke handling: if Tink returns 401/403, the connection is auto-marked
 `status=expired` (see cron + sync route).
+
+---
+
+## 5. WhatsApp Business — DEEL 5
+
+Activates: real-time provider conversation tracking. Provider WhatsApps
+your tracked number → AI generates counter-draft → user clicks
+"Akkoord, verstuur" → Twilio relays.
+
+Code shipped behind `WHATSAPP_ENABLED=false`. Page
+`/onderhandel/[billId]/whatsapp` renders with yellow "not enabled"
+banner until the flag is on.
+
+External approval (1-2 weeks):
+
+- [ ] Twilio account at https://twilio.com.
+- [ ] WhatsApp Sender registration in Twilio Console
+      (Messaging → Senders → WhatsApp). Meta needs to approve the
+      Business profile (~1-7 days).
+- [ ] Configure inbound webhook URL in Twilio:
+      `https://degeldheld.com/api/inbound/whatsapp`
+      (Method POST, signed with the Twilio AuthToken automatically).
+- [ ] Vercel env vars:
+      - `WHATSAPP_PROVIDER` = `twilio` (default) or `360`
+      - `TWILIO_ACCOUNT_SID`
+      - `TWILIO_AUTH_TOKEN`
+      - `TWILIO_WHATSAPP_NUMBER` — your Twilio-issued WhatsApp sender
+        (international format, e.g. `+31201234567`)
+      - `WHATSAPP_WEBHOOK_SECRET` — only required for 360dialog
+- [ ] Flip `WHATSAPP_ENABLED=true`.
+
+Compliance hardcoded in code:
+- `pendingApproval=true` flag on every AI-generated outbound message.
+- `/api/outbound/whatsapp` rejects with 400 if `pendingApproval=false`
+  (i.e. it can only send drafts the user just clicked).
+- All inbound replies trigger a mail-notification (no silent auto-send).
+
+Migration: `whatsapp_conversations` applied.

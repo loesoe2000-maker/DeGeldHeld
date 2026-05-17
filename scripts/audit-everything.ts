@@ -43,6 +43,7 @@ const DYNAMIC_PAGES = [
   "/onderhandel/test-bill-id/ronde/1",
   "/onderhandel/test-bill-id/uitkomst",
   "/onderhandel/test-bill-id/historie",
+  "/onderhandel/test-bill-id/whatsapp",
   "/uitnodiging/TEST123",
   "/onderhandelen-met-kpn",
   "/energie-besparen",
@@ -75,6 +76,9 @@ const API_PROBES: ApiProbe[] = [
   { path: "/api/account/prefs", method: "POST", body: {}, expectJson: true, okStatuses: [400, 401] },
   { path: "/api/psd2/connect", method: "POST", body: {}, expectJson: true, okStatuses: [401, 503] },
   { path: "/api/psd2/sync", method: "POST", body: {}, expectJson: true, okStatuses: [401, 503] },
+  { path: "/api/whatsapp/activate", method: "POST", body: {}, expectJson: true, okStatuses: [400, 401] },
+  { path: "/api/outbound/whatsapp", method: "POST", body: {}, expectJson: true, okStatuses: [400, 401, 503] },
+  { path: "/api/inbound/whatsapp", method: "POST", body: {}, expectJson: true, okStatuses: [401, 503] },
 ];
 
 type Row = {
