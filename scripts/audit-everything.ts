@@ -153,10 +153,12 @@ async function probeApi(p: ApiProbe): Promise<Row> {
     let flag: Row["flag"] = "OK";
     let note = `${r.status}, ${bytes}B, ${ms}ms, ${ct.split(";")[0]}`;
 
-    if (r.status >= 500) {
+    if (ok.includes(r.status)) {
+      // explicit whitelist match — always OK, no further checks
+    } else if (r.status >= 500) {
       flag = "FAIL";
       note = `server error ${r.status}`;
-    } else if (r.status >= 400 && !ok.includes(r.status)) {
+    } else if (r.status >= 400) {
       flag = "FAIL";
       note = `unexpected ${r.status} (expected one of ${ok.join(",")})`;
     } else if (p.expectJson && !ct.includes("json") && r.status < 400) {
