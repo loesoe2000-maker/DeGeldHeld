@@ -29,6 +29,24 @@ export const authConfig: NextAuthConfig = {
     session: sessionCallback as never,
     authorized: authorizedCallback as never,
   },
+  events: {
+    async createUser({ user }) {
+      // v7 referrals — link a new signup back to the inviter if a ref_code
+      // cookie is set. Fail-soft: signup never blocks on referral errors.
+      try {
+        const { cookies } = await import("next/headers");
+        const jar = await cookies();
+        const code = jar.get("ref_code")?.value;
+        if (!code || !user?.id) return;
+        const { consumeReferral } = await import("@/lib/referral");
+        await consumeReferral(code, user.id);
+        // Clear the cookie so a refresh doesn't double-fire (harmless but tidy).
+        jar.set("ref_code", "", { maxAge: 0, path: "/" });
+      } catch {
+        // swallow — referral is not critical for signup
+      }
+    },
+  },
   trustHost: true,
 };
 

@@ -158,7 +158,23 @@ export async function requiresPayment(
   });
   if (!bill) return false; // unknown bill — let the calling page decide
   if (bill.position === 0) return false;
-  return bill.paidAt == null;
+  if (bill.paidAt != null) return false;
+
+  // v7: each successful referral grants 1 free bill. Count unused
+  // referral-credits (rewardCents>0 + usedAt set) against the number
+  // of paywall-eligible bills the user already used to skip the gate.
+  const earned = await prisma.referral.count({
+    where: { ownerId: userId, usedAt: { not: null }, rewardCents: { gt: 0 } },
+  });
+  if (earned > 0) {
+    const consumed = await prisma.bill.count({
+      where: { userId, position: { gt: 0 }, paidAt: null, id: { not: billId } },
+    });
+    // Referrals cover the *oldest* unpaid bills first — so if there are more
+    // earned credits than already-consumed slots, the current bill is free.
+    if (earned > consumed) return false;
+  }
+  return true;
 }
 
 export type PaywallCheckoutInput = {

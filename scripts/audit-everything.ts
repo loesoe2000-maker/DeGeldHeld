@@ -33,12 +33,14 @@ const STATIC_PAGES = [
   "/voorwaarden",
   "/over-ons",
   "/contact",
+  "/demo",
 ];
 
 const DYNAMIC_PAGES = [
   "/pay/test-bill-id",
   "/onderhandel/test-bill-id/ronde/1",
   "/onderhandel/test-bill-id/uitkomst",
+  "/uitnodiging/TEST123",
 ];
 
 type ApiProbe = {

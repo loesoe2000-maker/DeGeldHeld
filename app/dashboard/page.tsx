@@ -10,6 +10,8 @@ import ActiveNegotiationCard from "@/components/ActiveNegotiationCard";
 import { computeSavingsStats, isOpenState } from "@/lib/savings";
 import { formatEurCents } from "@/lib/format";
 import type { Category } from "@/lib/providers";
+import { ensureReferralCode, buildShareUrl } from "@/lib/referral";
+import ReferralBlock from "@/components/ReferralBlock";
 
 export const metadata = { title: "Dashboard — DeGeldHeld" };
 export const dynamic = "force-dynamic";
@@ -88,6 +90,8 @@ export default async function DashboardPage() {
         </section>
       )}
 
+      {await renderReferralSection(userId)}
+
       <section className="mt-10">
         <h2 className="mb-2 text-xl font-semibold text-slate-900">Voeg al je vaste lasten toe</h2>
         <p className="mb-4 text-sm text-slate-500">
@@ -101,6 +105,27 @@ export default async function DashboardPage() {
         {negotiations.length === 0 ? <EmptyState /> : <NegotiationList items={negotiations} />}
       </section>
     </main>
+  );
+}
+
+async function renderReferralSection(userId: string) {
+  let code = "";
+  let used = 0;
+  try {
+    code = await ensureReferralCode(userId);
+    used = await prisma.referral.count({ where: { ownerId: userId, usedAt: { not: null } } });
+  } catch {
+    return null;
+  }
+  const url = buildShareUrl(code, process.env.APP_URL ?? "https://degeldheld.com");
+  return (
+    <section data-testid="referral-block" className="mt-10 rounded-xl border border-brand-200 bg-brand-50 p-6">
+      <h2 className="text-xl font-semibold text-brand-900">Verdien gratis onderhandelingen</h2>
+      <p className="mt-1 text-sm text-brand-800">
+        Voor élke vriend die aansluit via jouw link krijg je 1 gratis onderhandeling (paywall wordt overgeslagen).
+      </p>
+      <ReferralBlock url={url} count={used} />
+    </section>
   );
 }
 
