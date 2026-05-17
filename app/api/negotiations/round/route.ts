@@ -57,84 +57,95 @@ async function readBody(req: NextRequest): Promise<{
   }
 }
 
+import type { AppSession } from "@/lib/auth";
+
+type Analysis = Awaited<ReturnType<typeof analyseProviderResponse>>;
+type LoadedNegotiation = NonNullable<
+  Awaited<ReturnType<typeof prisma.negotiation.findFirst>>
+> & { bill: { provider: string; category: string; amountCents: number; monthlyCents: number | null; plan: string | null; customerNumber: string | null }; rounds: { offeredCents: number | null }[] };
+
+function actionToOutcome(action: Analysis["action"]): "ACCEPTED" | "REJECTED" | "ESCALATED" | "PENDING" {
+  if (action === "accept") return "ACCEPTED";
+  if (action === "walk_away") return "REJECTED";
+  if (action === "escalate") return "ESCALATED";
+  return "PENDING";
+}
+
+async function generateCounterIfNeeded(opts: {
+  analysis: Analysis;
+  negotiation: LoadedNegotiation;
+  session: AppSession;
+  roundNumber: number;
+}): Promise<{ subject: string | null; body: string | null }> {
+  if (opts.analysis.action !== "counter") return { subject: null, body: null };
+  const { negotiation, session } = opts;
+  const comparison = buildComparison({
+    provider: negotiation.bill.provider,
+    category: negotiation.bill.category as never,
+    amountCents: negotiation.bill.amountCents,
+  });
+  const previousOfferedCents =
+    opts.analysis.offeredCents ??
+    negotiation.rounds[negotiation.rounds.length - 1]?.offeredCents ??
+    null;
+  const counterContext = buildCounterContext({
+    roundNumber: opts.roundNumber,
+    previousOfferedCents,
+    previousTone: opts.analysis.tone,
+  });
+  const compareCents = negotiation.bill.monthlyCents ?? negotiation.bill.amountCents;
+  const email = await generateEmail({
+    customerName: session.user.name ?? session.user.email ?? "Klant",
+    customerEmail: session.user.email ?? undefined,
+    provider: negotiation.bill.provider,
+    category: negotiation.bill.category as never,
+    currentPlan: negotiation.bill.plan,
+    currentMonthlyCents: compareCents,
+    customerNumber: negotiation.bill.customerNumber,
+    alternatives: comparison.topAlternatives,
+  });
+  return {
+    subject: `[Ronde ${opts.roundNumber}] ${email.subject}`,
+    body: `${counterContext}\n\n${email.body}`,
+  };
+}
+
 export async function POST(req: NextRequest) {
   const session = await auth();
-  if (!session?.user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const userId = (session.user as { id: string }).id;
 
   const rl = rateLimit({ key: `round:${userId}`, max: 10, windowSec: 3600 });
   if (!rl.ok) return rateLimitResponse(rl);
 
   const body = await readBody(req);
-  if ("error" in body) {
-    return NextResponse.json({ error: body.error }, { status: 400 });
-  }
+  if ("error" in body) return NextResponse.json({ error: body.error }, { status: 400 });
 
   const { negotiationId, providerResponse, ocrText } = body;
-  if (!negotiationId) {
-    return NextResponse.json({ error: "negotiationId vereist" }, { status: 400 });
-  }
+  if (!negotiationId) return NextResponse.json({ error: "negotiationId vereist" }, { status: 400 });
   const responseText = (providerResponse ?? "").trim() || (ocrText ?? "").trim();
   if (!responseText) {
-    return NextResponse.json(
-      { error: "Provider-antwoord of screenshot vereist" },
-      { status: 400 },
-    );
+    return NextResponse.json({ error: "Provider-antwoord of screenshot vereist" }, { status: 400 });
   }
 
   const negotiation = await prisma.negotiation.findFirst({
     where: { id: negotiationId, userId },
     include: { bill: true, rounds: { orderBy: { roundNumber: "asc" } } },
   });
-  if (!negotiation) {
-    return NextResponse.json({ error: "Niet gevonden" }, { status: 404 });
-  }
+  if (!negotiation) return NextResponse.json({ error: "Niet gevonden" }, { status: 404 });
 
   const roundNumber = negotiation.rounds.length + 1;
   if (roundNumber > MAX_ROUNDS) {
-    return NextResponse.json(
-      { error: `Maximaal ${MAX_ROUNDS} rondes bereikt` },
-      { status: 409 },
-    );
+    return NextResponse.json({ error: `Maximaal ${MAX_ROUNDS} rondes bereikt` }, { status: 409 });
   }
 
   const analysis = await analyseProviderResponse(responseText);
-  let counterSubject: string | null = null;
-  let counterBody: string | null = null;
-
-  if (analysis.action === "counter") {
-    const comparison = buildComparison({
-      provider: negotiation.bill.provider,
-      category: negotiation.bill.category,
-      amountCents: negotiation.bill.amountCents,
-    });
-    const previousOfferedCents =
-      analysis.offeredCents ??
-      negotiation.rounds[negotiation.rounds.length - 1]?.offeredCents ??
-      null;
-    const counterContext = buildCounterContext({
-      roundNumber,
-      previousOfferedCents,
-      previousTone: analysis.tone,
-    });
-
-    const compareCents = negotiation.bill.monthlyCents ?? negotiation.bill.amountCents;
-    const email = await generateEmail({
-      customerName: session.user.name ?? session.user.email ?? "Klant",
-      customerEmail: session.user.email ?? undefined,
-      provider: negotiation.bill.provider,
-      category: negotiation.bill.category,
-      currentPlan: negotiation.bill.plan,
-      currentMonthlyCents: compareCents,
-      customerNumber: negotiation.bill.customerNumber,
-      alternatives: comparison.topAlternatives,
-    });
-    counterSubject = `[Ronde ${roundNumber}] ${email.subject}`;
-    counterBody = `${counterContext}\n\n${email.body}`;
-  }
-
+  const counter = await generateCounterIfNeeded({
+    analysis,
+    negotiation: negotiation as LoadedNegotiation,
+    session: session as AppSession,
+    roundNumber,
+  });
   const newState = actionToState(analysis.action);
 
   const round = await prisma.negotiationRound.create({
@@ -145,16 +156,9 @@ export async function POST(req: NextRequest) {
       responseOcrText: ocrText ?? null,
       analysisJson: JSON.stringify(analysis),
       offeredCents: analysis.offeredCents ?? null,
-      counterSubject,
-      counterBody,
-      outcome:
-        analysis.action === "accept"
-          ? "ACCEPTED"
-          : analysis.action === "walk_away"
-          ? "REJECTED"
-          : analysis.action === "escalate"
-          ? "ESCALATED"
-          : "PENDING",
+      counterSubject: counter.subject,
+      counterBody: counter.body,
+      outcome: actionToOutcome(analysis.action),
     },
   });
 
@@ -162,9 +166,7 @@ export async function POST(req: NextRequest) {
     where: { id: negotiationId },
     data: {
       state: newState,
-      ...(newState === "ACCEPTED" || newState === "REJECTED"
-        ? { closedAt: new Date() }
-        : {}),
+      ...(newState === "ACCEPTED" || newState === "REJECTED" ? { closedAt: new Date() } : {}),
     },
   });
 
@@ -174,6 +176,6 @@ export async function POST(req: NextRequest) {
     roundNumber,
     state: newState,
     analysis,
-    counter: counterSubject ? { subject: counterSubject, body: counterBody } : null,
+    counter: counter.subject ? { subject: counter.subject, body: counter.body } : null,
   });
 }

@@ -421,15 +421,8 @@ function mockBillResponse(imageHash: string): OcrResult {
   };
 }
 
-export async function extractBill(imageBuf: Buffer, mimeType: string): Promise<OcrResult> {
-  const imageHash = hashImage(imageBuf);
-
-  // E2E mock-mode: bypass Groq Vision (set GROQ_VISION_MOCK=1).
-  if (process.env.GROQ_VISION_MOCK === "1") {
-    return mockBillResponse(imageHash);
-  }
-
-  const empty: OcrResult = {
+function emptyResult(imageHash: string): OcrResult {
+  return {
     ok: false,
     provider: null,
     category: null,
@@ -447,80 +440,107 @@ export async function extractBill(imageBuf: Buffer, mimeType: string): Promise<O
     imageHash,
     attempts: 0,
   };
+}
 
-  // PDF: extract text content via pdfjs (legacy, pure-node), then feed
-  // raw text into Groq text LLM. Faster + cheaper than vision; works for
-  // ~95% of text-based bill PDFs. Scan-PDFs (image-in-pdf) come back empty
-  // and fall through to needsManual.
-  if (mimeType.toLowerCase() === "application/pdf") {
-    // Cache check on the PDF buffer hash directly.
-    const pdfCached = ocrCache.get(imageHash) as OcrResult | null;
-    if (pdfCached) return { ...pdfCached, cached: true };
+/**
+ * Build a successful OcrResult from a parsed Groq response.
+ * Centralises country derivation + field mapping so the PDF + Vision
+ * paths can't drift apart.
+ */
+function buildSuccessResult(opts: {
+  parsed: Partial<OcrResult>;
+  imageHash: string;
+  modelUsed: string;
+  attempts: number;
+  rawText: string;
+  fromVision: boolean;
+}): OcrResult {
+  const { parsed } = opts;
+  const matched = parsed.provider ? findProvider(parsed.provider) : null;
+  const country: Country | null =
+    parsed.country ?? (matched ? providerCountry(matched.canonical) : null);
+  return {
+    ok: true,
+    provider: matched?.canonical ?? parsed.provider ?? null,
+    category: matched?.category ?? null,
+    monthlyAmountCents: parsed.monthlyAmountCents ?? parsed.amountCents ?? null,
+    totalAmountCents: parsed.totalAmountCents ?? parsed.amountCents ?? null,
+    amountCents:
+      parsed.monthlyAmountCents ?? parsed.totalAmountCents ?? parsed.amountCents ?? null,
+    oneTimeItems: parsed.oneTimeItems ?? [],
+    plan: parsed.plan ?? null,
+    period: parsed.period ?? null,
+    customerNumber: parsed.customerNumber ?? null,
+    language: parsed.language ?? "unknown",
+    country,
+    energyKwhRateCents: parsed.energyKwhRateCents ?? null,
+    energyM3RateCents: parsed.energyM3RateCents ?? null,
+    insuranceCoverage: parsed.insuranceCoverage ?? null,
+    insuranceDeductibleCents: parsed.insuranceDeductibleCents ?? null,
+    mortgageInterestPct: parsed.mortgageInterestPct ?? null,
+    mortgageTermYears: parsed.mortgageTermYears ?? null,
+    bankAccountTier: parsed.bankAccountTier ?? null,
+    streamingTier: parsed.streamingTier ?? null,
+    confidence: parsed.confidence ?? 0,
+    rawText: opts.rawText,
+    imageHash: opts.imageHash,
+    modelUsed: opts.modelUsed,
+    attempts: opts.attempts,
+    // Only the vision flow flags needsManualProvider — text-PDF flow never does
+    ...(opts.fromVision && { needsManualProvider: !matched && !!parsed.provider }),
+  };
+}
 
-    const ex = await extractPdfText(imageBuf);
-    if (!ex.ok || ex.empty) {
-      return {
-        ...empty,
-        rawText: ex.error ? `PDF_EXTRACT_FAIL: ${ex.error}` : "PDF_SCAN_NO_TEXT",
-        needsManual: true,
-      };
-    }
-    if (!apiKey || apiKey === "gsk_test_dummy") {
-      return { ...empty, rawText: "PDF_OCR_SKIPPED_NO_API_KEY", needsManual: true };
-    }
-    const { raw, err } = await tryTextModel(TEXT_MODEL, ex.text);
-    if (err) {
-      return { ...empty, rawText: `PDF_LLM_ERR: ${err.message}`, needsManual: true };
-    }
-    const parsed = parseOcrJson(raw);
-    if (parsed.confidence != null && parsed.confidence >= 0.6 && parsed.amountCents != null) {
-      const matched = parsed.provider ? findProvider(parsed.provider) : null;
-      const country: Country | null =
-        parsed.country ?? (matched ? providerCountry(matched.canonical) : null);
-      const result: OcrResult = {
-        ok: true,
-        provider: matched?.canonical ?? parsed.provider ?? null,
-        category: matched?.category ?? null,
-        monthlyAmountCents: parsed.monthlyAmountCents ?? parsed.amountCents,
-        totalAmountCents: parsed.totalAmountCents ?? parsed.amountCents,
-        amountCents: parsed.monthlyAmountCents ?? parsed.totalAmountCents ?? parsed.amountCents,
-        oneTimeItems: parsed.oneTimeItems ?? [],
-        plan: parsed.plan ?? null,
-        period: parsed.period ?? null,
-        customerNumber: parsed.customerNumber ?? null,
-        language: parsed.language ?? "unknown",
-        country,
-        energyKwhRateCents: parsed.energyKwhRateCents ?? null,
-        energyM3RateCents: parsed.energyM3RateCents ?? null,
-        insuranceCoverage: parsed.insuranceCoverage ?? null,
-        insuranceDeductibleCents: parsed.insuranceDeductibleCents ?? null,
-        mortgageInterestPct: parsed.mortgageInterestPct ?? null,
-        mortgageTermYears: parsed.mortgageTermYears ?? null,
-        bankAccountTier: parsed.bankAccountTier ?? null,
-        streamingTier: parsed.streamingTier ?? null,
-        confidence: parsed.confidence,
-        rawText: raw,
-        imageHash,
-        modelUsed: TEXT_MODEL,
-        attempts: 1,
-      };
-      ocrCache.set(imageHash, result);
-      return result;
-    }
+async function extractFromPdf(imageBuf: Buffer, imageHash: string): Promise<OcrResult> {
+  const empty = emptyResult(imageHash);
+  const pdfCached = ocrCache.get(imageHash) as OcrResult | null;
+  if (pdfCached) return { ...pdfCached, cached: true };
+
+  const ex = await extractPdfText(imageBuf);
+  if (!ex.ok || ex.empty) {
     return {
       ...empty,
-      rawText: raw || "PDF_PARSE_LOW_CONFIDENCE",
+      rawText: ex.error ? `PDF_EXTRACT_FAIL: ${ex.error}` : "PDF_SCAN_NO_TEXT",
       needsManual: true,
-      attempts: 1,
-      modelUsed: TEXT_MODEL,
     };
   }
-
-  // Cache: skip Groq call if same image already extracted within 30d.
-  const cached = ocrCache.get(imageHash) as OcrResult | null;
-  if (cached) {
-    return { ...cached, cached: true };
+  if (!apiKey || apiKey === "gsk_test_dummy") {
+    return { ...empty, rawText: "PDF_OCR_SKIPPED_NO_API_KEY", needsManual: true };
   }
+  const { raw, err } = await tryTextModel(TEXT_MODEL, ex.text);
+  if (err) {
+    return { ...empty, rawText: `PDF_LLM_ERR: ${err.message}`, needsManual: true };
+  }
+  const parsed = parseOcrJson(raw);
+  if (parsed.confidence != null && parsed.confidence >= 0.6 && parsed.amountCents != null) {
+    const result = buildSuccessResult({
+      parsed,
+      imageHash,
+      modelUsed: TEXT_MODEL,
+      attempts: 1,
+      rawText: raw,
+      fromVision: false,
+    });
+    ocrCache.set(imageHash, result);
+    return result;
+  }
+  return {
+    ...empty,
+    rawText: raw || "PDF_PARSE_LOW_CONFIDENCE",
+    needsManual: true,
+    attempts: 1,
+    modelUsed: TEXT_MODEL,
+  };
+}
+
+async function extractFromImage(
+  imageBuf: Buffer,
+  mimeType: string,
+  imageHash: string,
+): Promise<OcrResult> {
+  const empty = emptyResult(imageHash);
+  const cached = ocrCache.get(imageHash) as OcrResult | null;
+  if (cached) return { ...cached, cached: true };
 
   if (!apiKey || apiKey === "gsk_test_dummy") {
     return { ...empty, rawText: "OCR_SKIPPED_NO_API_KEY", needsManual: true };
@@ -540,45 +560,18 @@ export async function extractBill(imageBuf: Buffer, mimeType: string): Promise<O
     }
     const parsed = parseOcrJson(raw);
     if (parsed.confidence != null && parsed.confidence >= 0.6 && parsed.amountCents != null) {
-      const matched = parsed.provider ? findProvider(parsed.provider) : null;
-      // Country derivation: prefer OCR-detected, then provider's home country,
-      // then null. Means a Vodafone DE invoice scanned in NL still tags as DE.
-      const country: Country | null =
-        parsed.country ?? (matched ? providerCountry(matched.canonical) : null);
-      const result: OcrResult = {
-        ok: true,
-        provider: matched?.canonical ?? parsed.provider ?? null,
-        category: matched?.category ?? null,
-        monthlyAmountCents: parsed.monthlyAmountCents ?? parsed.amountCents,
-        totalAmountCents: parsed.totalAmountCents ?? parsed.amountCents,
-        // amountCents = preferred maand-bedrag voor markt-vergelijking
-        amountCents: parsed.monthlyAmountCents ?? parsed.totalAmountCents ?? parsed.amountCents,
-        oneTimeItems: parsed.oneTimeItems ?? [],
-        plan: parsed.plan ?? null,
-        period: parsed.period ?? null,
-        customerNumber: parsed.customerNumber ?? null,
-        language: parsed.language ?? "unknown",
-        country,
-        energyKwhRateCents: parsed.energyKwhRateCents ?? null,
-        energyM3RateCents: parsed.energyM3RateCents ?? null,
-        insuranceCoverage: parsed.insuranceCoverage ?? null,
-        insuranceDeductibleCents: parsed.insuranceDeductibleCents ?? null,
-        mortgageInterestPct: parsed.mortgageInterestPct ?? null,
-        mortgageTermYears: parsed.mortgageTermYears ?? null,
-        bankAccountTier: parsed.bankAccountTier ?? null,
-        streamingTier: parsed.streamingTier ?? null,
-        confidence: parsed.confidence,
-        rawText: raw,
+      const result = buildSuccessResult({
+        parsed,
         imageHash,
         modelUsed: model,
         attempts,
-        // Provider was extracted but doesn't match registry → ask user to pick
-        needsManualProvider: !matched && !!parsed.provider,
-      };
+        rawText: raw,
+        fromVision: true,
+      });
       ocrCache.set(imageHash, result);
       return result;
     }
-    // Low confidence on this model — try next.
+    // Low confidence — try next model.
     lastErr = undefined;
   }
 
@@ -588,6 +581,14 @@ export async function extractBill(imageBuf: Buffer, mimeType: string): Promise<O
     rawText: lastErr ? `OCR_ERROR_ALL_MODELS: ${lastErr.message}` : "OCR_LOW_CONFIDENCE_ALL_MODELS",
     needsManual: true,
   };
+}
+
+export async function extractBill(imageBuf: Buffer, mimeType: string): Promise<OcrResult> {
+  const imageHash = hashImage(imageBuf);
+  // E2E mock-mode: bypass Groq Vision (set GROQ_VISION_MOCK=1).
+  if (process.env.GROQ_VISION_MOCK === "1") return mockBillResponse(imageHash);
+  if (mimeType.toLowerCase() === "application/pdf") return extractFromPdf(imageBuf, imageHash);
+  return extractFromImage(imageBuf, mimeType, imageHash);
 }
 
 export function validateUploadedFile(opts: {

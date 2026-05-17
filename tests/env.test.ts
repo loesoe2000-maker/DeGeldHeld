@@ -69,6 +69,7 @@ describe("env", () => {
   it("provides sensible defaults for optional fields", () => {
     delete process.env.GROQ_VISION_MODEL;
     const env = loadEnv();
-    expect(env.GROQ_VISION_MODEL).toMatch(/vision/);
+    // v7 free-tier vision-capable model: scout
+    expect(env.GROQ_VISION_MODEL).toMatch(/scout|vision/);
   });
 });

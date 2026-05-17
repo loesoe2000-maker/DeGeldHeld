@@ -7,8 +7,8 @@ const schema = z.object({
   RESEND_API_KEY: z.string().min(1),
   EMAIL_FROM: z.string().min(1),
   GROQ_API_KEY: z.string().min(1),
-  GROQ_VISION_MODEL: z.string().default("llama-3.2-90b-vision-preview"),
-  GROQ_TEXT_MODEL: z.string().default("llama-3.1-70b-versatile"),
+  GROQ_VISION_MODEL: z.string().default("meta-llama/llama-4-scout-17b-16e-instruct"),
+  GROQ_TEXT_MODEL: z.string().default("llama-3.3-70b-versatile"),
   STRIPE_SECRET_KEY: z.string().min(1),
   // STRIPE_WEBHOOK_SECRET wordt alleen door /api/webhooks/stripe gebruikt.
   // Optional zodat het ontbreken niet de hele app-health degradeert; de

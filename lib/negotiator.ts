@@ -120,41 +120,29 @@ function providerHint(provider: string): string {
   return "";
 }
 
-export function buildPrompt(input: NegotiatorInput): { system: string; user: string } {
-  const strategy = chooseStrategy(input);
-  const tonality = input.tonality ?? "FORMEEL";
-  const language = input.language ?? "nl";
-  const best = input.alternatives[0];
-  const hint = providerHint(input.provider);
+const LANG_LABEL: Record<Language, string> = {
+  nl: "Nederlandse", en: "Engelse", de: "Duitse", fr: "Franse",
+};
+const FORMEEL_LABEL: Record<Language, string> = {
+  nl: "u-vorm, beleefd-formeel",
+  en: "polite, formal",
+  de: "Sie-Form, höflich-formell",
+  fr: "vouvoiement, poli et formel",
+};
+const CASUAL_LABEL: Record<Language, string> = {
+  nl: "je-vorm, vriendelijk-direct",
+  en: "casual, direct but friendly",
+  de: "du-Form, freundlich-direkt",
+  fr: "tutoiement, direct et amical",
+};
+const NATIVE_NAME: Record<Language, string> = {
+  nl: "Nederlands", en: "English", de: "Deutsch", fr: "français",
+};
 
-  const LANG_LABEL: Record<Language, string> = {
-    nl: "Nederlandse",
-    en: "Engelse",
-    de: "Duitse",
-    fr: "Franse",
-  };
-  const FORMEEL_LABEL: Record<Language, string> = {
-    nl: "u-vorm, beleefd-formeel",
-    en: "polite, formal",
-    de: "Sie-Form, höflich-formell",
-    fr: "vouvoiement, poli et formel",
-  };
-  const CASUAL_LABEL: Record<Language, string> = {
-    nl: "je-vorm, vriendelijk-direct",
-    en: "casual, direct but friendly",
-    de: "du-Form, freundlich-direkt",
-    fr: "tutoiement, direct et amical",
-  };
-  const NATIVE_NAME: Record<Language, string> = {
-    nl: "Nederlands",
-    en: "English",
-    de: "Deutsch",
-    fr: "français",
-  };
+function buildSystemPrompt(language: Language, tonality: Tonality): string {
   const langLabel = LANG_LABEL[language];
   const tonalityLabel = tonality === "FORMEEL" ? FORMEEL_LABEL[language] : CASUAL_LABEL[language];
-
-  const system = `Je bent een ${langLabel} onderhandelings-assistent voor Nederlandse
+  return `Je bent een ${langLabel} onderhandelings-assistent voor Nederlandse
 consumenten. Je schrijft een professionele e-mail aan het retentie-/klantbehoud-team
 van een provider om het maandbedrag te verlagen.
 
@@ -187,31 +175,29 @@ Antwoord in JSON met velden:
   reasoning (string, 1-2 zinnen waarom deze hoek werkt voor deze provider),
   expected_savings_eur_yearly (number, jaarbesparing in euro),
   confidence (0-1, hoe sterk is deze case).`;
+}
 
+function buildUserPrompt(opts: {
+  input: NegotiatorInput;
+  strategy: NegotiationStrategy;
+  language: Language;
+  hint: string | undefined;
+}): string {
+  const { input, strategy, language, hint } = opts;
+  const best = input.alternatives[0];
   const altSummary = input.alternatives
     .slice(0, 3)
-    .map(
-      (a) =>
-        `${a.plan.provider} ${a.plan.name} = €${(a.plan.priceCents / 100).toFixed(2)}/mnd`,
-    )
+    .map((a) => `${a.plan.provider} ${a.plan.name} = €${(a.plan.priceCents / 100).toFixed(2)}/mnd`)
     .join("; ");
-
-  // NL en EN hebben uitgewerkte strategie-tekst; DE/FR vallen terug op EN
-  // zodat de model de strategie-kern begrijpt, maar de body in DE/FR schrijft.
   const strategyDescriptions = language === "nl" ? STRATEGY_DESCRIPTIONS_NL : STRATEGY_DESCRIPTIONS_EN;
   const strategyDesc = strategyDescriptions[strategy];
-
-  // Category-specific playbook: bv hypotheek vraagt om rente-reductie, niet
-  // "switch binnen 30 dagen" zoals telecom.
   const catRule = ruleFor(input.category as never);
   const categoryHint = catRule.negotiable ? catRule.negotiationPlaybook : "";
-
-  // Target = beste alternatief +€2 buffer, of 15% korting op huidig als geen alt.
   const targetCents = best
     ? best.plan.priceCents + 200
     : Math.round(input.currentMonthlyCents * 0.85);
 
-  const user = `Klant: ${input.customerName}
+  return `Klant: ${input.customerName}
 ${input.customerEmail ? `Email: ${input.customerEmail}` : ""}
 ${input.customerNumber ? `Klantnummer: ${input.customerNumber}` : "Klantnummer: niet beschikbaar"}
 Provider: ${input.provider}
@@ -231,8 +217,17 @@ ${categoryHint ? `Categorie-tip (${catRule.label}): ${categoryHint}` : ""}
 
 Schrijf de e-mail volgens de strategie en de 7 verplichte elementen. Wees concreet
 en feitelijk. Noem expliciet "${input.provider}" in de body.`;
+}
 
-  return { system, user };
+export function buildPrompt(input: NegotiatorInput): { system: string; user: string } {
+  const strategy = chooseStrategy(input);
+  const tonality = input.tonality ?? "FORMEEL";
+  const language = input.language ?? "nl";
+  const hint = providerHint(input.provider);
+  return {
+    system: buildSystemPrompt(language, tonality),
+    user: buildUserPrompt({ input, strategy, language, hint }),
+  };
 }
 
 export function parseNegotiatorJson(raw: string): Partial<NegotiatorOutput> {
