@@ -2,16 +2,16 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 
 // Mock prisma before importing the lib under test.
 const findFirst = vi.fn();
-const billCount = vi.fn(async () => 0);
-const referralCount = vi.fn(async () => 0);
+const billCount = vi.fn(async (_a: unknown) => 0);
+const referralCount = vi.fn(async (_a: unknown) => 0);
 vi.mock("../lib/db", () => ({
   prisma: {
     bill: {
-      findFirst: (...a: unknown[]) => findFirst(...a),
-      count: (...a: unknown[]) => billCount(...a),
+      findFirst: (a: unknown) => findFirst(a),
+      count: (a: unknown) => billCount(a),
     },
     referral: {
-      count: (...a: unknown[]) => referralCount(...a),
+      count: (a: unknown) => referralCount(a),
     },
   },
 }));

@@ -15,13 +15,18 @@ describe("audit-everything coverage", () => {
     const pages: string[] = [];
     function walk(dir: string, base: string) {
       for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-        if (entry.name.startsWith("[")) continue; // dynamic — covered separately
         const full = path.join(dir, entry.name);
         if (entry.isDirectory()) {
           // skip api dir
           if (entry.name === "api") continue;
+          // dynamic params are covered by DYNAMIC_PAGES list; bracket-wrapped
+          // segments don't render with their literal name. Treat as covered.
+          if (entry.name.startsWith("[")) continue;
           walk(full, base + "/" + entry.name);
         } else if (entry.name === "page.tsx") {
+          // Skip routes that include a dynamic segment anywhere in the path:
+          // DYNAMIC_PAGES in audit-everything.ts covers those with concrete IDs.
+          if (base.includes("[")) continue;
           pages.push(base === "" ? "/" : base);
         }
       }
