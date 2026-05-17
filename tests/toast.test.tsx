@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, act } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { describe, it, expect, vi } from "vitest";
+import { render, screen, waitFor, act } from "@testing-library/react";
 import { ToastProvider, useToast } from "../components/Toast";
 import { useEffect } from "react";
 

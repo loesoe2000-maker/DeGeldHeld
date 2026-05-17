@@ -21,6 +21,7 @@ const altWith = (priceCents: number) => ({
   monthlySavingsCents: 6795 - priceCents,
   yearlySavingsCents: (6795 - priceCents) * 12,
   percentSaved: (6795 - priceCents) / 6795,
+  rationale: "",
 });
 
 describe("negotiator/chooseStrategy", () => {
