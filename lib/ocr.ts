@@ -14,6 +14,10 @@ import Groq from "groq-sdk";
 import crypto from "node:crypto";
 import { findProvider, providerCountry, type Category, type Country } from "@/lib/providers";
 import { ocrCache } from "@/lib/llm_cache";
+import { extractPdfText } from "@/lib/pdf_extract";
+
+// Groq free-tier text model (only allowed for non-vision):
+const TEXT_MODEL = "llama-3.3-70b-versatile";
 
 export type OcrResult = {
   ok: boolean;
@@ -343,6 +347,36 @@ async function tryModel(
 }
 
 /**
+ * Text-LLM variant of tryModel — used for PDF tekst-extractie pad.
+ * Input is the raw extracted text from page 1; model parses to the
+ * same JSON schema as the vision flow.
+ */
+async function tryTextModel(
+  model: string,
+  pdfText: string,
+): Promise<{ raw: string; err?: Error }> {
+  try {
+    const trimmed = pdfText.slice(0, 8000); // bound input tokens
+    const resp = await client().chat.completions.create({
+      model,
+      messages: [
+        { role: "system", content: SYSTEM_PROMPT },
+        {
+          role: "user",
+          content: `Hier is de raw tekst-content van een factuur-PDF (pagina 1). Extract de velden volgens het schema. Tekst:\n\n${trimmed}`,
+        },
+      ],
+      max_tokens: 600,
+      temperature: 0.1,
+      response_format: { type: "json_object" },
+    });
+    return { raw: resp.choices[0]?.message?.content ?? "" };
+  } catch (e) {
+    return { raw: "", err: e as Error };
+  }
+}
+
+/**
  * Try a model up to 2× with 1.5s exponential backoff on transient errors.
  * Returns first successful raw output, or last error.
  */
@@ -414,9 +448,72 @@ export async function extractBill(imageBuf: Buffer, mimeType: string): Promise<O
     attempts: 0,
   };
 
-  // PDF: Groq Vision accepts only images — skip directly to manual entry.
+  // PDF: extract text content via pdfjs (legacy, pure-node), then feed
+  // raw text into Groq text LLM. Faster + cheaper than vision; works for
+  // ~95% of text-based bill PDFs. Scan-PDFs (image-in-pdf) come back empty
+  // and fall through to needsManual.
   if (mimeType.toLowerCase() === "application/pdf") {
-    return { ...empty, rawText: "PDF_SKIPPED_VISION_UNSUPPORTED", needsManual: true };
+    // Cache check on the PDF buffer hash directly.
+    const pdfCached = ocrCache.get(imageHash) as OcrResult | null;
+    if (pdfCached) return { ...pdfCached, cached: true };
+
+    const ex = await extractPdfText(imageBuf);
+    if (!ex.ok || ex.empty) {
+      return {
+        ...empty,
+        rawText: ex.error ? `PDF_EXTRACT_FAIL: ${ex.error}` : "PDF_SCAN_NO_TEXT",
+        needsManual: true,
+      };
+    }
+    if (!apiKey || apiKey === "gsk_test_dummy") {
+      return { ...empty, rawText: "PDF_OCR_SKIPPED_NO_API_KEY", needsManual: true };
+    }
+    const { raw, err } = await tryTextModel(TEXT_MODEL, ex.text);
+    if (err) {
+      return { ...empty, rawText: `PDF_LLM_ERR: ${err.message}`, needsManual: true };
+    }
+    const parsed = parseOcrJson(raw);
+    if (parsed.confidence != null && parsed.confidence >= 0.6 && parsed.amountCents != null) {
+      const matched = parsed.provider ? findProvider(parsed.provider) : null;
+      const country: Country | null =
+        parsed.country ?? (matched ? providerCountry(matched.canonical) : null);
+      const result: OcrResult = {
+        ok: true,
+        provider: matched?.canonical ?? parsed.provider ?? null,
+        category: matched?.category ?? null,
+        monthlyAmountCents: parsed.monthlyAmountCents ?? parsed.amountCents,
+        totalAmountCents: parsed.totalAmountCents ?? parsed.amountCents,
+        amountCents: parsed.monthlyAmountCents ?? parsed.totalAmountCents ?? parsed.amountCents,
+        oneTimeItems: parsed.oneTimeItems ?? [],
+        plan: parsed.plan ?? null,
+        period: parsed.period ?? null,
+        customerNumber: parsed.customerNumber ?? null,
+        language: parsed.language ?? "unknown",
+        country,
+        energyKwhRateCents: parsed.energyKwhRateCents ?? null,
+        energyM3RateCents: parsed.energyM3RateCents ?? null,
+        insuranceCoverage: parsed.insuranceCoverage ?? null,
+        insuranceDeductibleCents: parsed.insuranceDeductibleCents ?? null,
+        mortgageInterestPct: parsed.mortgageInterestPct ?? null,
+        mortgageTermYears: parsed.mortgageTermYears ?? null,
+        bankAccountTier: parsed.bankAccountTier ?? null,
+        streamingTier: parsed.streamingTier ?? null,
+        confidence: parsed.confidence,
+        rawText: raw,
+        imageHash,
+        modelUsed: TEXT_MODEL,
+        attempts: 1,
+      };
+      ocrCache.set(imageHash, result);
+      return result;
+    }
+    return {
+      ...empty,
+      rawText: raw || "PDF_PARSE_LOW_CONFIDENCE",
+      needsManual: true,
+      attempts: 1,
+      modelUsed: TEXT_MODEL,
+    };
   }
 
   // Cache: skip Groq call if same image already extracted within 30d.

@@ -13,15 +13,15 @@ describe("ocr/VISION_MODELS cascade order", () => {
 });
 
 describe("ocr/extractBill PDF handling", () => {
-  it("returns PDF_SKIPPED for application/pdf", async () => {
+  it("garbage PDF returns extract-fail or scan-no-text", async () => {
     const r = await extractBill(Buffer.from("%PDF-1.4"), "application/pdf");
     expect(r.ok).toBe(false);
-    expect(r.rawText).toMatch(/PDF_SKIPPED/);
+    expect(r.rawText).toMatch(/PDF_(EXTRACT_FAIL|SCAN_NO_TEXT|OCR_SKIPPED|LLM_ERR)/);
   });
 
-  it("returns case-insensitive PDF skip", async () => {
+  it("returns case-insensitive PDF handling", async () => {
     const r = await extractBill(Buffer.from("%PDF"), "APPLICATION/PDF");
-    expect(r.rawText).toMatch(/PDF_SKIPPED/);
+    expect(r.rawText).toMatch(/PDF_/);
   });
 
   it("PDF still hashes the buffer", async () => {
