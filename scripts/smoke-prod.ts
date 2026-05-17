@@ -9,6 +9,8 @@
  *   BASE_URL=https://staging.degeldheld.com npx tsx scripts/smoke-prod.ts
  */
 
+export {};
+
 const BASE = (process.env.BASE_URL ?? "https://degeldheld.com").replace(/\/$/, "");
 const TIMEOUT_MS = 15_000;
 
