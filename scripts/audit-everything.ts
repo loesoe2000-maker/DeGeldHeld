@@ -41,6 +41,8 @@ const DYNAMIC_PAGES = [
   "/onderhandel/test-bill-id/ronde/1",
   "/onderhandel/test-bill-id/uitkomst",
   "/uitnodiging/TEST123",
+  "/onderhandelen-met-kpn",
+  "/energie-besparen",
 ];
 
 type ApiProbe = {

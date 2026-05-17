@@ -57,6 +57,9 @@ describe("audit-everything coverage", () => {
     const missing = pages.filter((p) => {
       // Skip nextauth-ish and pages that don't need probing
       if (p === "/admin/providers") return !auditSrc.includes(p);
+      // /[seoSlug] is a dynamic catch — covered by DYNAMIC_PAGES with
+      // a concrete slug, not by literal-string match here.
+      if (p.includes("[")) return false;
       return !auditSrc.includes(`"${p}"`);
     });
     expect(missing, `audit-everything missing pages: ${missing.join(",")}`).toEqual([]);
