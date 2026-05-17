@@ -1,0 +1,44 @@
+name: Golden round-analysis suite
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  golden:
+    name: 15-fixture round-analysis golden gate
+    timeout-minutes: 10
+    runs-on: ubuntu-latest
+
+    env:
+      # Runs against the deterministic fallback heuristic in lib/rounds.ts
+      # (no Groq tokens spent on CI). When tuning the LIVE LLM prompt,
+      # set GROQ_API_KEY in a workflow-dispatch run.
+      GROQ_API_KEY: gsk_test_dummy
+      NEXTAUTH_SECRET: ci-test-secret-32-bytes-padding-xx
+      NEXTAUTH_URL: http://localhost:3000
+      DATABASE_URL: postgresql://x:x@localhost:5432/x
+      DIRECT_URL: postgresql://x:x@localhost:5432/x
+      RESEND_API_KEY: re_test_dummy
+      EMAIL_FROM: test@degeldheld.test
+      STRIPE_SECRET_KEY: sk_test_dummy
+      APP_URL: http://localhost:3000
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Prisma generate
+        run: npx prisma generate
+
+      - name: Run golden suite
+        run: npm run test:golden

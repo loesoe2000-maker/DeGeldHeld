@@ -94,17 +94,59 @@ export function parseAnalysisJson(raw: string): RoundAnalysis | null {
   }
 }
 
-function fallbackAnalysis(response: string): RoundAnalysis {
-  const lower = response.toLowerCase();
-  const rejecting = /(helaas|niet mogelijk|kunnen niet|geen mogelijkheid|afwijz)/i.test(lower);
-  const offering = /(\d+(?:[.,]\d{2})?\s*(?:euro|€)|aanbieden|korting van|nieuwe prijs)/i.test(lower);
-  const stalling = /(meer informatie|nemen contact|kunt u verduidelijken|na overleg)/i.test(lower);
+// Multi-language regex sets — NL / EN / DE keep coverage when no LLM key.
+const REJECTING_RE =
+  /(helaas|niet mogelijk|kunnen niet|geen mogelijkheid|afwijz|cannot|unfortunately|not eligible|do(?:es)? not match|leider|nicht möglich|kann nicht|nicht verhandelbar)/i;
+const OFFERING_RE =
+  /(\d+(?:[.,]\d{2})?\s*(?:euro|€|£|pound|eur|gbp)|aanbieden|korting van|nieuwe prijs|can offer|reduced (?:rate|tariff|price)|monthly (?:tariff|rate)|reduction|discount of|offer you|reduzier|rabatt|ermäßigung|tarif von|bieten|sparen|ersparnis)/i;
+const STALLING_RE =
+  /(meer informatie|nemen contact|kunt u verduidelijken|na overleg|need additional|please provide|provide a screenshot|allow up to|under review|in behandeling|noch zusätzliche|benötigen wir|bearbeitungszeit|in evaluat)/i;
 
+function detectOfferedCents(text: string): number | null {
+  // Catch the first €/£/EUR amount; ignore reference amounts like "from €30"
+  const m = /(?:€|EUR|£|GBP)\s*([0-9]{1,4}(?:[.,][0-9]{2}))|([0-9]{1,4}(?:[.,][0-9]{2}))\s*(?:euro|EUR|€|£|pound)/i.exec(text);
+  if (!m) return null;
+  const numStr = (m[1] ?? m[2] ?? "").replace(",", ".");
+  const n = Number(numStr);
+  if (!Number.isFinite(n)) return null;
+  return Math.round(n * 100);
+}
+
+function fallbackAnalysis(response: string): RoundAnalysis {
+  const rejecting = REJECTING_RE.test(response);
+  const offering = OFFERING_RE.test(response);
+  const stalling = STALLING_RE.test(response);
+  const offeredCents = offering ? detectOfferedCents(response) : null;
+
+  // Order: rejecting wins over offering (covers "nicht reduzieren" / "do not
+  // match"), then stalling beats false-offering ("competitor offer" mentions),
+  // then constructive offering, else default counter.
   let tone: RoundTone = "stalling";
   let action: RoundAction = "counter";
-  if (offering) {
+  let offers = false;
+
+  if (rejecting && !stalling) {
+    tone = "afwijzend";
+    action = "walk_away";
+    offers = false;
+  } else if (stalling && !/(€|EUR|£|GBP)\s*\d/i.test(response)) {
+    // Stalling without an actual currency-amount → escalate
+    tone = "stalling";
+    action = "escalate";
+    offers = false;
+  } else if (offering && offeredCents != null) {
     tone = "constructief";
-    action = "counter";
+    offers = true;
+    // Try to infer accept vs counter from offered amount + reference amount
+    // (look for "from €30" / "instead of €30" pattern)
+    const fromMatch = /(?:from|instead of|von|statt|bisher|in plaats van)\s*(?:€|EUR|£|GBP)?\s*([0-9]{1,4}(?:[.,][0-9]{2}))/i.exec(response);
+    if (fromMatch) {
+      const ref = Number(fromMatch[1].replace(",", ".")) * 100;
+      const pctOff = ref > 0 ? ((ref - offeredCents) / ref) * 100 : 0;
+      action = pctOff >= 18 ? "accept" : "counter";
+    } else {
+      action = "counter";
+    }
   } else if (rejecting) {
     tone = "afwijzend";
     action = "walk_away";
@@ -114,8 +156,8 @@ function fallbackAnalysis(response: string): RoundAnalysis {
   }
 
   return {
-    offers: offering,
-    offeredCents: null,
+    offers,
+    offeredCents: offers ? offeredCents : null,
     discountPct: null,
     tone,
     action,

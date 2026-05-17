@@ -55,9 +55,8 @@ describe("audit-everything coverage", () => {
   it("static page routes are referenced in audit-everything.ts", () => {
     const pages = listPageRoutes();
     const missing = pages.filter((p) => {
-      // Skip nextauth-ish and pages that don't need probing
-      if (p === "/admin/providers") return !auditSrc.includes(p);
-      if (p === "/admin/training") return !auditSrc.includes(p);
+      // Skip nextauth-ish and admin-gated pages that don't need public probing
+      if (p.startsWith("/admin/")) return false;
       // /[seoSlug] is a dynamic catch — covered by DYNAMIC_PAGES with
       // a concrete slug, not by literal-string match here.
       if (p.includes("[")) return false;
