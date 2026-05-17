@@ -11,8 +11,10 @@
 | `RESEND_API_KEY` | Vercel + local | Magic link + transactional email. | yes |
 | `EMAIL_FROM` | Vercel | `From:` address — must match a verified Resend domain. | yes |
 | `GROQ_API_KEY` | Vercel + local | LLM (vision + text). | yes |
-| `GROQ_VISION_MODEL` | Vercel (optional) | Default `llama-3.2-90b-vision-preview`. | optional |
-| `GROQ_TEXT_MODEL` | Vercel (optional) | Default `llama-3.1-70b-versatile`. | optional |
+| `GROQ_VISION_MODEL` | Vercel (optional) | Default `meta-llama/llama-4-scout-17b-16e-instruct`. | optional |
+| `GROQ_TEXT_MODEL` | Vercel (optional) | Default `llama-3.3-70b-versatile`. | optional |
+| `ALERT_WEBHOOK_URL` | Vercel (optional) | Discord/Telegram webhook for high-severity alerts. | optional |
+| `UPTIMEROBOT_API_KEY` | local | Used by `scripts/setup-uptime.ts` only. | optional |
 | `STRIPE_SECRET_KEY` | Vercel + local | Stripe Checkout. | yes |
 | `STRIPE_WEBHOOK_SECRET` | Vercel | Webhook signature verification — copy from Stripe dashboard → Webhooks. | yes in prod |
 | `SENTRY_DSN` | Vercel | Sentry server + edge. | recommended |
@@ -55,6 +57,29 @@ new migration directory, otherwise the running server will hit
 | `/api/cron/outcome-followup` | daily 08:00 UTC | asks user for outcome 7 days after the negotiation email was sent |
 
 Both expect `Authorization: Bearer ${CRON_SECRET}` (configurable via Vercel cron Authorization header).
+
+## v7 sprint scripts (geen Vercel cron, draaien handmatig of via GitHub Actions)
+
+| Script | Wat het doet | Wanneer |
+|---|---|---|
+| `scripts/audit-everything.ts` | Probe alle pages + APIs, FAIL bij 4xx/5xx | Voor elke release |
+| `scripts/verify-providers.ts` | MX + HEAD-check op retentie-data | Wekelijks (cron op github actions) |
+| `scripts/prompt-tuner.ts` | Print 30d mail-feedback rapport per strategy/provider | Nightly (handmatig of cron) |
+| `scripts/setup-uptime.ts` | Eenmalige UptimeRobot monitor-setup | Eenmalig per env |
+
+## Referrals beheren
+
+```bash
+# 1. Lijst alle gebruikte referrals
+npx tsx -e 'import("@/lib/db").then(async ({prisma}) => { const r = await prisma.referral.findMany({where:{usedAt:{not:null}},select:{code:true,ownerId:true,usedById:true,usedAt:true}}); console.table(r); })'
+
+# 2. Telling per owner (top-10 referrers)
+# (use prisma studio of de SQL: SELECT "ownerId", COUNT(*) FROM "Referral" WHERE "usedAt" IS NOT NULL GROUP BY 1 ORDER BY 2 DESC LIMIT 10;)
+```
+
+Een referral skipt de paywall voor de **oudste** unpaid bill van de
+referrer (zie `lib/payments.ts:requiresPayment`). Geen Stripe-credit nog
+voor success-fee path — dat blijft een v8-item.
 
 ## How to add a new provider
 

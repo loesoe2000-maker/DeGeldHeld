@@ -3,15 +3,17 @@
 > Automatisch onderhandelen op je Nederlandse maandlasten via AI.
 > Eerste onderhandeling gratis, daarna € 4,99 per dossier.
 
-**Status: v6 LIVE** — production hardening sprint complete (rate limits,
-Zod everywhere, global error boundaries + Sentry, mobile/a11y/SEO, trust
-pages, paywall, performance indexes).
+**Status: v7 LIVE** — Beat-Trim sprint complete: PDF support, demo mode,
+referral viral loop, 30 + 4 SEO landing pages, mail-feedback dashboard,
+deep `/api/health`, full per-category vergelijking (energie/verz/hyp).
+Zie [STATUS_V7.md](./STATUS_V7.md) voor het sprint-rapport.
 
 ## Feature table
 
 | Capability | Status |
 |---|---|
-| Bill upload (PDF/JPG/PNG) + OCR via Groq vision | stable |
+| Bill upload (JPG/PNG) + OCR via Groq vision (llama-4-scout) | stable |
+| Bill upload (PDF) via pdfjs text extraction → llama-3.3-70b | **new v7** |
 | Provider/category/amount extraction | stable |
 | Market comparison (14 categories, NL + EU providers) | stable |
 | AI onderhandel-email generation | stable |
@@ -23,10 +25,28 @@ pages, paywall, performance indexes).
 | Centralised Zod validation on all mutations | stable (v6) |
 | Global error boundaries + Sentry pipeline | stable (v6) |
 | Trust pages: /privacy /voorwaarden /over-ons /contact | stable (v6) |
-| Cookie consent banner | stable (v6) |
-| Per-bill paywall (€4,99 after the first free bill) | beta (v6 — needs live Stripe test) |
-| AVG-erkenning + WCAG 2.1 AA contrast | live (v6) |
-| Provider auto-discovery via web fetch | experimental |
+| Per-bill paywall (€4,99 after the first free bill) | stable |
+| AVG-erkenning + WCAG 2.1 AA contrast | stable |
+| Demo mode (3 voorbeeld-facturen, geen account) | **new v7** |
+| Referral viral loop (`/uitnodiging/[code]` + dashboard share) | **new v7** |
+| Deep `/api/health` (db + groq + resend + stripe) | **new v7** |
+| Mail-quality feedback dashboard (`/proof?view=mail-quality`) | **new v7** |
+| Per-category vergelijking (energie/verz/hyp) | **new v7** |
+| 30 provider + 4 category SEO landing pages | **new v7** |
+| 1080×1920 IG-story PNG + share kit op /uitkomst | **new v7** |
+
+## Wat we anders doen dan Trim
+
+| | Trim | DeGeldHeld v7 |
+|---|---|---|
+| Categorieën | Subscription cancel | Telecom + Energie + Verzekering + Hypotheek deep-compare |
+| Multi-round | 1 call, klaar | Tot 3 rondes met AI-counter-mail |
+| Transparency | Black box | Open `/proof` + mail-rating + open prompts |
+| Distributie | Bank-koppeling required | Demo, referral, SEO, social share |
+| Pricing | 33% recurring | 10% éénmalig of €4,99 flat |
+| EU/AVG | Niet beschikbaar | Privacy/voorwaarden/cookie-banner native |
+| Feedback loop | Geen | Per mail 👍/👎 + provider-response tracking |
+| Monitoring | Onbekend | Sentry + health + uptime + Vercel analytics |
 
 ## Tech stack
 
@@ -60,8 +80,12 @@ npm run dev                      # http://localhost:3000
 | `npm run build` | Production build |
 | `npm test -- --run` | Vitest, single pass |
 | `npm run smoke` | F0 pre-deploy smoke (env + prisma + tsc + vitest) |
-| `npm run smoke:prod` | 15 production health checks |
+| `npm run smoke:prod` | 20 production health checks (v7) |
 | `npx tsx scripts/audit-routes.ts` | Production route 404/500 sweep |
+| `npx tsx scripts/audit-everything.ts` | Pages + APIs combined audit (v7) |
+| `npx tsx scripts/verify-providers.ts` | DNS MX + HEAD check op retentie-contacts |
+| `npx tsx scripts/prompt-tuner.ts` | Nightly mail-feedback rapport (30d window) |
+| `npx tsx scripts/setup-uptime.ts` | UptimeRobot monitor provisioning |
 | `npx tsx scripts/mobile-audit.ts` | 375×812 Playwright mobile audit |
 | `npx tsx scripts/a11y-audit.ts` | WCAG 2.1 AA axe-core sweep |
 | `npm run prisma:migrate` | DB migration in dev |

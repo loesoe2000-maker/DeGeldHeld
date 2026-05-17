@@ -279,6 +279,59 @@ async function checkPrivacyPage(): Promise<CheckResult> {
   return { name: "GET /privacy", ok: true, detail: '200, body contains "AVG"' };
 }
 
+// --- v7 BEAT_TRIM_SPRINT additions -----------------------------------
+
+async function checkDemo(): Promise<CheckResult> {
+  const r = await fetchFollow(`${BASE}/demo`);
+  if (r.status !== 200) return { name: "GET /demo", ok: false, detail: `status ${r.status}` };
+  const body = await r.text();
+  if (!/voorbeeld/i.test(body)) {
+    return { name: "GET /demo", ok: false, detail: 'body mist "voorbeeld"' };
+  }
+  return { name: "GET /demo", ok: true, detail: '200, body contains "voorbeeld-factuur"' };
+}
+
+async function checkSeoKpn(): Promise<CheckResult> {
+  const r = await fetchFollow(`${BASE}/onderhandelen-met-kpn`);
+  if (r.status !== 200) return { name: "GET /onderhandelen-met-kpn", ok: false, detail: `status ${r.status}` };
+  const body = await r.text();
+  if (!/KPN/.test(body)) {
+    return { name: "GET /onderhandelen-met-kpn", ok: false, detail: 'body mist "KPN"' };
+  }
+  return { name: "GET /onderhandelen-met-kpn", ok: true, detail: '200, body contains "KPN"' };
+}
+
+async function checkSeoEnergie(): Promise<CheckResult> {
+  const r = await fetchFollow(`${BASE}/energie-besparen`);
+  if (r.status !== 200) return { name: "GET /energie-besparen", ok: false, detail: `status ${r.status}` };
+  const body = await r.text();
+  if (!/energie/i.test(body)) {
+    return { name: "GET /energie-besparen", ok: false, detail: "body mist energie-marker" };
+  }
+  return { name: "GET /energie-besparen", ok: true, detail: '200, body contains energie content' };
+}
+
+async function checkReferralLanding(): Promise<CheckResult> {
+  // Any code → 200 page. 500 = bug, 404 acceptabel als next prod-aware.
+  const r = await fetchFollow(`${BASE}/uitnodiging/TEST00`);
+  if (r.status === 200 || r.status === 404) {
+    return { name: "GET /uitnodiging/TEST00", ok: true, detail: `${r.status} (geen 500)` };
+  }
+  return { name: "GET /uitnodiging/TEST00", ok: false, detail: `status ${r.status}` };
+}
+
+async function checkFeedbackUnauth(): Promise<CheckResult> {
+  const r = await fetch(`${BASE}/api/negotiations/no-such-id/feedback`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ userRating: 1 }),
+  });
+  if (r.status === 401 || r.status === 404) {
+    return { name: "POST /api/negotiations/X/feedback (no auth)", ok: true, detail: `${r.status} zoals verwacht` };
+  }
+  return { name: "POST /api/negotiations/X/feedback (no auth)", ok: false, detail: `status ${r.status}` };
+}
+
 async function main() {
   console.log(`[smoke-prod] Target: ${BASE}`);
   console.log(`[smoke-prod] Start: ${new Date().toISOString()}\n`);
@@ -299,6 +352,11 @@ async function main() {
     checkSitemap,           // 13
     checkRobots,            // 14
     checkPrivacyPage,       // 15
+    checkDemo,              // 16
+    checkSeoKpn,            // 17
+    checkSeoEnergie,        // 18
+    checkReferralLanding,   // 19
+    checkFeedbackUnauth,    // 20
   ];
 
   const results: CheckResult[] = [];
