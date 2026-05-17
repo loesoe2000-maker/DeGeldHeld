@@ -24,7 +24,8 @@ export default function Footer() {
           <ul className="mt-2 space-y-1 text-sm">
             <li><Link href="/voorwaarden" className="hover:text-brand-300">Voorwaarden</Link></li>
             <li><Link href="/privacy" className="hover:text-brand-300">Privacy</Link></li>
-            <li><a href="mailto:hallo@degeldheld.com" className="hover:text-brand-300">Contact</a></li>
+            <li><Link href="/over-ons" className="hover:text-brand-300">Over ons</Link></li>
+            <li><Link href="/contact" className="hover:text-brand-300">Contact</Link></li>
           </ul>
         </div>
       </div>
