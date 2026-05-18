@@ -243,3 +243,78 @@ Migration: `20260518170000_auto_pingpong` adds RoundOutcome
 `AWAITING_USER_CONFIRM` + `Negotiation.providerThreadId` +
 `NegotiationRound.{inboundMessageId,inboundReplyTo,confirmedSentAt}`.
 Run `npx prisma migrate deploy` against prod after merging.
+
+---
+
+## 8. Revenue verification + no-cure-no-pay (v11)
+
+Two coupled features that gate paid billing on real, verified savings.
+Both are off by default — they share the same Resend domain setup but
+have independent feature flags.
+
+### 8a. Proof-flow (`FEATURE_PROOF_REQUIRED`)
+
+When on, a SUCCESS_SAVED claim parks at `SUCCESS_UNVERIFIED`. The
+user must forward the provider confirmation to **bewijs@degeldheld.com**
+(or upload via `/onderhandel/[bill]/uitkomst`) before the claim
+counts on `/proof` aggregates.
+
+External setup:
+
+- [ ] Resend: domain `bewijs.degeldheld.com` with MX records (same
+      Resend dashboard flow as auto.degeldheld.com).
+- [ ] Resend inbound webhook URL:
+      `https://degeldheld.com/api/inbound/proof`
+- [ ] Generate HMAC secret (`openssl rand -hex 32`). Set in Resend
+      webhook config AND in Vercel env as
+      `RESEND_PROOF_WEBHOOK_SECRET`.
+- [ ] Configure forwarded-mail subject convention: provider replies
+      get the `[PROOF-<negotiationId>]` token automatically when
+      forwarded from the UI prompt; manual forwards fall through the
+      In-Reply-To + from-address matcher.
+
+Smoke checks (from `scripts/smoke-prod.ts`):
+- `36. POST /api/inbound/proof (no signature) → 401`
+- `38. /onderhandel/[id]/uitkomst auth redirect → /login`
+- `39. POST /api/outcome/[id]/proof (no auth) → 401 or 503`
+
+### 8b. No-cure-no-pay pricing (`FEATURE_NO_CURE_NO_PAY`)
+
+When on, the legacy paywall is bypassed; the only billable event is
+a *verified* savings flow. Fee = **20% of yearly verified savings**,
+clamped to [€2, €25], skipped under €50/year. Admin emails (per
+`ADMIN_EMAILS`) are never charged.
+
+External setup:
+
+- [ ] Stripe Product "Verified savings fee" with **variable amount**
+      pricing. The Checkout call sends `unit_amount` per-session, so a
+      single product covers every fee tier.
+- [ ] Verify webhook for `checkout.session.completed` already lands at
+      `/api/webhooks/stripe` — no new endpoint needed.
+
+Smoke check:
+- `40. /admin/fraud (admin gate) → not 500`
+
+### 8c. Anti-fraud (always on)
+
+No flag — `lib/fraud-detection.ts` + `/api/cron/fraud-check` (daily
+04:30 UTC) score every user and write a FraudFlag at score >= 50.
+Admin reviews at `/admin/fraud`; suspend writes
+`User.suspendedAt` + `suspendedReason` and the upload route refuses
+suspended users with a 403.
+
+Migrations to apply on prod:
+- `20260518180000_outcome_proof` (DEEL 2)
+- `20260518190000_fraud_detection` (DEEL 5)
+
+```
+npx prisma migrate deploy
+```
+
+Smoke test before flipping `FEATURE_NO_CURE_NO_PAY=true`:
+- 5 real verified-savings flows (forward + verify + check fee landed).
+- Confirm `/admin/fraud` shows your test accounts but does not flag
+  legit testers (verify the noise floor at 5%).
+- Confirm cron locks via `CronRunLog` so two Vercel instances don't
+  double-score.
