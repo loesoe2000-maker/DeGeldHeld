@@ -8,7 +8,7 @@ zijn die hieronder gemarkeerd met een verwijzing naar het al-gedane commit.
 | Deel | Status | Commit |
 |------|--------|--------|
 | 1 — Bug-jacht (4 bugs)              | SKIP (al gedaan)   | `f28b442` |
-| 2 — Multi-page PDF                  | _pending_          | _t.b.d._  |
+| 2 — Multi-page PDF                  | DONE (text + vision) | new      |
 | 3 — Provider-tone + vocab           | _pending_          | _t.b.d._  |
 | 4 — Auto-pingpong activeren         | _pending_          | _t.b.d._  |
 | 5 — Bewijs-flow                     | _pending_          | _t.b.d._  |
@@ -19,6 +19,19 @@ zijn die hieronder gemarkeerd met een verwijzing naar het al-gedane commit.
 
 Per-deeltaak details volgen hieronder. Dit document wordt per-deel
 geüpdatet — elk commit zet dat blok aan met een hash en 1-2 regels uitleg.
+
+## DEEL 2 — Multi-page PDF (text + vision-render) ✓ new
+
+Built on the v12 text-path foundation (`427741d`). New work:
+- `@napi-rs/canvas@1.0.0` toegevoegd als dep (pre-built, Vercel-safe).
+- Nieuwe `lib/pdf_render.ts` — PDF → PNG renderer met max 5 pagina's
+  (cost-guard) en 1500px max-breedte.
+- `lib/ocr.ts` `extractFromPdf()` heeft nu een vision-fallback:
+  text-path eerst, scan-PDF (geen text-layer) of low-confidence
+  text-result → multi-image Groq Vision call met alle gerenderde
+  pagina's tegelijk. Hard rule: zonder canvas blijft de oude
+  text-only flow werken.
+- 4 nieuwe tests in `tests/pdf-render.test.ts`.
 
 ## DEEL 1 — Bug-jacht  ✓ skipped (already in `f28b442`)
 

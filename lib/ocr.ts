@@ -549,36 +549,72 @@ async function extractFromPdf(imageBuf: Buffer, imageHash: string): Promise<OcrR
   if (pdfCached) return { ...pdfCached, cached: true };
 
   const ex = await extractPdfText(imageBuf);
-  if (!ex.ok || ex.empty) {
+  const textPathOk = ex.ok && !ex.empty;
+
+  if (!apiKey || apiKey === "gsk_test_dummy") {
+    return { ...empty, rawText: "PDF_OCR_SKIPPED_NO_API_KEY", needsManual: true };
+  }
+
+  // ── v13 DEEL 2: text-path first, vision-render fallback ──
+  if (textPathOk) {
+    const { raw, err } = await tryTextModel(TEXT_MODEL, ex.text);
+    if (!err) {
+      const parsed = parseOcrJson(raw);
+      if (parsed.confidence != null && parsed.confidence >= 0.6 && parsed.amountCents != null) {
+        const result = buildSuccessResult({
+          parsed,
+          imageHash,
+          modelUsed: TEXT_MODEL,
+          attempts: 1,
+          rawText: raw,
+          fromVision: false,
+        });
+        ocrCache.set(imageHash, result);
+        return result;
+      }
+    }
+  }
+
+  // Vision fallback: scan-PDFs (no text-layer) OR text-path produced a
+  // low-confidence result. Render up to 5 pages to PNG and ship them
+  // as a single multi-image Groq Vision call.
+  try {
+    const { renderPdfPages } = await import("@/lib/pdf_render");
+    const rendered = await renderPdfPages(imageBuf);
+    if (rendered.ok && rendered.pageDataUrls.length > 0) {
+      const model = visionModelOverride ?? VISION_MODELS[0];
+      const { raw, err } = await tryModel(model, rendered.pageDataUrls);
+      if (!err) {
+        const parsed = parseOcrJson(raw);
+        if (parsed.confidence != null && parsed.confidence >= 0.5 && parsed.amountCents != null) {
+          const result = buildSuccessResult({
+            parsed,
+            imageHash,
+            modelUsed: `${model} (multi-page ${rendered.pageDataUrls.length})`,
+            attempts: 1,
+            rawText: raw,
+            fromVision: true,
+          });
+          ocrCache.set(imageHash, result);
+          return result;
+        }
+      }
+    }
+  } catch {
+    /* canvas unavailable — keep existing fall-through behaviour */
+  }
+
+  // Final fallback: surface what we got.
+  if (!textPathOk) {
     return {
       ...empty,
       rawText: ex.error ? `PDF_EXTRACT_FAIL: ${ex.error}` : "PDF_SCAN_NO_TEXT",
       needsManual: true,
     };
   }
-  if (!apiKey || apiKey === "gsk_test_dummy") {
-    return { ...empty, rawText: "PDF_OCR_SKIPPED_NO_API_KEY", needsManual: true };
-  }
-  const { raw, err } = await tryTextModel(TEXT_MODEL, ex.text);
-  if (err) {
-    return { ...empty, rawText: `PDF_LLM_ERR: ${err.message}`, needsManual: true };
-  }
-  const parsed = parseOcrJson(raw);
-  if (parsed.confidence != null && parsed.confidence >= 0.6 && parsed.amountCents != null) {
-    const result = buildSuccessResult({
-      parsed,
-      imageHash,
-      modelUsed: TEXT_MODEL,
-      attempts: 1,
-      rawText: raw,
-      fromVision: false,
-    });
-    ocrCache.set(imageHash, result);
-    return result;
-  }
   return {
     ...empty,
-    rawText: raw || "PDF_PARSE_LOW_CONFIDENCE",
+    rawText: "PDF_PARSE_LOW_CONFIDENCE",
     needsManual: true,
     attempts: 1,
     modelUsed: TEXT_MODEL,
