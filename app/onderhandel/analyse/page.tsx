@@ -159,7 +159,7 @@ export default async function AnalysePage({
         </div>
       )}
       <div className="mt-8">
-        <Comparison result={comparison} />
+        <Comparison result={comparison} subType={bill.subType} />
       </div>
 
       {bill.category === "ENERGIE" && (() => {

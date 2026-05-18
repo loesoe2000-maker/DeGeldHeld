@@ -13,6 +13,7 @@
 import Groq from "groq-sdk";
 import crypto from "node:crypto";
 import { findProvider, providerCountry, type Category, type Country } from "@/lib/providers";
+import { primaryFromLegacy, type PrimaryCategory } from "@/lib/categories";
 import { ocrCache } from "@/lib/llm_cache";
 import { extractPdfText } from "@/lib/pdf_extract";
 
@@ -40,6 +41,11 @@ export type OcrResult = {
   language: "nl" | "en" | "de" | "unknown";
   /** Detected country from valuta/address/language. Null when uncertain. */
   country: Country | null;
+  /** v10: primary category (7 buckets). Falls back to primaryFromLegacy
+   * mapping of `category` when LLM didn't return it explicitly. */
+  primaryCategory?: PrimaryCategory | null;
+  /** v10: free-form sub-type ("stroom+gas", "mobiel", "auto"). */
+  subType?: string | null;
   /** Optional category-specific extras — only populated when OCR was confident. */
   energyKwhRateCents?: number | null;     // ENERGIE: cent per kWh
   energyM3RateCents?: number | null;      // ENERGIE: cent per m³ gas
@@ -82,6 +88,10 @@ Lees de factuur en extracteer:
   - plan: pakket-/tarief-/abonnementsnaam indien zichtbaar
   - period: factuur-periode (bv "mei 2026" of "2026-05")
   - customer_number: klantnummer / klant-id / Kundennummer / customer ID
+  - primary_category: één van TELECOM, ENERGIE, VERZEKERING, WONEN,
+    FINANCIEN, ABONNEMENTEN, OVERIG
+  - sub_type: specifieker label, bv "stroom+gas", "mobiel", "auto",
+    "hypotheek", "streaming". Null bij twijfel.
   - language: "nl" | "en" | "de" (auto-detect)
   - country: ISO-2-code van het land waar de factuur uit komt
     (NL/BE/DE/FR/UK/US/ES/IT). Gebruik valuta-symbool (€/£/$),
@@ -108,10 +118,10 @@ Belangrijke regels:
   - Antwoord ALLEEN in JSON, geen markdown, geen toelichting
 
 Voorbeeld JSON output (KPN met eenmalige post):
-{"provider":"KPN","monthly_subscription_eur":24.66,"total_eur":29.65,"one_time_items":["Online aankopen 4,99"],"plan":"Compleet","period":"mei 2026","customer_number":"12345678","language":"nl","confidence":0.92}
+{"provider":"KPN","monthly_subscription_eur":24.66,"total_eur":29.65,"one_time_items":["Online aankopen 4,99"],"plan":"Compleet","period":"mei 2026","customer_number":"12345678","language":"nl","primary_category":"TELECOM","sub_type":"mobiel","confidence":0.92}
 
-Voorbeeld JSON output (Vodafone pure abonnement):
-{"provider":"Vodafone","monthly_subscription_eur":29.95,"total_eur":29.95,"one_time_items":[],"plan":"Red Unlimited","period":"mei 2026","customer_number":"87654321","language":"nl","confidence":0.94}`;
+Voorbeeld JSON output (Eneco stroom+gas):
+{"provider":"Eneco","monthly_subscription_eur":140.00,"total_eur":140.00,"one_time_items":[],"plan":"HollandseWind","period":"mei 2026","customer_number":"33344","language":"nl","primary_category":"ENERGIE","sub_type":"stroom+gas","confidence":0.93}`;
 
 // Groq free-tier whitelist (mei 2026):
 //   - vision: meta-llama/llama-4-scout-17b-16e-instruct
@@ -162,6 +172,23 @@ function detectCountry(input: unknown): Country | null {
   if (upper === "BEL") return "BE";
   if (upper === "ESP") return "ES";
   if (upper === "ITA") return "IT";
+  return null;
+}
+
+const VALID_PRIMARIES: PrimaryCategory[] = [
+  "TELECOM",
+  "ENERGIE",
+  "VERZEKERING",
+  "WONEN",
+  "FINANCIEN",
+  "ABONNEMENTEN",
+  "OVERIG",
+];
+
+function detectPrimary(input: unknown): PrimaryCategory | null {
+  if (typeof input !== "string") return null;
+  const upper = input.toUpperCase().trim();
+  if (VALID_PRIMARIES.includes(upper as PrimaryCategory)) return upper as PrimaryCategory;
   return null;
 }
 
@@ -314,6 +341,8 @@ export function parseOcrJson(raw: string): Partial<OcrResult> {
       mortgageTermYears: numOrNull(obj.mortgage_term_years),
       bankAccountTier: strOrNull(obj.bank_account_tier),
       streamingTier: strOrNull(obj.streaming_tier),
+      primaryCategory: detectPrimary(obj.primary_category),
+      subType: strOrNull(obj.sub_type),
       confidence: Math.max(0, Math.min(1, confidence)),
     };
   } catch {
@@ -404,6 +433,8 @@ function mockBillResponse(imageHash: string): OcrResult {
     ok: true,
     provider: "KPN",
     category: "TELECOM",
+    primaryCategory: "TELECOM",
+    subType: "mobiel",
     monthlyAmountCents: 2466,
     totalAmountCents: 2965,
     amountCents: 2466,
@@ -426,6 +457,8 @@ function emptyResult(imageHash: string): OcrResult {
     ok: false,
     provider: null,
     category: null,
+    primaryCategory: null,
+    subType: null,
     monthlyAmountCents: null,
     totalAmountCents: null,
     amountCents: null,
@@ -459,10 +492,15 @@ function buildSuccessResult(opts: {
   const matched = parsed.provider ? findProvider(parsed.provider) : null;
   const country: Country | null =
     parsed.country ?? (matched ? providerCountry(matched.canonical) : null);
+  const category = matched?.category ?? null;
+  const primary: PrimaryCategory | null =
+    parsed.primaryCategory ?? (category ? primaryFromLegacy(category) : null);
   return {
     ok: true,
     provider: matched?.canonical ?? parsed.provider ?? null,
-    category: matched?.category ?? null,
+    category,
+    primaryCategory: primary,
+    subType: parsed.subType ?? null,
     monthlyAmountCents: parsed.monthlyAmountCents ?? parsed.amountCents ?? null,
     totalAmountCents: parsed.totalAmountCents ?? parsed.amountCents ?? null,
     amountCents:

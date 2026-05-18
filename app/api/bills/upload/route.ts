@@ -7,6 +7,7 @@ import * as Sentry from "@sentry/nextjs";
 import { currencyForCountry } from "@/lib/format";
 import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import { anonymizeStructured } from "@/lib/anonymizer";
+import { inferSubType } from "@/lib/categories";
 
 // imageHash has a global UNIQUE constraint in the schema, so two users
 // uploading the same file would collide. Scope the stored hash to (user, file)
@@ -40,9 +41,14 @@ export const maxDuration = 60;
 type OcrFields = Awaited<ReturnType<typeof extractBill>>;
 
 function billDataFromOcr(ocr: OcrFields) {
+  const subType =
+    ocr.subType ??
+    (ocr.category ? inferSubType(ocr.category, ocr.provider ?? "") : null) ??
+    null;
   return {
     provider: ocr.provider ?? "Onbekend",
     category: ocr.category ?? "OVERIG",
+    subType,
     amountCents: ocr.amountCents ?? 0,
     monthlyCents: ocr.monthlyAmountCents,
     totalCents: ocr.totalAmountCents,

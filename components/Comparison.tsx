@@ -67,7 +67,13 @@ function MarketRangeBar({
   );
 }
 
-export default function Comparison({ result }: { result: ComparisonResult }) {
+export default function Comparison({
+  result,
+  subType,
+}: {
+  result: ComparisonResult;
+  subType?: string | null;
+}) {
   const {
     current,
     topAlternatives,
@@ -86,6 +92,14 @@ export default function Comparison({ result }: { result: ComparisonResult }) {
               <span className="text-2xl font-bold text-slate-900">{current.provider}</span>
               <span className="text-lg text-slate-700">{formatEurCents(current.amountCents)}/mnd</span>
             </div>
+            {subType && (
+              <span
+                data-testid="subtype-chip"
+                className="mt-1 inline-block rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-700"
+              >
+                {subType}
+              </span>
+            )}
           </div>
           <ConfidenceBadge pct={confidencePct} />
         </div>

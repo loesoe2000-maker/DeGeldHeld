@@ -189,6 +189,161 @@ export function ruleFor(cat: Category): CategoryRules {
   return CATEGORY_RULES[cat] ?? CATEGORY_RULES.OVERIG;
 }
 
+// ─────────────────────────────────────────────────────────────
+// v10 — Primary categories + sub-types
+// 7 primary buckets + flexibele sub-types. De BillCategory enum
+// blijft bestaan voor backwards-compat met records die vóór deze
+// migratie zijn aangemaakt.
+// ─────────────────────────────────────────────────────────────
+
+export type PrimaryCategory =
+  | "TELECOM"
+  | "ENERGIE"
+  | "VERZEKERING"
+  | "WONEN"
+  | "FINANCIEN"
+  | "ABONNEMENTEN"
+  | "OVERIG";
+
+export const PRIMARY_CATEGORIES: PrimaryCategory[] = [
+  "TELECOM",
+  "ENERGIE",
+  "VERZEKERING",
+  "WONEN",
+  "FINANCIEN",
+  "ABONNEMENTEN",
+  "OVERIG",
+];
+
+export const SUB_TYPES: Record<PrimaryCategory, string[]> = {
+  TELECOM: ["mobiel", "internet", "tv-pakket", "combinatie"],
+  ENERGIE: ["stroom", "gas", "warmte", "water", "stroom+gas"],
+  VERZEKERING: ["zorg", "auto", "woon", "aansprakelijkheid", "reis", "leven", "uitvaart"],
+  WONEN: ["hypotheek", "gemeente-belasting", "waterschap", "vve-bijdrage", "huur"],
+  FINANCIEN: ["bankpakket", "creditcard", "beleggingsfee", "spaarrekening"],
+  ABONNEMENTEN: ["streaming", "software", "gym", "opslag", "magazines", "lidmaatschap"],
+  OVERIG: [],
+};
+
+export const PRIMARY_META: Record<
+  PrimaryCategory,
+  { label: string; labelEn: string; icon: string }
+> = {
+  TELECOM: { label: "Telecom & internet", labelEn: "Telecom & internet", icon: "📱" },
+  ENERGIE: { label: "Energie", labelEn: "Energy", icon: "⚡" },
+  VERZEKERING: { label: "Verzekering", labelEn: "Insurance", icon: "🛡️" },
+  WONEN: { label: "Wonen", labelEn: "Housing", icon: "🏠" },
+  FINANCIEN: { label: "Financiën", labelEn: "Finance", icon: "🏦" },
+  ABONNEMENTEN: { label: "Abonnementen", labelEn: "Subscriptions", icon: "📦" },
+  OVERIG: { label: "Overig", labelEn: "Other", icon: "📋" },
+};
+
+/**
+ * Map a legacy BillCategory enum value to its primary bucket.
+ * Used by the categories-v2 backfill + at read-time for old Bills.
+ */
+export function primaryFromLegacy(legacy: Category): PrimaryCategory {
+  switch (legacy) {
+    case "TELECOM":
+      return "TELECOM";
+    case "ENERGIE":
+      return "ENERGIE";
+    case "VERZEKERING":
+      return "VERZEKERING";
+    case "WATER":
+    case "GEMEENTE":
+    case "HYPOTHEEK":
+      return "WONEN";
+    case "BANK":
+      return "FINANCIEN";
+    case "STREAMING":
+    case "SOFTWARE":
+    case "GYM":
+    case "OPSLAG":
+    case "ABONNEMENT":
+      return "ABONNEMENTEN";
+    case "OV":
+      return "VERZEKERING"; // OV-pas → autoverzekering bucket; fall back to OVERIG if needed
+    case "OVERIG":
+      return "OVERIG";
+    default:
+      return "OVERIG";
+  }
+}
+
+/**
+ * Reverse map: a primary + sub-type that should be used as the legacy enum
+ * for backwards-compat reads. Conservative — falls back to OVERIG when
+ * ambiguous.
+ */
+export function legacyFromPrimary(primary: PrimaryCategory, subType?: string | null): Category {
+  switch (primary) {
+    case "TELECOM":
+      return "TELECOM";
+    case "ENERGIE":
+      if (subType === "water") return "WATER";
+      return "ENERGIE";
+    case "VERZEKERING":
+      return "VERZEKERING";
+    case "WONEN":
+      if (subType === "hypotheek") return "HYPOTHEEK";
+      if (subType === "gemeente-belasting" || subType === "waterschap") return "GEMEENTE";
+      return "OVERIG";
+    case "FINANCIEN":
+      return "BANK";
+    case "ABONNEMENTEN":
+      if (subType === "streaming") return "STREAMING";
+      if (subType === "software") return "SOFTWARE";
+      if (subType === "gym") return "GYM";
+      if (subType === "opslag") return "OPSLAG";
+      return "ABONNEMENT";
+    case "OVERIG":
+    default:
+      return "OVERIG";
+  }
+}
+
+/** UI label for a primary + sub-type combo. */
+export function displayLabel(
+  primary: PrimaryCategory,
+  subType?: string | null,
+  language: "nl" | "en" = "nl",
+): string {
+  const meta = PRIMARY_META[primary];
+  const base = language === "en" ? meta.labelEn : meta.label;
+  if (!subType) return base;
+  return `${base} · ${subType}`;
+}
+
+/**
+ * Heuristic backfill: gegeven legacy enum + provider naam, raad de
+ * sub-type. Gebruikt door scripts/migrate-categories-v2.ts.
+ */
+export function inferSubType(legacy: Category, providerName: string): string | null {
+  const p = providerName.toLowerCase();
+  if (legacy === "TELECOM") {
+    if (p.includes("ziggo") || p.includes("kpn glas") || p.includes("internet") || p.includes("bt") || p.includes("sky") || p.includes("virgin"))
+      return "internet";
+    return "mobiel";
+  }
+  if (legacy === "ENERGIE") {
+    return "stroom+gas";
+  }
+  if (legacy === "WATER") return null; // sub-types live under WONEN now
+  if (legacy === "STREAMING") return "streaming";
+  if (legacy === "SOFTWARE") return "software";
+  if (legacy === "GYM") return "gym";
+  if (legacy === "OPSLAG") return "opslag";
+  if (legacy === "HYPOTHEEK") return "hypotheek";
+  if (legacy === "GEMEENTE") return "gemeente-belasting";
+  if (legacy === "BANK") return "bankpakket";
+  if (legacy === "OV") return "auto";
+  // Provider-naam heuristiek voor edge cases:
+  if (p.includes("water") || p.includes("vitens") || p.includes("evides") || p.includes("dunea") || p.includes("pwn"))
+    return "water";
+  return null;
+}
+
 export function isNegotiable(cat: Category): boolean {
   return ruleFor(cat).negotiable;
 }
