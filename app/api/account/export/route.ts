@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -11,6 +12,10 @@ export const dynamic = "force-dynamic";
  * Returns a JSON dump of everything we hold about the requesting user.
  * Strips imageHash + rawOcr (those are derived/internal and contain no
  * additional personal data the user couldn't already see).
+ *
+ * Rate-limit: 3 calls per 24h per user (v14 DEEL 8). GDPR Art. 12
+ * allows providers to refuse repeated requests when they're manifestly
+ * unfounded or excessive — 3 / 24h is a generous cap.
  */
 export async function GET() {
   const session = await auth();
@@ -18,6 +23,9 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const userId = (session.user as { id: string }).id;
+
+  const rl = rateLimit({ key: `export:${userId}`, max: 3, windowSec: 24 * 3600 });
+  if (!rl.ok) return rateLimitResponse(rl);
 
   const [user, bills, negotiations, payments, waitlist, referralsOwned, sessions] = await Promise.all([
     prisma.user.findUnique({
