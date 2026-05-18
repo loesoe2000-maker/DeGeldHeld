@@ -10,6 +10,7 @@
  */
 
 import Groq from "groq-sdk";
+import * as Sentry from "@sentry/nextjs";
 
 export const MAX_ROUNDS = 3;
 
@@ -165,6 +166,22 @@ function fallbackAnalysis(response: string): RoundAnalysis {
   };
 }
 
+/** Sleep helper used between Groq retries. Exposed for tests via __setSleep. */
+let _sleepImpl: (ms: number) => Promise<void> = (ms) =>
+  new Promise((r) => setTimeout(r, ms));
+
+/** Test seam — override the sleep impl so retries don't actually wait. */
+export function __setSleepImpl(fn: ((ms: number) => Promise<void>) | null): void {
+  _sleepImpl = fn ?? ((ms) => new Promise((r) => setTimeout(r, ms)));
+}
+
+/**
+ * Retry schedule used by analyseProviderResponse() before it falls back
+ * to the heuristic. 1s → 3s → 8s exponential backoff. Total worst-case
+ * wait is ~12s which fits inside the Vercel hobby 60s budget.
+ */
+export const ANALYSE_RETRY_DELAYS_MS = [0, 1000, 3000, 8000];
+
 export async function analyseProviderResponse(response: string): Promise<RoundAnalysis> {
   if (!response || response.trim().length < 10) {
     return {
@@ -181,24 +198,39 @@ export async function analyseProviderResponse(response: string): Promise<RoundAn
     return fallbackAnalysis(response);
   }
 
-  try {
-    const resp = await client().chat.completions.create({
-      model: textModel,
-      messages: [
-        { role: "system", content: SYSTEM_PROMPT },
-        { role: "user", content: response.slice(0, 4000) },
-      ],
-      max_tokens: 300,
-      temperature: 0.2,
-      response_format: { type: "json_object" },
-    });
-    const raw = resp.choices[0]?.message?.content ?? "";
-    const parsed = parseAnalysisJson(raw);
-    if (parsed) return parsed;
-  } catch {
-    /* fall through to fallback */
+  let lastErr: Error | null = null;
+  for (let attempt = 0; attempt < ANALYSE_RETRY_DELAYS_MS.length; attempt++) {
+    const delay = ANALYSE_RETRY_DELAYS_MS[attempt];
+    if (delay > 0) {
+      await _sleepImpl(delay);
+    }
+    try {
+      const resp = await client().chat.completions.create({
+        model: textModel,
+        messages: [
+          { role: "system", content: SYSTEM_PROMPT },
+          { role: "user", content: response.slice(0, 4000) },
+        ],
+        max_tokens: 300,
+        temperature: 0.2,
+        response_format: { type: "json_object" },
+      });
+      const raw = resp.choices[0]?.message?.content ?? "";
+      const parsed = parseAnalysisJson(raw);
+      if (parsed) return parsed;
+      lastErr = new Error("Groq returned unparseable JSON");
+    } catch (e) {
+      lastErr = e as Error;
+    }
   }
 
+  try {
+    Sentry.captureException(lastErr ?? new Error("Groq analyse failed after retries"), {
+      tags: { module: "rounds", retries: String(ANALYSE_RETRY_DELAYS_MS.length) },
+    });
+  } catch {
+    /* sentry not configured — ignore */
+  }
   return fallbackAnalysis(response);
 }
 

@@ -23,7 +23,7 @@
 import crypto from "node:crypto";
 import { prisma } from "@/lib/db";
 import { extractThreadId } from "@/lib/email-thread";
-import { analyseProviderResponse, buildCounterContext, MAX_ROUNDS } from "@/lib/rounds";
+import { analyseProviderResponse, MAX_ROUNDS } from "@/lib/rounds";
 import { generateEmail } from "@/lib/negotiator";
 import { buildComparison } from "@/lib/comparison";
 import type { Country, Category } from "@/lib/providers";
@@ -139,12 +139,6 @@ export async function routeInboundReply(
     negotiation.rounds[negotiation.rounds.length - 1]?.offeredCents ??
     null;
 
-  buildCounterContext({
-    roundNumber: usedRounds + 1,
-    previousOfferedCents,
-    previousTone: analysis.tone,
-  });
-
   const draft = await generateEmail({
     customerName: negotiation.user.name ?? "",
     customerEmail: negotiation.user.email ?? undefined,
@@ -154,6 +148,11 @@ export async function routeInboundReply(
     currentMonthlyCents: negotiation.bill.monthlyCents ?? negotiation.bill.amountCents,
     customerNumber: negotiation.bill.customerNumber,
     alternatives: comparison.topAlternatives,
+    roundContext: {
+      roundNumber: usedRounds + 1,
+      previousOfferedCents,
+      previousTone: analysis.tone,
+    },
   });
 
   const round = await prisma.negotiationRound.create({

@@ -4,7 +4,6 @@ import { prisma } from "@/lib/db";
 import {
   analyseProviderResponse,
   actionToState,
-  buildCounterContext,
   MAX_ROUNDS,
 } from "@/lib/rounds";
 import { generateEmail } from "@/lib/negotiator";
@@ -89,14 +88,12 @@ async function generateCounterIfNeeded(opts: {
     opts.analysis.offeredCents ??
     negotiation.rounds[negotiation.rounds.length - 1]?.offeredCents ??
     null;
-  const counterContext = buildCounterContext({
-    roundNumber: opts.roundNumber,
-    previousOfferedCents,
-    previousTone: opts.analysis.tone,
-  });
   const compareCents = negotiation.bill.monthlyCents ?? negotiation.bill.amountCents;
   const email = await generateEmail({
-    customerName: session.user.name ?? session.user.email ?? "Klant",
+    // v11: never default customerName to the email — signatureName() in
+    // negotiator.ts handles the email-prefix fallback and avoids the
+    // duplicate-signature bug.
+    customerName: session.user.name ?? "",
     customerEmail: session.user.email ?? undefined,
     provider: negotiation.bill.provider,
     category: negotiation.bill.category as never,
@@ -104,10 +101,17 @@ async function generateCounterIfNeeded(opts: {
     currentMonthlyCents: compareCents,
     customerNumber: negotiation.bill.customerNumber,
     alternatives: comparison.topAlternatives,
+    // v11: round-context routed via the input so the LLM uses it as a
+    // hint inside the prompt — NEVER prepended to the user-facing body.
+    roundContext: {
+      roundNumber: opts.roundNumber,
+      previousOfferedCents,
+      previousTone: opts.analysis.tone,
+    },
   });
   return {
     subject: `[Ronde ${opts.roundNumber}] ${email.subject}`,
-    body: `${counterContext}\n\n${email.body}`,
+    body: email.body,
   };
 }
 

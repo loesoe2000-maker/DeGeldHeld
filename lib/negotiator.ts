@@ -38,6 +38,16 @@ export type NegotiatorInput = {
   tonality?: Tonality;
   language?: Language;
   customerYears?: number;
+  /**
+   * v11 multi-round: optional round-context that ONLY informs the LLM
+   * user-prompt. Never written verbatim into the email body — that was
+   * the v10 instructie-bleed bug.
+   */
+  roundContext?: {
+    roundNumber: number;
+    previousOfferedCents: number | null;
+    previousTone: "constructief" | "afwijzend" | "stalling";
+  };
 };
 
 export type NegotiatorOutput = {
@@ -197,6 +207,16 @@ function buildUserPrompt(opts: {
     ? best.plan.priceCents + 200
     : Math.round(input.currentMonthlyCents * 0.85);
 
+  const roundHint = input.roundContext
+    ? `Ronde-context (alleen voor jou ter info, NIET in de body opnemen): ` +
+      `dit is ronde ${input.roundContext.roundNumber}. Vorige aanbod = ` +
+      (input.roundContext.previousOfferedCents != null
+        ? `€${(input.roundContext.previousOfferedCents / 100).toFixed(2).replace(".", ",")}`
+        : "geen concreet bedrag") +
+      ` (tone: ${input.roundContext.previousTone}). Bedank kort voor het ` +
+      `voorstel en vraag verdere verlaging naar het doelbedrag.`
+    : "";
+
   return `Klant: ${input.customerName}
 ${input.customerEmail ? `Email: ${input.customerEmail}` : ""}
 ${input.customerNumber ? `Klantnummer: ${input.customerNumber}` : "Klantnummer: niet beschikbaar"}
@@ -214,6 +234,7 @@ Gewenst nieuw bedrag: €${(targetCents / 100).toFixed(2)}/maand
 Beste alternatief jaarlijkse besparing: €${best ? (best.yearlySavingsCents / 100).toFixed(0) : "0"}
 ${hint ? `Provider-tip: ${hint}` : ""}
 ${categoryHint ? `Categorie-tip (${catRule.label}): ${categoryHint}` : ""}
+${roundHint}
 
 Schrijf de e-mail volgens de strategie en de 7 verplichte elementen. Wees concreet
 en feitelijk. Noem expliciet "${input.provider}" in de body.`;
@@ -283,12 +304,44 @@ export function buildWhatsAppShareUrl(opts: {
   return `https://wa.me/?text=${encodeURIComponent(text)}`;
 }
 
+/**
+ * Pick a display name for the signature line. Avoids the v10 duplicate-
+ * email bug where `customerName` was set to the same string as
+ * `customerEmail`, producing:
+ *   Met vriendelijke groet,
+ *   foo@bar.com
+ *   foo@bar.com
+ * Strategy: prefer name when distinct from email; otherwise the
+ * capitalized email-prefix ("foo" → "Foo"); fall back to "Klant".
+ */
+export function signatureName(opts: {
+  customerName?: string | null;
+  customerEmail?: string | null;
+}): string {
+  const name = (opts.customerName ?? "").trim();
+  const email = (opts.customerEmail ?? "").trim();
+  if (name && name.toLowerCase() !== email.toLowerCase()) return name;
+  if (email && email.includes("@")) {
+    const prefix = email.split("@")[0].replace(/[._-]+/g, " ").trim();
+    if (prefix.length === 0) return "Klant";
+    return prefix
+      .split(/\s+/)
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(" ");
+  }
+  return "Klant";
+}
+
 function fallbackTemplate(input: NegotiatorInput, strategy: NegotiationStrategy, tonality: Tonality, language: Language): NegotiatorOutput {
   const greetingNL = tonality === "FORMEEL" ? "Geachte heer/mevrouw" : "Hallo";
   const greetingEN = tonality === "FORMEEL" ? "Dear Sir/Madam" : "Hi";
   const closingNL = tonality === "FORMEEL" ? "Met vriendelijke groet" : "Groet";
   const closingEN = tonality === "FORMEEL" ? "Kind regards" : "Best";
 
+  const displayName = signatureName({
+    customerName: input.customerName,
+    customerEmail: input.customerEmail,
+  });
   const huidig = (input.currentMonthlyCents / 100).toFixed(2).replace(".", ",");
   const best = input.alternatives[0];
   const altCents = best ? best.plan.priceCents : Math.round(input.currentMonthlyCents * 0.8);
@@ -314,7 +367,7 @@ I value continuity, so I'd prefer to stay with ${input.provider}. I therefore as
 I look forward to your concrete proposal within 14 working days at this email address.
 
 ${closingEN},
-${input.customerName}${input.customerEmail ? `\n${input.customerEmail}` : ""}`;
+${displayName}${input.customerEmail && input.customerEmail.toLowerCase() !== displayName.toLowerCase() ? `\n${input.customerEmail}` : ""}`;
     return {
       subject: `Request to revise ${input.provider} tariff${klantnummerEN}`,
       body,
@@ -338,7 +391,7 @@ Ik hecht waarde aan continuïteit en blijf liever bij ${input.provider}. Daarom 
 Ik ontvang graag uw concrete voorstel binnen 14 werkdagen op dit e-mailadres.
 
 ${closingNL},
-${input.customerName}${input.customerEmail ? `\n${input.customerEmail}` : ""}`;
+${displayName}${input.customerEmail && input.customerEmail.toLowerCase() !== displayName.toLowerCase() ? `\n${input.customerEmail}` : ""}`;
 
   return {
     subject: `Verzoek tariefherziening ${input.provider}${klantnummerNL}`,
