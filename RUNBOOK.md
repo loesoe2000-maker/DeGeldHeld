@@ -324,12 +324,41 @@ Bevestig per email via Resend.
 
 ## Database backup
 
-Vercel Postgres heeft automatische daily backup (7 dagen retentie).
-Voor extra zekerheid:
+Neon Postgres heeft automatische point-in-time recovery (PITR) — 7
+dagen retentie op de free tier, 30 dagen op pro. Voor extra zekerheid:
 
 ```bash
 pg_dump $DATABASE_URL > backup-$(date +%Y%m%d).sql
 ```
+
+### Disaster Recovery — restore drill (v14 DEEL 5)
+
+Voer **één keer per kwartaal** een restore-drill uit zodat we
+zeker weten dat PITR werkt vóór een echte uitval.
+
+1. **Neon dashboard** → Project → **Branches** → "New branch" met
+   "Create from point-in-time" (kies een tijdstip 24u terug).
+2. Kopieer de connection-string van de nieuwe branch.
+3. Tijdelijk DATABASE_URL in `.env.local` omzetten naar die string:
+   ```bash
+   DATABASE_URL=<neon-restore-branch-url> npx tsx scripts/db-backup-verify.ts
+   ```
+4. Verifieer dat de row-counts dezelfde orde van grootte zijn als
+   prod. Markeer in `BACKLOG.md`: "DR drill yyyy-mm-dd — ✓ counts
+   match, restore time = X minutes".
+5. **Niet** Vercel `DATABASE_URL` switchen — dat is alleen in een
+   echte uitval. Verwijder de test-branch nadat verificatie klaar
+   is om kosten laag te houden.
+
+### Echte uitval — emergency restore
+
+1. Neon dashboard → Branches → "Restore to point in time".
+2. Kies tijdstip vóór incident.
+3. Vercel → Project Settings → Environment Variables →
+   `DATABASE_URL` updaten naar nieuwe branch URL.
+4. Redeploy via Vercel dashboard ("Redeploy" op meest recente
+   build — geen code-revert nodig).
+5. Monitor Sentry en `/api/health` voor regressies.
 
 ## Performance budgets
 
