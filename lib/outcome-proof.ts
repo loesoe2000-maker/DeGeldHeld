@@ -9,6 +9,7 @@
  */
 
 import { prisma } from "@/lib/db";
+import { feeForVerifiedSavings, shouldChargeVerifiedFee } from "@/lib/payments";
 
 /** Minimum percentage drop between old and new monthly amount to count
  *  as a real saving. Anything smaller is likely OCR noise.  */
@@ -90,12 +91,31 @@ export async function recordProof(opts: {
   });
 
   if (verdict.verdict === "verified") {
+    // Fetch the userId once so the optional fee-eligibility check
+    // (admin bypass + flag-off short-circuit) can reuse it.
+    const neg = await prisma.negotiation.findUnique({
+      where: { id: opts.negotiationId },
+      select: { userId: true },
+    });
+    const feeCents = feeForVerifiedSavings(verdict.yearlySavingsCents);
+    const charge = neg
+      ? await shouldChargeVerifiedFee({
+          userId: neg.userId,
+          actualSavingsCents: verdict.yearlySavingsCents,
+        })
+      : false;
+
     await prisma.negotiation.update({
       where: { id: opts.negotiationId },
       data: {
-        state: "SUCCESS",
+        // Charge path → BILLED_PENDING_PAYMENT so the user sees the
+        // fee CTA on /uitkomst. Non-charge (admin/flag-off/sub-floor)
+        // jumps straight to SUCCESS — same as legacy.
+        state: charge && feeCents > 0 ? "BILLED_PENDING_PAYMENT" : "SUCCESS",
         proofVerifiedAt: new Date(),
         actualSavingsCents: verdict.yearlySavingsCents,
+        feeAmountCents: charge ? feeCents : null,
+        feeInvoicedAt: charge && feeCents > 0 ? new Date() : null,
       },
     });
   }

@@ -50,6 +50,9 @@ export default async function UitkomstPage({
   if (bill.negotiation.closedAt) {
     const yearly = bill.negotiation.actualSavingsCents ?? 0;
     const isSuccess = yearly > 0;
+    const feeCents = bill.negotiation.feeAmountCents ?? 0;
+    const pendingFee =
+      bill.negotiation.state === "BILLED_PENDING_PAYMENT" && feeCents > 0;
     let referralCode: string | undefined;
     if (isSuccess && session?.user) {
       try {
@@ -67,6 +70,31 @@ export default async function UitkomstPage({
             <> — €{(bill.negotiation.actualSavingsCents / 100).toFixed(0)}/jaar bespaard.</>
           )}
         </p>
+        {pendingFee && (
+          <section
+            data-testid="fee-cta"
+            className="mt-8 rounded-xl border border-brand-200 bg-brand-50 p-5"
+          >
+            <h2 className="text-lg font-semibold text-brand-900">
+              Je bespaarde €{(yearly / 100).toFixed(0)} — onze bijdrage is €
+              {(feeCents / 100).toFixed(2).replace(".", ",")}
+            </h2>
+            <p className="mt-1 text-sm text-brand-900">
+              No-cure-no-pay: 20% van de geverifieerde besparing, met een
+              maximum van €25,00. Betaal binnen 14 dagen om je onderhandeling
+              officieel af te ronden.
+            </p>
+            <form action={`/api/checkout/${bill.negotiation.id}`} method="post" className="mt-4">
+              <button
+                type="submit"
+                data-testid="pay-fee-btn"
+                className="rounded-lg bg-brand-600 px-5 py-3 font-semibold text-white hover:bg-brand-700"
+              >
+                Betaal €{(feeCents / 100).toFixed(2).replace(".", ",")} via Stripe
+              </button>
+            </form>
+          </section>
+        )}
         {isSuccess && (
           <div className="mt-10">
             <ShareKit

@@ -12,6 +12,18 @@ const MIN_BILL_CENTS = 500; // €5,00 minimum
 /** Flat per-bill fee charged after the first free bill (DEEL 10). */
 export const PAYWALL_FEE_CENTS = 499; // €4,99
 
+// ─────────────────────────────────────────────────────────────
+// v11 — no-cure-no-pay pricing (FEATURE_NO_CURE_NO_PAY)
+// User explicitly set the rate at 20% (top of the industry
+// no-cure-no-pay range). Cap and floor are kept tight so the
+// fee never feels punitive: max €25, min €2.
+// ─────────────────────────────────────────────────────────────
+export const NO_CURE_NO_PAY_FEE_PCT = 0.20;
+export const NO_CURE_NO_PAY_FEE_CAP_CENTS = 2500; // €25,00
+export const NO_CURE_NO_PAY_FEE_FLOOR_CENTS = 200; // €2,00
+/** Yearly savings below this threshold (€50) never trigger a fee. */
+export const NO_CURE_NO_PAY_MIN_SAVINGS_CENTS = 5000;
+
 const apiKey = process.env.STRIPE_SECRET_KEY ?? "";
 let _stripe: Stripe | null = null;
 function client(): Stripe {
@@ -23,6 +35,49 @@ export function computeSuccessFeeCents(yearlySavingsCents: number): number {
   if (yearlySavingsCents <= 0) return 0;
   const fee = Math.round(yearlySavingsCents * SUCCESS_FEE_PCT);
   return Math.max(fee, MIN_BILL_CENTS);
+}
+
+/**
+ * v11 no-cure-no-pay fee on a verified savings flow.
+ *
+ *  - Returns 0 when yearly savings < €50 (sub-threshold).
+ *  - Otherwise: 20% of yearly savings, clamped to [€2, €25].
+ *
+ * Pure function — no side effects, no DB calls. Callers (the
+ * fee-trigger after proof verification, the smoke checks) consume
+ * this directly.
+ */
+export function feeForVerifiedSavings(actualSavingsCents: number): number {
+  if (actualSavingsCents < NO_CURE_NO_PAY_MIN_SAVINGS_CENTS) return 0;
+  const raw = Math.round(actualSavingsCents * NO_CURE_NO_PAY_FEE_PCT);
+  if (raw < NO_CURE_NO_PAY_FEE_FLOOR_CENTS) return NO_CURE_NO_PAY_FEE_FLOOR_CENTS;
+  if (raw > NO_CURE_NO_PAY_FEE_CAP_CENTS) return NO_CURE_NO_PAY_FEE_CAP_CENTS;
+  return raw;
+}
+
+/**
+ * Should this user actually be charged a no-cure-no-pay fee? Returns
+ * false for admins (ADMIN_EMAILS) and when the feature flag is off.
+ *
+ * Note: this only validates *eligibility*. The caller still needs to
+ * verify that proof has landed (proofVerifiedAt != null).
+ */
+export async function shouldChargeVerifiedFee(opts: {
+  userId: string;
+  actualSavingsCents: number;
+}): Promise<boolean> {
+  if (process.env.FEATURE_NO_CURE_NO_PAY !== "true") return false;
+  if (opts.actualSavingsCents < NO_CURE_NO_PAY_MIN_SAVINGS_CENTS) return false;
+  const adminList = (process.env.ADMIN_EMAILS ?? "").toLowerCase();
+  if (adminList) {
+    const u = await prisma.user.findUnique({
+      where: { id: opts.userId },
+      select: { email: true },
+    });
+    const admins = adminList.split(",").map((e) => e.trim()).filter(Boolean);
+    if (u?.email && admins.includes(u.email.toLowerCase())) return false;
+  }
+  return true;
 }
 
 export type CheckoutInput = {
@@ -155,6 +210,10 @@ export async function requiresPayment(
   // Feature-flag escape hatch: setting FEATURE_PAYWALL_ENABLED=false in
   // Vercel disables the paywall site-wide without a code revert.
   if (process.env.FEATURE_PAYWALL_ENABLED === "false") return false;
+  // v11: under no-cure-no-pay the analysis phase is always free. The
+  // fee is only triggered after proofVerifiedAt is set + actual
+  // savings >= the €50 threshold (see feeForVerifiedSavings).
+  if (process.env.FEATURE_NO_CURE_NO_PAY === "true") return false;
 
   // Admin bypass — admins (per ADMIN_EMAILS env var) skip the paywall so we
   // can test the full flow end-to-end without paying ourselves. The paywall
