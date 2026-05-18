@@ -318,3 +318,67 @@ Smoke test before flipping `FEATURE_NO_CURE_NO_PAY=true`:
   legit testers (verify the noise floor at 5%).
 - Confirm cron locks via `CronRunLog` so two Vercel instances don't
   double-score.
+
+---
+
+## 9. Auto-pingpong activation (v12 DEEL 1)
+
+The auto-pingpong infrastructure has shipped (v10) and the v12 sprint
+extends it with a discriminating inbound router. Now-live multiplexed
+on `https://degeldheld.com/api/inbound/router`:
+
+  - subject `[PROOF-<billId>]`       → proof-flow (recordProof)
+  - subject `[NEGOTIATION-<negId>]`  → auto-pingpong counter-mail
+  - In-Reply-To matching a thread    → auto-pingpong fallback
+  - everything else                  → ack 200, no-op
+
+External setup (one-off — same Resend domain as before, separate
+secret):
+
+- [ ] Resend: `auto.degeldheld.com` already configured (v10 §7).
+- [ ] Webhook URL: `https://degeldheld.com/api/inbound/router`
+- [ ] Vercel env: `RESEND_INBOUND_SECRET` (the HMAC for THIS endpoint,
+      distinct from the proof webhook secret).
+- [ ] Vercel env: `RESEND_INBOUND_DOMAIN=degeldheld.com` so the
+      thread-id parser matches outbound Message-IDs.
+
+Curl smoke before flipping the flag on:
+
+```bash
+# 1. Unsigned must 401 — both for NEGOTIATION and PROOF tokens.
+curl -X POST https://degeldheld.com/api/inbound/router \
+  -H "Content-Type: application/json" \
+  -d '{"from":"x@y.nl","subject":"[NEGOTIATION-clxyz1234567890abcdef]"}' \
+  -i
+
+# 2. With a valid HMAC + a real Negotiation thread-id in In-Reply-To,
+#    expect 200 with a NegotiationRound row written and a user
+#    notification mail dispatched. Do NOT skip step 3 of the flag
+#    flip — manual user-click is mandatory.
+
+# 3. /onderhandel/[billId]/ronde/[n] must render the
+#    AWAITING_USER_CONFIRM branch and the "Verstuur counter via
+#    DeGeldHeld" button must POST to /api/negotiations/round/[id]/
+#    confirm-send. That endpoint is the ONLY path that sends a
+#    counter-mail.
+```
+
+Flip `FEATURE_AUTO_PINGPONG=true` in Vercel only after 1 dummy
+negotiation completes that loop end-to-end without the confirm gate
+being skipped.
+
+---
+
+## 10. Multi-page PDF (v12 DEEL 2)
+
+`lib/pdf_extract.ts` now reads up to 5 pages by default. Each page is
+tagged with a `--- page N ---` marker so Groq can combine information
+across pages. Cost-guard fires a Sentry warning when a PDF >5 pages
+gets truncated.
+
+Vision-rendered PDF→PNG (multi-image Groq Vision call) is a follow-up
+gated on adding `@napi-rs/canvas` as a dependency. The text path
+already covers Eneco/Vodafone/etc. jaarafrekeningen since pdfjs
+extracts their text natively.
+
+No external setup needed for the text path.

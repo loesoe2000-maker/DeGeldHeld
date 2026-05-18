@@ -688,6 +688,50 @@ async function checkAdminFraudGated(): Promise<CheckResult> {
   };
 }
 
+async function checkInboundRouterDiscriminate(): Promise<CheckResult> {
+  // /api/inbound/router with a known-bad signature must 401. We send
+  // a [NEGOTIATION-<id>] payload to assert the same gate exists for
+  // both PROOF and NEGOTIATION subjects (v12 DEEL 1).
+  const body = JSON.stringify({
+    from: "klantbehoud@kpn.com",
+    subject: "Antwoord [NEGOTIATION-clxyz1234567890abcdef]",
+    text: "We bieden €30,00 per maand.",
+  });
+  const r = await fetch(`${BASE}/api/inbound/router`, {
+    method: "POST",
+    headers: { "content-type": "application/json", "resend-signature": "00".repeat(32) },
+    body,
+  });
+  if (r.status === 401) {
+    return {
+      name: "POST /api/inbound/router [NEGOTIATION-] (bad sig)",
+      ok: true,
+      detail: "401",
+    };
+  }
+  return {
+    name: "POST /api/inbound/router [NEGOTIATION-] (bad sig)",
+    ok: false,
+    detail: `expected 401, got ${r.status}`,
+  };
+}
+
+async function checkProviderTonePage(): Promise<CheckResult> {
+  // The negotiator's provider-tone mapping is unit-tested. For a smoke
+  // gate we just assert that the providers SEO endpoint that lists
+  // providers (via /onderhandelen-met-kpn) builds — that exercises the
+  // providerTone() lookup path indirectly via SEO render data.
+  const r = await fetchFollow(`${BASE}/onderhandelen-met-kpn`);
+  if (r.status === 200) {
+    return { name: "GET /onderhandelen-met-kpn (tone matching)", ok: true, detail: "200" };
+  }
+  return {
+    name: "GET /onderhandelen-met-kpn (tone matching)",
+    ok: false,
+    detail: `expected 200, got ${r.status}`,
+  };
+}
+
 async function main() {
   console.log(`[smoke-prod] Target: ${BASE}`);
   console.log(`[smoke-prod] Start: ${new Date().toISOString()}\n`);
@@ -733,6 +777,8 @@ async function main() {
     checkUitkomstAuthRedirect, // 38 — uitkomst page auth
     checkOutcomeProofPostNoAuth, // 39 — proof upload requires auth
     checkAdminFraudGated, // 40 — admin/fraud doesn't 500
+    checkInboundRouterDiscriminate, // 41 — v12 NEGOTIATION-token routing
+    checkProviderTonePage, // 42 — v12 provider-tone (KPN SEO renders)
   ];
 
   const results: CheckResult[] = [];
