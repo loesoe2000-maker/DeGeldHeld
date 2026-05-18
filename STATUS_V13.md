@@ -11,7 +11,7 @@ zijn die hieronder gemarkeerd met een verwijzing naar het al-gedane commit.
 | 2 — Multi-page PDF                  | DONE (text + vision) | new      |
 | 3 — Provider-tone + vocab           | SKIP (al gedaan)   | `d1af4c9` |
 | 4 — Auto-pingpong activeren         | SKIP (al gedaan)   | `8767837` |
-| 5 — Bewijs-flow                     | _pending_          | _t.b.d._  |
+| 5 — Bewijs-flow                     | SKIP (al gedaan)   | `3f9f750` |
 | 6 — 30-dagen recheck cron           | _pending_          | _t.b.d._  |
 | 7 — 20% no-cure-no-pay              | _pending_          | _t.b.d._  |
 | 8 — Anti-fraud                      | _pending_          | _t.b.d._  |
@@ -19,6 +19,22 @@ zijn die hieronder gemarkeerd met een verwijzing naar het al-gedane commit.
 
 Per-deeltaak details volgen hieronder. Dit document wordt per-deel
 geüpdatet — elk commit zet dat blok aan met een hash en 1-2 regels uitleg.
+
+## DEEL 5 — Bewijs-flow ✓ skipped (already in `3f9f750`)
+
+- Migration `20260518180000_outcome_proof` (OutcomeProof model +
+  Negotiation.proofRequired/proofVerifiedAt/feeInvoicedAt/
+  feeAmountCents + SUCCESS_UNVERIFIED state).
+- `lib/outcome-proof.ts` single side-effect entry-point;
+  `evaluateProof()` met 5%-drop floor.
+- POST `/api/inbound/proof` (HMAC + token of In-Reply-To matcher).
+- POST `/api/outcome/[id]/proof` (direct upload/JSON).
+- OutcomeForm vraagt na success om bewijs (upload of skip).
+- `/proof` aggregator filtert SUCCESS_UNVERIFIED uit + toont
+  apart "X claims niet geverifieerd".
+- Feature-flag `FEATURE_PROOF_REQUIRED=false` default.
+- Tests: tests/proof-flow.test.ts, tests/proof-rejected.test.ts,
+  tests/proof-skip.test.ts.
 
 ## DEEL 4 — Auto-pingpong activeren ✓ skipped (already in `8767837`)
 
