@@ -360,6 +360,21 @@ zeker weten dat PITR werkt vóór een echte uitval.
    build — geen code-revert nodig).
 5. Monitor Sentry en `/api/health` voor regressies.
 
+## Cost budgets (v14 DEEL 9)
+
+- **Vercel**: set Spend Management cap to **€15/maand** in Dashboard →
+  Settings → Spend Management. Beyond that the project pauses
+  automatically (preferable to a surprise bill).
+- **Groq**: in-process meter via `lib/cost-tracker.ts`. Sentry warning
+  fires at €50/day; investigate when this trips. Hard caps are on the
+  Groq dashboard ("Rate Limits" tab).
+- **Resend free tier**: 100 mails/day. Outcome-followup cron is hard
+  capped at 50/day for headroom; other transactional mail can use the
+  rest.
+- **Neon free tier**: 500MB storage + 3GB compute hours. Migrate to
+  pro (€19/mnd) when either crosses 70% — gate in
+  `GO_LIVE_CHECKLIST.md`.
+
 ## Performance budgets
 
 - TTFB: <600ms (Vercel EU edge)
