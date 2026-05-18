@@ -9,7 +9,7 @@ zijn die hieronder gemarkeerd met een verwijzing naar het al-gedane commit.
 |------|--------|--------|
 | 1 — Bug-jacht (4 bugs)              | SKIP (al gedaan)   | `f28b442` |
 | 2 — Multi-page PDF                  | DONE (text + vision) | new      |
-| 3 — Provider-tone + vocab           | _pending_          | _t.b.d._  |
+| 3 — Provider-tone + vocab           | SKIP (al gedaan)   | `d1af4c9` |
 | 4 — Auto-pingpong activeren         | _pending_          | _t.b.d._  |
 | 5 — Bewijs-flow                     | _pending_          | _t.b.d._  |
 | 6 — 30-dagen recheck cron           | _pending_          | _t.b.d._  |
@@ -19,6 +19,14 @@ zijn die hieronder gemarkeerd met een verwijzing naar het al-gedane commit.
 
 Per-deeltaak details volgen hieronder. Dit document wordt per-deel
 geüpdatet — elk commit zet dat blok aan met een hash en 1-2 regels uitleg.
+
+## DEEL 3 — Provider-tone + category vocab ✓ skipped (already in `d1af4c9`)
+
+- `ProviderTone` union + `PROVIDER_TONE_MAP` voor top-30 NL.
+- `providerTone()` met category-fallback.
+- `NEGOTIATION_VOCAB` per categorie + `vocabFor()`.
+- Fallback NL body schakelt jij/u + Hoi/Geachte heer/mevrouw.
+- Tests: tests/tone-matching.test.ts, tests/vocab-matching.test.ts.
 
 ## DEEL 2 — Multi-page PDF (text + vision-render) ✓ new
 
