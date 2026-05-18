@@ -14,11 +14,23 @@ zijn die hieronder gemarkeerd met een verwijzing naar het al-gedane commit.
 | 5 — Bewijs-flow                     | SKIP (al gedaan)   | `3f9f750` |
 | 6 — 30-dagen recheck cron           | SKIP (al gedaan)   | `fefb3ef` |
 | 7 — 20% no-cure-no-pay              | DONE (v11+delta)   | new       |
-| 8 — Anti-fraud                      | _pending_          | _t.b.d._  |
+| 8 — Anti-fraud                      | SKIP (al gedaan)   | `330c4d7` |
 | 9 — Smoke 45 + STATUS + manual-setup | _pending_         | _t.b.d._  |
 
 Per-deeltaak details volgen hieronder. Dit document wordt per-deel
 geüpdatet — elk commit zet dat blok aan met een hash en 1-2 regels uitleg.
+
+## DEEL 8 — Anti-fraud ✓ skipped (already in `330c4d7`)
+
+- Migration `20260518190000_fraud_detection` (FraudFlag table +
+  User.suspendedAt + suspendedReason).
+- `lib/fraud-detection.ts` pure scoring (4 signals, threshold 50,
+  clamped at 100).
+- `/api/cron/fraud-check` dagelijks 04:30 UTC; 7d-dedupe per user.
+- `/admin/fraud` + `/api/admin/fraud/[id]/{unflag,suspend}` met
+  `isAdmin()` gate; suspend is een `$transaction`.
+- Upload-route refuseert suspended users (403).
+- Tests: tests/fraud-score.test.ts (9), tests/admin-suspend.test.ts (8).
 
 ## DEEL 7 — 20% no-cure-no-pay (v13 bounds) ✓ new on top of `68b7086`
 
