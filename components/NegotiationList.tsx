@@ -36,6 +36,15 @@ export default function NegotiationList({ items }: { items: Item[] }) {
             </div>
           </div>
           <div className="mt-3 flex items-center gap-3 sm:mt-0">
+            {(n.state === "SUCCESS_UNVERIFIED" || (n.proofRequired && !n.proofVerifiedAt && n.state === "AWAITING")) && (
+              <Link
+                href={`/onderhandel/${n.billId}/uitkomst`}
+                data-testid="verify-proof-chip"
+                className="rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-900 hover:bg-amber-200"
+              >
+                Verifieer bewijs →
+              </Link>
+            )}
             {n.actualSavingsCents != null && n.actualSavingsCents > 0 && (
               <span className="text-brand-700 font-bold">
                 +{formatEurCents(n.actualSavingsCents, { showDecimals: false })}/jr

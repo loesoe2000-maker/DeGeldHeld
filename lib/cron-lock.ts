@@ -12,7 +12,9 @@ export type CronJobName =
   | "outcome-followup"
   | "monthly-recheck"
   | "psd2-sync"
-  | "follow-up";
+  | "follow-up"
+  | "recheck-savings"
+  | "fraud-check";
 
 function todayUtc(): string {
   return new Date().toISOString().slice(0, 10);
