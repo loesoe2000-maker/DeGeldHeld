@@ -12,13 +12,28 @@ zijn die hieronder gemarkeerd met een verwijzing naar het al-gedane commit.
 | 3 — Provider-tone + vocab           | SKIP (al gedaan)   | `d1af4c9` |
 | 4 — Auto-pingpong activeren         | SKIP (al gedaan)   | `8767837` |
 | 5 — Bewijs-flow                     | SKIP (al gedaan)   | `3f9f750` |
-| 6 — 30-dagen recheck cron           | _pending_          | _t.b.d._  |
+| 6 — 30-dagen recheck cron           | SKIP (al gedaan)   | `fefb3ef` |
 | 7 — 20% no-cure-no-pay              | _pending_          | _t.b.d._  |
 | 8 — Anti-fraud                      | _pending_          | _t.b.d._  |
 | 9 — Smoke 45 + STATUS + manual-setup | _pending_         | _t.b.d._  |
 
 Per-deeltaak details volgen hieronder. Dit document wordt per-deel
 geüpdatet — elk commit zet dat blok aan met een hash en 1-2 regels uitleg.
+
+## DEEL 6 — 30-dagen recheck cron ✓ skipped (already in `fefb3ef`)
+
+- `/api/cron/recheck-savings` dagelijks 09:30 UTC; 28-35d window.
+- `lib/recheck-savings.ts` pure: `isDueForRecheck()` +
+  `diffYearlySavings()` met €1 OCR-noise floor.
+- NegotiationList chip "Verifieer bewijs →" voor open claims.
+- Cron in `vercel.json`; CronJobName uitgebreid met
+  "recheck-savings" + "fraud-check".
+- Tests: tests/recheck-cron.test.ts, tests/before-after-diff.test.ts.
+
+v13 vraagt `/onderhandel/[bill]/herupload?as=proof`-route. We
+route'en in plaats van een aparte route naar
+`/onderhandel/[bill]/uitkomst` (waar OutcomeForm de proof-flow
+host). Functioneel equivalent; geen aparte route nodig.
 
 ## DEEL 5 — Bewijs-flow ✓ skipped (already in `3f9f750`)
 
