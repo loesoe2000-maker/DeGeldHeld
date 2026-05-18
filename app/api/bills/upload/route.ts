@@ -139,6 +139,22 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Sessie ongeldig — log opnieuw in" }, { status: 401 });
     }
 
+    // v11 anti-fraud: suspended users keep their session for support but
+    // cannot upload new bills until an admin un-suspends them.
+    const userRow = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { suspendedAt: true },
+    });
+    if (userRow?.suspendedAt) {
+      return NextResponse.json(
+        {
+          error:
+            "Je account staat onder review. Neem contact op via hallo@degeldheld.com.",
+        },
+        { status: 403 },
+      );
+    }
+
     const rl = rateLimit({ key: `upload:${userId}`, max: 5, windowSec: 3600 });
     if (!rl.ok) return rateLimitResponse(rl);
 

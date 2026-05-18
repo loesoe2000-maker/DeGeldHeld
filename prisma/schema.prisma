@@ -30,6 +30,11 @@ model User {
   deletedAt            DateTime?
   ocrTrainingOptIn     Boolean  @default(false)
 
+  // v11 anti-fraud: account suspend door admin na review.
+  // Suspended users kunnen inloggen maar geen nieuwe uploads doen.
+  suspendedAt          DateTime?
+  suspendedReason      String?
+
   // app data
   accounts      Account[]
   sessions      Session[]
@@ -40,6 +45,7 @@ model User {
   referralsCreated Referral[] @relation("ReferralOwner")
   bankConnections  BankConnection[]
   detectedRecurring DetectedRecurring[]
+  fraudFlags    FraudFlag[]
 
   @@index([email])
 }
@@ -293,6 +299,24 @@ model NegotiationRound {
 
   @@unique([negotiationId, roundNumber])
   @@index([negotiationId])
+}
+
+// v11 anti-fraud: scored flag van een suspicieus account. Admin
+// review-panel toont openstaande flags, kan unflag of suspend.
+model FraudFlag {
+  id        String   @id @default(cuid())
+  userId    String
+  score     Int
+  reasons   String   @db.Text
+  resolved  Boolean  @default(false)
+  resolvedAt DateTime?
+  resolvedBy String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([resolved, createdAt])
 }
 
 // v11 revenue verification: bewijsstuk dat de user daadwerkelijk
