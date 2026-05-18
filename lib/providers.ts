@@ -57,6 +57,16 @@ export type RetentionContact = {
   hours?: string;
 };
 
+/**
+ * v12: provider-tone matching. Drives signature, greeting, and overall
+ * register of the generated mail. "formal" → "Geachte heer/mevrouw" +
+ * u-vorm; "casual" → "Hoi" + jij-vorm; "neutral" sits in between.
+ *
+ * When unset the negotiator falls back to the user's tonality
+ * parameter (default FORMEEL).
+ */
+export type ProviderTone = "formal" | "neutral" | "casual";
+
 export type Provider = {
   id: string;
   canonical: string;
@@ -66,6 +76,7 @@ export type Provider = {
   locale: Locale;
   network?: MobileNetwork;
   retention?: RetentionContact;
+  tone?: ProviderTone;
 };
 
 /**
@@ -124,6 +135,7 @@ function P(opts: {
   locale?: Locale;
   network?: MobileNetwork;
   retention?: RetentionContact;
+  tone?: ProviderTone;
 }): Provider {
   const names = opts.names ?? [];
   // Guarantee canonical is in names (case-insensitive)
@@ -140,7 +152,87 @@ function P(opts: {
     locale: opts.locale ?? defaultLocale(opts.country),
     network: opts.network,
     retention: opts.retention,
+    tone: opts.tone ?? defaultToneFor(opts.canonical, opts.category),
   };
+}
+
+/**
+ * v12 default tone-per-provider (top-30 NL). Sprint spec:
+ *  - formal:  KPN, ABN, Centraal Beheer, Aegon, Allianz, ING, Rabobank
+ *  - neutral: Vodafone, Eneco, Vattenfall, Univé, FBTO, Ziggo
+ *  - casual:  Bunq, Knab, T-Mobile, Budget Mobiel, Spotify, Netflix
+ *
+ * Unmapped providers fall back to category-driven defaults: BANK +
+ * VERZEKERING + HYPOTHEEK are formal, ABONNEMENT/STREAMING/GYM are
+ * casual, the rest are neutral.
+ */
+const PROVIDER_TONE_MAP: Record<string, ProviderTone> = {
+  // Formal
+  "kpn": "formal",
+  "abn amro": "formal",
+  "abn amro hypotheken": "formal",
+  "centraal beheer": "formal",
+  "centraal beheer hypotheek": "formal",
+  "aegon": "formal",
+  "aegon hypotheken": "formal",
+  "allianz": "formal",
+  "allianz de": "formal",
+  "ing": "formal",
+  "ing hypotheken": "formal",
+  "ing be": "formal",
+  "rabobank": "formal",
+  "rabo hypotheken": "formal",
+  // Neutral
+  "vodafone": "neutral",
+  "vodafone de": "neutral",
+  "vodafone uk": "neutral",
+  "vodafone es": "neutral",
+  "vodafone it": "neutral",
+  "eneco": "neutral",
+  "eneco be": "neutral",
+  "vattenfall": "neutral",
+  "vattenfall de": "neutral",
+  "univé": "neutral",
+  "fbto": "neutral",
+  "ziggo": "neutral",
+  // Casual
+  "bunq": "casual",
+  "knab": "casual",
+  "t-mobile": "casual",
+  "t-mobile us": "casual",
+  "budget mobiel": "casual",
+  "spotify": "casual",
+  "netflix": "casual",
+  "youtube premium": "casual",
+  "disney+": "casual",
+  "apple music": "casual",
+};
+
+function defaultToneFor(canonical: string, category: Category): ProviderTone {
+  const explicit = PROVIDER_TONE_MAP[canonical.toLowerCase()];
+  if (explicit) return explicit;
+  // Category fallback — only used for providers we haven't tagged.
+  switch (category) {
+    case "BANK":
+    case "VERZEKERING":
+    case "HYPOTHEEK":
+    case "GEMEENTE":
+      return "formal";
+    case "STREAMING":
+    case "ABONNEMENT":
+    case "GYM":
+    case "SOFTWARE":
+      return "casual";
+    default:
+      return "neutral";
+  }
+}
+
+/** Public lookup: tone for a provider by canonical name. */
+export function providerTone(canonical: string): ProviderTone {
+  const p = PROVIDERS.find((x) => x.canonical.toLowerCase() === canonical.toLowerCase());
+  if (p?.tone) return p.tone;
+  return p ? defaultToneFor(p.canonical, p.category) : "neutral";
 }
 
 // ─────────────────────────────────────────────────────────────

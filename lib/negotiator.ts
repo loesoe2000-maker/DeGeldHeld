@@ -12,7 +12,20 @@
 
 import Groq from "groq-sdk";
 import type { Alternative } from "@/lib/comparison";
-import { ruleFor } from "@/lib/categories";
+import { ruleFor, vocabFor } from "@/lib/categories";
+import { providerTone, type ProviderTone } from "@/lib/providers";
+
+/**
+ * Map a provider-tone to the system-prompt tonality. Formal providers
+ * (KPN, ABN) get FORMEEL; casual ones (Bunq, Netflix) get CASUAL;
+ * neutral falls back to whatever the caller passed.
+ */
+function tonalityForProvider(provider: string, fallback: Tonality): Tonality {
+  const tone: ProviderTone = providerTone(provider);
+  if (tone === "formal") return "FORMEEL";
+  if (tone === "casual") return "CASUAL";
+  return fallback;
+}
 
 export type NegotiationStrategy =
   | "RETENTIE_DREIG"
@@ -156,6 +169,10 @@ function buildSystemPrompt(language: Language, tonality: Tonality): string {
 consumenten. Je schrijft een professionele e-mail aan het retentie-/klantbehoud-team
 van een provider om het maandbedrag te verlagen.
 
+Stem stijl af op de provider: KPN, ABN, Centraal Beheer zijn formeel ("Geachte
+heer/mevrouw" + u-vorm). Bunq, T-Mobile, Netflix zijn informeel ("Hoi" +
+jij-vorm). De caller heeft hieronder de juiste tonality al gekozen — volg die.
+
 Stijl: ${tonalityLabel}, 150-220 woorden — lang genoeg om overtuigend te zijn,
 kort genoeg om gelezen te worden.
 Taal: ${NATIVE_NAME[language]}.
@@ -203,6 +220,7 @@ function buildUserPrompt(opts: {
   const strategyDesc = strategyDescriptions[strategy];
   const catRule = ruleFor(input.category as never);
   const categoryHint = catRule.negotiable ? catRule.negotiationPlaybook : "";
+  const vocabHint = vocabFor(input.category as never);
   const targetCents = best
     ? best.plan.priceCents + 200
     : Math.round(input.currentMonthlyCents * 0.85);
@@ -234,6 +252,7 @@ Gewenst nieuw bedrag: €${(targetCents / 100).toFixed(2)}/maand
 Beste alternatief jaarlijkse besparing: €${best ? (best.yearlySavingsCents / 100).toFixed(0) : "0"}
 ${hint ? `Provider-tip: ${hint}` : ""}
 ${categoryHint ? `Categorie-tip (${catRule.label}): ${categoryHint}` : ""}
+${vocabHint.length > 0 ? `Gebruik bij ${catRule.label} expliciet termen zoals: ${vocabHint.join(", ")}.` : ""}
 ${roundHint}
 
 Schrijf de e-mail volgens de strategie en de 7 verplichte elementen. Wees concreet
@@ -242,7 +261,10 @@ en feitelijk. Noem expliciet "${input.provider}" in de body.`;
 
 export function buildPrompt(input: NegotiatorInput): { system: string; user: string } {
   const strategy = chooseStrategy(input);
-  const tonality = input.tonality ?? "FORMEEL";
+  // v12: provider-tone overrides the caller's default. KPN is always
+  // formal, Bunq is always casual — even if the caller asked CASUAL or
+  // FORMEEL respectively.
+  const tonality = tonalityForProvider(input.provider, input.tonality ?? "FORMEEL");
   const language = input.language ?? "nl";
   const hint = providerHint(input.provider);
   return {
@@ -332,8 +354,16 @@ export function signatureName(opts: {
   return "Klant";
 }
 
+/**
+ * Pick the right NL greeting for the fallback template. v12: explicit
+ * "Hoi" for CASUAL (Bunq, T-Mobile) to match the sprint done-criteria.
+ */
+function nlGreetingFor(tonality: Tonality): string {
+  return tonality === "FORMEEL" ? "Geachte heer/mevrouw" : "Hoi";
+}
+
 function fallbackTemplate(input: NegotiatorInput, strategy: NegotiationStrategy, tonality: Tonality, language: Language): NegotiatorOutput {
-  const greetingNL = tonality === "FORMEEL" ? "Geachte heer/mevrouw" : "Hallo";
+  const greetingNL = nlGreetingFor(tonality);
   const greetingEN = tonality === "FORMEEL" ? "Dear Sir/Madam" : "Hi";
   const closingNL = tonality === "FORMEEL" ? "Met vriendelijke groet" : "Groet";
   const closingEN = tonality === "FORMEEL" ? "Kind regards" : "Best";
@@ -380,18 +410,35 @@ ${displayName}${input.customerEmail && input.customerEmail.toLowerCase() !== dis
     };
   }
 
+  // v12: jij-vorm voor CASUAL tone (Bunq, T-Mobile). u-vorm voor FORMEEL.
+  const youSubject = tonality === "FORMEEL" ? "u" : "jij";
+  const yourPoss = tonality === "FORMEEL" ? "uw" : "jouw";
+  const writeVerb = tonality === "FORMEEL" ? "schrijf u" : "schrijf jou";
+  const askVerb = tonality === "FORMEEL" ? "vraag ik u" : "vraag ik je";
+  const closingPhrase = tonality === "FORMEEL"
+    ? `Ik ontvang graag ${yourPoss} concrete voorstel binnen 14 werkdagen op dit e-mailadres.`
+    : "Ik hoor graag binnen 14 werkdagen je voorstel op dit e-mailadres.";
+
+  // v12: category-specific vocab line so vocab-matching tests can pin
+  // ENERGIE → "kWh", VERZEKERING → "premie/dekking", etc.
+  const vocab = vocabFor(input.category as never);
+  const vocabLine = vocab.length > 0
+    ? `\n\nIk let bij ${input.provider} expliciet op het ${vocab.slice(0, 3).join(", ")}.`
+    : "";
+
   const body = `${greetingNL},
 
-Ik schrijf u over mijn ${input.provider}-account${klantnummerNL}. Ik ben al meerdere jaren klant${planLine}, met een huidig maandbedrag van €${huidig}.
+Ik ${writeVerb} over ${tonality === "FORMEEL" ? "mijn" : "mijn"} ${input.provider}-account${klantnummerNL}. Ik ben al meerdere jaren klant${planLine}, met een huidig maandbedrag van €${huidig}.
 
-Ik heb mijn contract vergeleken met het huidige marktaanbod. ${altProvider} biedt momenteel ${altName || "een vergelijkbaar pakket"} aan voor €${altPrice} per maand — dat is €${yearSaved} per jaar minder dan wat ik nu bij u betaal. Ook andere aanbieders bieden soortgelijke tarieven.
+Ik heb mijn contract vergeleken met het huidige marktaanbod. ${altProvider} biedt momenteel ${altName || "een vergelijkbaar pakket"} aan voor €${altPrice} per maand — dat is €${yearSaved} per jaar minder dan wat ik nu bij ${tonality === "FORMEEL" ? "u" : "jullie"} betaal. Ook andere aanbieders bieden soortgelijke tarieven.
 
-Ik hecht waarde aan continuïteit en blijf liever bij ${input.provider}. Daarom vraag ik u mijn maandbedrag te verlagen naar €${targetPrice}. Indien dat niet mogelijk is, zal ik binnen 30 dagen overstappen.
+Ik hecht waarde aan continuïteit en blijf liever bij ${input.provider}. Daarom ${askVerb} ${tonality === "FORMEEL" ? "mijn" : "mijn"} maandbedrag te verlagen naar €${targetPrice}. Indien dat niet mogelijk is, zal ik binnen 30 dagen overstappen.${vocabLine}
 
-Ik ontvang graag uw concrete voorstel binnen 14 werkdagen op dit e-mailadres.
+${closingPhrase}
 
 ${closingNL},
 ${displayName}${input.customerEmail && input.customerEmail.toLowerCase() !== displayName.toLowerCase() ? `\n${input.customerEmail}` : ""}`;
+  void youSubject; // jij/u handled per-substitution above
 
   return {
     subject: `Verzoek tariefherziening ${input.provider}${klantnummerNL}`,
@@ -407,7 +454,9 @@ ${displayName}${input.customerEmail && input.customerEmail.toLowerCase() !== dis
 
 export async function generateEmail(input: NegotiatorInput): Promise<NegotiatorOutput> {
   const strategy = chooseStrategy(input);
-  const tonality = input.tonality ?? "FORMEEL";
+  // v12: provider-tone overrides — same logic as buildPrompt so the
+  // LLM branch and the fallback template stay consistent.
+  const tonality = tonalityForProvider(input.provider, input.tonality ?? "FORMEEL");
   const language = input.language ?? "nl";
   const fallback = fallbackTemplate(input, strategy, tonality, language);
 

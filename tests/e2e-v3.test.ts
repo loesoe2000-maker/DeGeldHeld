@@ -55,11 +55,14 @@ describe("e2e-v3/comparison full flow Vodafone", () => {
 });
 
 describe("e2e-v3/negotiator + share", () => {
+  // v12: provider-tone overrides — T-Mobile is now tagged casual, so a
+  // FORMEEL caller-tonality is overridden. Use Vodafone (neutral) so
+  // the caller's FORMEEL request is respected.
   const input: NegotiatorInput = {
     customerName: "Bart",
-    provider: "T-Mobile",
+    provider: "Vodafone",
     category: "TELECOM",
-    currentPlan: "Go Unlimited",
+    currentPlan: "Red Unlimited",
     currentMonthlyCents: 3500,
     alternatives: [],
     tonality: "FORMEEL",

@@ -92,7 +92,15 @@ describe("negotiator-v3/buildPrompt tonality + language", () => {
   });
 
   it("CASUAL NL → je-vorm in system prompt", () => {
-    const { system } = buildPrompt({ ...baseInput, tonality: "CASUAL", language: "nl" });
+    // v12: KPN forces FORMEEL, so probe a casual-tagged provider for
+    // the je-vorm system label.
+    const { system } = buildPrompt({
+      ...baseInput,
+      provider: "Bunq",
+      category: "BANK",
+      tonality: "CASUAL",
+      language: "nl",
+    });
     expect(system.toLowerCase()).toMatch(/je-vorm|casual|direct/);
   });
 
@@ -155,9 +163,17 @@ describe("negotiator-v3/generateEmail fallback respects tonality+language", () =
     expect(out.language).toBe("nl");
   });
 
-  it("CASUAL NL fallback uses 'Hallo'", async () => {
-    const out = await generateEmail({ ...baseInput, tonality: "CASUAL", language: "nl" });
-    expect(out.body).toMatch(/Hallo/);
+  it("CASUAL NL fallback uses 'Hoi' (v12 — was 'Hallo' pre-v12)", async () => {
+    // v12: casual NL greeting is now 'Hoi' (matches sprint done-criteria
+    // 'Bunq mail bevat Hoi'). KPN is overridden to FORMEEL, so use Bunq.
+    const out = await generateEmail({
+      ...baseInput,
+      provider: "Bunq",
+      category: "BANK",
+      tonality: "CASUAL",
+      language: "nl",
+    });
+    expect(out.body).toMatch(/^Hoi,/m);
   });
 
   it("FORMEEL EN fallback uses 'Dear Sir/Madam'", async () => {
@@ -167,7 +183,14 @@ describe("negotiator-v3/generateEmail fallback respects tonality+language", () =
   });
 
   it("CASUAL EN fallback uses 'Hi'", async () => {
-    const out = await generateEmail({ ...baseInput, tonality: "CASUAL", language: "en" });
+    // v12: KPN forces FORMEEL — use a casual-tagged provider.
+    const out = await generateEmail({
+      ...baseInput,
+      provider: "Bunq",
+      category: "BANK",
+      tonality: "CASUAL",
+      language: "en",
+    });
     expect(out.body).toMatch(/Hi,/);
   });
 

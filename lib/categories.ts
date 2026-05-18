@@ -189,6 +189,48 @@ export function ruleFor(cat: Category): CategoryRules {
   return CATEGORY_RULES[cat] ?? CATEGORY_RULES.OVERIG;
 }
 
+/**
+ * v12 — category-specific negotiation vocabulary. Fed to the LLM as a
+ * prompt hint so the generated mail uses the terms a retentie-medewerker
+ * actually expects (e.g. ENERGIE mail mentions "kWh-tarief", VERZEKERING
+ * mentions "polisvoorwaarden"). Empty array = generic vocabulary.
+ */
+export const NEGOTIATION_VOCAB: Record<Category, string[]> = {
+  TELECOM: ["abonnement", "bundel", "klantbehoud-team", "tarief", "datapakket"],
+  ENERGIE: [
+    "kWh-tarief",
+    "vast tarief",
+    "voorschot",
+    "jaarafrekening",
+    "vastrecht",
+    "leveringskosten",
+  ],
+  WATER: ["m³-tarief", "vastrecht", "drinkwaterheffing"],
+  GEMEENTE: ["OZB", "afvalstoffenheffing", "riool­heffing", "kwijtschelding"],
+  VERZEKERING: ["premie", "dekking", "eigen risico", "polisvoorwaarden", "no-claim"],
+  HYPOTHEEK: [
+    "rente",
+    "oversluiten",
+    "rentevaste periode",
+    "NHG",
+    "rentemiddeling",
+    "boetevrije aflossing",
+  ],
+  BANK: ["betaalpakket", "rente", "spaargeld", "tarief", "fee-waiver"],
+  ABONNEMENT: ["abonnement", "jaartarief", "downgrade", "opzeg-termijn"],
+  STREAMING: ["abonnement", "tier", "ads-supported", "family-plan"],
+  GYM: ["abonnement", "jaarbetaling", "pause-functie"],
+  OV: ["abonnement", "dal-voordeel", "weekend-voordeel"],
+  SOFTWARE: ["abonnement", "jaarbetaling", "education-deal", "retentie-korting"],
+  OPSLAG: ["abonnement", "family-plan", "jaarpakket"],
+  OVERIG: [],
+};
+
+/** Vocabulary for a category, falling back to OVERIG (empty). */
+export function vocabFor(cat: Category): string[] {
+  return NEGOTIATION_VOCAB[cat] ?? NEGOTIATION_VOCAB.OVERIG;
+}
+
 // ─────────────────────────────────────────────────────────────
 // v10 — Primary categories + sub-types
 // 7 primary buckets + flexibele sub-types. De BillCategory enum
