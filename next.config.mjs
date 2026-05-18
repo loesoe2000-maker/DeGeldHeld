@@ -3,6 +3,21 @@ const nextConfig = {
   reactStrictMode: true,
   experimental: {
     serverActions: { bodySizeLimit: "10mb" },
+    // @napi-rs/canvas (gebruikt door lib/pdf_render.ts voor multi-page PDF
+    // → PNG rendering) is een native .node binary. Webpack kan die niet
+    // bundelen — markeer als external zodat 'm op de Vercel Node runtime
+    // dynamisch wordt geladen i.p.v. in de bundle.
+    serverComponentsExternalPackages: ["@napi-rs/canvas", "pdfjs-dist"],
+  },
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      // Voorkom dat webpack probeert .node binaries te parsen.
+      config.externals = config.externals || [];
+      config.externals.push({
+        "@napi-rs/canvas": "commonjs @napi-rs/canvas",
+      });
+    }
+    return config;
   },
   images: {
     remotePatterns: [{ protocol: "https", hostname: "**" }],
