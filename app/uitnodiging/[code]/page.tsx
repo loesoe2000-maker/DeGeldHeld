@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { cookies } from "next/headers";
 import { prisma } from "@/lib/db";
 import { isValidCode } from "@/lib/referral";
+import ReferralCookie from "./ReferralCookie";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Uitnodiging — DeGeldHeld" };
@@ -28,19 +28,14 @@ export default async function UitnodigingPage({
     select: { name: true, email: true },
   });
 
-  // Persist cookie zodat /login of /api/auth de referral kan oppikken bij signup.
-  const jar = await cookies();
-  jar.set("ref_code", code.toUpperCase(), {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    maxAge: 30 * 24 * 60 * 60,
-  });
-
+  // Cookie wordt client-side gezet (Next.js Server Components mogen geen
+  // cookies setten — alleen Route Handlers, Server Actions of middleware).
+  // ReferralCookie is een onzichtbare client-component die document.cookie zet.
   const naam = owner?.name ?? owner?.email?.split("@")[0] ?? "Een DeGeldHeld-klant";
 
   return (
     <main className="mx-auto max-w-2xl px-6 py-16">
+      <ReferralCookie code={code} />
       <div className="rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 p-10 text-white">
         <div className="text-sm font-medium uppercase tracking-wider text-brand-100">Uitnodiging</div>
         <h1 className="mt-2 text-3xl font-bold">{naam} nodigt je uit voor DeGeldHeld</h1>
