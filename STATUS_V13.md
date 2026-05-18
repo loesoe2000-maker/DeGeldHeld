@@ -10,7 +10,7 @@ zijn die hieronder gemarkeerd met een verwijzing naar het al-gedane commit.
 | 1 — Bug-jacht (4 bugs)              | SKIP (al gedaan)   | `f28b442` |
 | 2 — Multi-page PDF                  | DONE (text + vision) | new      |
 | 3 — Provider-tone + vocab           | SKIP (al gedaan)   | `d1af4c9` |
-| 4 — Auto-pingpong activeren         | _pending_          | _t.b.d._  |
+| 4 — Auto-pingpong activeren         | SKIP (al gedaan)   | `8767837` |
 | 5 — Bewijs-flow                     | _pending_          | _t.b.d._  |
 | 6 — 30-dagen recheck cron           | _pending_          | _t.b.d._  |
 | 7 — 20% no-cure-no-pay              | _pending_          | _t.b.d._  |
@@ -19,6 +19,18 @@ zijn die hieronder gemarkeerd met een verwijzing naar het al-gedane commit.
 
 Per-deeltaak details volgen hieronder. Dit document wordt per-deel
 geüpdatet — elk commit zet dat blok aan met een hash en 1-2 regels uitleg.
+
+## DEEL 4 — Auto-pingpong activeren ✓ skipped (already in `8767837`)
+
+- `lib/auto-pingpong.ts` met pure `discriminate()` + `dispatch()`.
+- Discriminate-by-subject: `[PROOF-<billId>]` → proof-flow,
+  `[NEGOTIATION-<negId>]` of In-Reply-To-thread → auto-pingpong.
+- `/api/inbound/router` muxt beide paden; HMAC + feature-flag.
+- Feature-flag `FEATURE_AUTO_PINGPONG=false` default.
+- Hard rule: user-confirm gate, geen auto-send naar provider.
+- Tests: tests/auto-pingpong-flow.test.ts,
+  tests/auto-pingpong-no-autosend.test.ts,
+  tests/inbound-router-discriminate.test.ts.
 
 ## DEEL 3 — Provider-tone + category vocab ✓ skipped (already in `d1af4c9`)
 
