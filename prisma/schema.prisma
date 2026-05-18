@@ -35,6 +35,15 @@ model User {
   suspendedAt          DateTime?
   suspendedReason      String?
 
+  // v13 subscription plan — optioneel maandabonnement (€4,99/mnd)
+  // als alternatief voor de no-cure-no-pay fee. status:
+  //   null      → no subscription, fee per verified saving
+  //   "active"  → unlimited negotiations included
+  //   "past_due"/"canceled" → fee-flow resumes
+  subscriptionStatus String?
+  subscriptionPlan   String?
+  subscriptionRenewsAt DateTime?
+
   // app data
   accounts      Account[]
   sessions      Session[]

@@ -13,16 +13,16 @@ const MIN_BILL_CENTS = 500; // €5,00 minimum
 export const PAYWALL_FEE_CENTS = 499; // €4,99
 
 // ─────────────────────────────────────────────────────────────
-// v11 — no-cure-no-pay pricing (FEATURE_NO_CURE_NO_PAY)
-// User explicitly set the rate at 20% (top of the industry
-// no-cure-no-pay range). Cap and floor are kept tight so the
-// fee never feels punitive: max €25, min €2.
+// v11 / v13 — no-cure-no-pay pricing (FEATURE_NO_CURE_NO_PAY)
+// User-pinned 20% rate (top of the industry no-cure-no-pay range).
+// v13 widened the bounds: cap €50, floor €2, charging threshold
+// drops to €25/year so smaller wins still trigger a (capped) fee.
 // ─────────────────────────────────────────────────────────────
 export const NO_CURE_NO_PAY_FEE_PCT = 0.20;
-export const NO_CURE_NO_PAY_FEE_CAP_CENTS = 2500; // €25,00
+export const NO_CURE_NO_PAY_FEE_CAP_CENTS = 5000; // €50,00 (v13: was €25)
 export const NO_CURE_NO_PAY_FEE_FLOOR_CENTS = 200; // €2,00
-/** Yearly savings below this threshold (€50) never trigger a fee. */
-export const NO_CURE_NO_PAY_MIN_SAVINGS_CENTS = 5000;
+/** Yearly savings below this threshold (€25, v13) never trigger a fee. */
+export const NO_CURE_NO_PAY_MIN_SAVINGS_CENTS = 2500;
 
 const apiKey = process.env.STRIPE_SECRET_KEY ?? "";
 let _stripe: Stripe | null = null;
@@ -69,15 +69,27 @@ export async function shouldChargeVerifiedFee(opts: {
   if (process.env.FEATURE_NO_CURE_NO_PAY !== "true") return false;
   if (opts.actualSavingsCents < NO_CURE_NO_PAY_MIN_SAVINGS_CENTS) return false;
   const adminList = (process.env.ADMIN_EMAILS ?? "").toLowerCase();
+  const u = await prisma.user.findUnique({
+    where: { id: opts.userId },
+    select: { email: true, subscriptionStatus: true },
+  });
   if (adminList) {
-    const u = await prisma.user.findUnique({
-      where: { id: opts.userId },
-      select: { email: true },
-    });
     const admins = adminList.split(",").map((e) => e.trim()).filter(Boolean);
     if (u?.email && admins.includes(u.email.toLowerCase())) return false;
   }
+  // v13: active subscribers bypass the per-saving fee.
+  if (u?.subscriptionStatus === "active") return false;
   return true;
+}
+
+/** Flat monthly subscription price as alternative to the fee. */
+export const SUBSCRIPTION_MONTHLY_CENTS = 499; // €4,99
+
+/** Pure check used by /account UI + middleware to render the right gate. */
+export function hasActiveSubscription(opts: {
+  subscriptionStatus?: string | null;
+}): boolean {
+  return opts.subscriptionStatus === "active";
 }
 
 export type CheckoutInput = {

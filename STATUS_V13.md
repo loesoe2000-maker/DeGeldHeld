@@ -13,12 +13,28 @@ zijn die hieronder gemarkeerd met een verwijzing naar het al-gedane commit.
 | 4 — Auto-pingpong activeren         | SKIP (al gedaan)   | `8767837` |
 | 5 — Bewijs-flow                     | SKIP (al gedaan)   | `3f9f750` |
 | 6 — 30-dagen recheck cron           | SKIP (al gedaan)   | `fefb3ef` |
-| 7 — 20% no-cure-no-pay              | _pending_          | _t.b.d._  |
+| 7 — 20% no-cure-no-pay              | DONE (v11+delta)   | new       |
 | 8 — Anti-fraud                      | _pending_          | _t.b.d._  |
 | 9 — Smoke 45 + STATUS + manual-setup | _pending_         | _t.b.d._  |
 
 Per-deeltaak details volgen hieronder. Dit document wordt per-deel
 geüpdatet — elk commit zet dat blok aan met een hash en 1-2 regels uitleg.
+
+## DEEL 7 — 20% no-cure-no-pay (v13 bounds) ✓ new on top of `68b7086`
+
+20%-fee + flag-gate al gedaan in v11 commit `68b7086`. v13 vraagt
+ander bounds + abonnement-alternatief — delta:
+
+- Cap €25 → **€50** (`NO_CURE_NO_PAY_FEE_CAP_CENTS = 5000`).
+- Min savings €50/jaar → **€25/jaar**
+  (`NO_CURE_NO_PAY_MIN_SAVINGS_CENTS = 2500`). Floor blijft €2.
+- Migration `20260518200000_subscription_fields` voegt drie velden
+  toe op `User`: `subscriptionStatus`, `subscriptionPlan`,
+  `subscriptionRenewsAt`.
+- `hasActiveSubscription()` helper + `SUBSCRIPTION_MONTHLY_CENTS` (€4,99).
+- `shouldChargeVerifiedFee()` bypass'd actieve abonnees naast admins.
+- `tests/fee-calc.test.ts` herschreven voor v13 bounds.
+- Nieuwe `tests/subscription-bypass.test.ts` (5 tests).
 
 ## DEEL 6 — 30-dagen recheck cron ✓ skipped (already in `fefb3ef`)
 
