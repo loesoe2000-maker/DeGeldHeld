@@ -15,10 +15,57 @@ zijn die hieronder gemarkeerd met een verwijzing naar het al-gedane commit.
 | 6 — 30-dagen recheck cron           | SKIP (al gedaan)   | `fefb3ef` |
 | 7 — 20% no-cure-no-pay              | DONE (v11+delta)   | new       |
 | 8 — Anti-fraud                      | SKIP (al gedaan)   | `330c4d7` |
-| 9 — Smoke 45 + STATUS + manual-setup | _pending_         | _t.b.d._  |
+| 9 — Smoke 45 + STATUS + manual-setup | DONE              | new       |
 
 Per-deeltaak details volgen hieronder. Dit document wordt per-deel
 geüpdatet — elk commit zet dat blok aan met een hash en 1-2 regels uitleg.
+
+## DEEL 9 — Smoke 45 + STATUS + MANUAL_SETUP ✓ new
+
+- `scripts/smoke-prod.ts` van 42 → **45 checks** (3 nieuwe):
+   43. GET `/account` (subscription fields migration applied — geen 500)
+   44. POST `/api/inbound/router` `[PROOF-]` bad sig → 401
+   45. GET `/api/health` reachable (flag snapshot endpoint)
+- `MANUAL_SETUP_REQUIRED.md` §11 v13 release checklist
+  (migrations 11a, env vars 11b, DNS/Resend/Stripe 11c, flag-flip 11d).
+- Deze STATUS_V13.md.
+
+## Done-criteria check (uit MEGA_SPRINT_V13.md)
+
+| Done-criterium | Verified door |
+|---|---|
+| Counter-mail bevat geen system-prompt instructie | tests/counter-mail-clean.test.ts |
+| Signature 1 naam + 1 email | tests/counter-mail-signature.test.ts |
+| BE-bill counter-mail noemt BE-provider | tests/counter-mail-country.test.ts |
+| Groq 3-retry + Sentry logging | tests/groq-retry.test.ts + lib/rounds.ts |
+| Eneco jaarafrekening → multi-page text + vision path | tests/pdf-multipage.test.ts + tests/pdf-render.test.ts |
+| KPN-mail "Geachte heer/mevrouw" + u-vorm | tests/tone-matching.test.ts |
+| Bunq-mail "Hoi" + jij-vorm | tests/tone-matching.test.ts |
+| Energie-mail "kWh" of "voorschot" | tests/vocab-matching.test.ts |
+| Auto-pingpong feature-flag route | tests/inbound-router-discriminate.test.ts |
+| Claim alleen met bewijs | tests/proof-flow.test.ts + tests/proof-skip.test.ts |
+| /proof toont alleen verified savings | tests/proof-skip.test.ts |
+| 30d cron + before/after diff | tests/recheck-cron.test.ts + tests/before-after-diff.test.ts |
+| Fee 20% bij verified savings >€25/jaar | tests/fee-calc.test.ts |
+| Admin bypass | tests/admin-bypass.test.ts |
+| Subscription bypass | tests/subscription-bypass.test.ts |
+| /admin/fraud admin gated | tests/admin-suspend.test.ts |
+| Smoke 45/45 routes geregistreerd | scripts/smoke-prod.ts |
+
+## Test totaal
+
+- Baseline (vóór v13): 1361 passed.
+- Na v13: 1380+ passed; 2 pre-existing FAQ failures (buiten scope).
+- Nieuwe v13 tests: pdf-render (4) + fee-calc rewrite (3 extra
+  bound-checks) + subscription-bypass (5).
+
+## Manual follow-ups
+
+Zie `MANUAL_SETUP_REQUIRED.md §11`:
+- `npx prisma migrate deploy` voor `20260518200000_subscription_fields`
+  + alle pending migrations uit v10/v11.
+- Stripe "DeGeldHeld Plus" recurring product voor subscription path.
+- Feature-flag flip-volgorde: PROOF → AUTO_PINGPONG → NO_CURE_NO_PAY.
 
 ## DEEL 8 — Anti-fraud ✓ skipped (already in `330c4d7`)
 

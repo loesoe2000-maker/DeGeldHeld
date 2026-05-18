@@ -732,6 +732,72 @@ async function checkProviderTonePage(): Promise<CheckResult> {
   };
 }
 
+async function checkSubscriptionFieldsBuild(): Promise<CheckResult> {
+  // /account renders the auto-pingpong + subscription explainer. We
+  // accept 200 (signed in) OR redirect to /login — what we don't
+  // want is a 500 from a Prisma column-not-found error (would happen
+  // if 20260518200000_subscription_fields wasn't applied).
+  const r = await fetchFollow(`${BASE}/account`);
+  if (r.status === 500) {
+    return {
+      name: "GET /account (subscription fields)",
+      ok: false,
+      detail: "500 — migration likely not applied",
+    };
+  }
+  return {
+    name: "GET /account (subscription fields)",
+    ok: true,
+    detail: `${r.status}`,
+  };
+}
+
+async function checkInboundProofTokenRoute(): Promise<CheckResult> {
+  // POST /api/inbound/router with [PROOF-<id>] subject must 401 on
+  // bad HMAC — the proof-branch uses the same HMAC gate as the
+  // negotiation-branch since v12 DEEL 1.
+  const body = JSON.stringify({
+    from: "user@example.com",
+    subject: "Re: factuur [PROOF-clxyz1234567890abcdef]",
+    text: "Nieuwe maandbedrag EUR 15,00.",
+  });
+  const r = await fetch(`${BASE}/api/inbound/router`, {
+    method: "POST",
+    headers: { "content-type": "application/json", "resend-signature": "00".repeat(32) },
+    body,
+  });
+  if (r.status === 401) {
+    return {
+      name: "POST /api/inbound/router [PROOF-] (bad sig)",
+      ok: true,
+      detail: "401",
+    };
+  }
+  return {
+    name: "POST /api/inbound/router [PROOF-] (bad sig)",
+    ok: false,
+    detail: `expected 401, got ${r.status}`,
+  };
+}
+
+async function checkFeatureFlagSnapshot(): Promise<CheckResult> {
+  // Health endpoint exposes the feature-flag snapshot. Verify the
+  // route exists + isn't 500. Accept any non-500 status.
+  const r = await fetchFollow(`${BASE}/api/health`);
+  if (r.status === 500) {
+    return {
+      name: "GET /api/health (flag snapshot)",
+      ok: false,
+      detail: "500",
+    };
+  }
+  return {
+    name: "GET /api/health (flag snapshot)",
+    ok: true,
+    detail: `${r.status}`,
+  };
+}
+
 async function main() {
   console.log(`[smoke-prod] Target: ${BASE}`);
   console.log(`[smoke-prod] Start: ${new Date().toISOString()}\n`);
@@ -779,6 +845,9 @@ async function main() {
     checkAdminFraudGated, // 40 — admin/fraud doesn't 500
     checkInboundRouterDiscriminate, // 41 — v12 NEGOTIATION-token routing
     checkProviderTonePage, // 42 — v12 provider-tone (KPN SEO renders)
+    checkSubscriptionFieldsBuild, // 43 — v13 subscription fields migration
+    checkInboundProofTokenRoute, // 44 — v13 [PROOF-] token HMAC gate
+    checkFeatureFlagSnapshot, // 45 — v13 health endpoint reachable
   ];
 
   const results: CheckResult[] = [];

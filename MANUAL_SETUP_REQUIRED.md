@@ -382,3 +382,64 @@ already covers Eneco/Vodafone/etc. jaarafrekeningen since pdfjs
 extracts their text natively.
 
 No external setup needed for the text path.
+
+v13 update: vision-render is **now live**. `@napi-rs/canvas@1.0.0` is
+in the deps (pre-built native bindings — Vercel-safe). `lib/pdf_render.ts`
+renders up to 5 pages and `extractFromPdf` now falls back through a
+multi-image Groq Vision call when the text-extraction path is empty
+or low-confidence.
+
+---
+
+## 11. v13 release checklist (final)
+
+Single source-of-truth for flipping the v11+v12+v13 flag stack to
+production. Order matters — apply migrations first, then env vars,
+then flip flags.
+
+### 11a. Migrations to apply
+
+```bash
+npx prisma migrate deploy
+```
+
+Pending migrations created in v10/v11/v13:
+- `20260518160000_bill_subtype`        — Bill.subType (v10)
+- `20260518170000_auto_pingpong`        — auto-pingpong (v10)
+- `20260518180000_outcome_proof`        — proof flow (v11)
+- `20260518190000_fraud_detection`      — fraud table (v11)
+- `20260518200000_subscription_fields`  — User subscription cols (v13)
+
+### 11b. Vercel env vars
+
+- `RESEND_INBOUND_SECRET`               — HMAC for `/api/inbound/router`
+- `RESEND_PROOF_WEBHOOK_SECRET`          — HMAC for the proof-branch
+  (if you split webhooks; otherwise the router endpoint is the mux)
+- `RESEND_INBOUND_DOMAIN=degeldheld.com` — Message-ID matcher
+- `APP_URL=https://degeldheld.com`      — deeplinks in notif mails
+- `CRON_SECRET`                         — bearer auth for cron routes
+- `ADMIN_EMAILS=…`                      — fee + suspend bypass
+
+### 11c. DNS / Resend / Stripe
+
+- MX-record for `auto.degeldheld.com`  → Resend inbound
+- MX-record for `bewijs.degeldheld.com` → Resend inbound
+- Webhook URL: `https://degeldheld.com/api/inbound/router` (handles
+  `[NEGOTIATION-]` + `[PROOF-]` + In-Reply-To fallback)
+- Stripe Product: "Verified savings fee" — **variable amount** so the
+  Checkout call sets `unit_amount` per session (v13 DEEL 7, cap €50).
+- Stripe Product: "DeGeldHeld Plus" — recurring €4,99/month (v13
+  DEEL 7d subscription alternative).
+
+### 11d. Feature-flag flip order
+
+After (a)/(b)/(c) are green AND `npm run smoke:prod` shows 45/45:
+
+```bash
+FEATURE_PROOF_REQUIRED=true       # proof-flow gates SUCCESS_SAVED
+FEATURE_AUTO_PINGPONG=true        # only after 1 dummy negotiation
+FEATURE_NO_CURE_NO_PAY=true       # only after 5 verified-savings flows
+```
+
+Each flag flip is a separate Vercel deploy. If anything regresses,
+flip back to `false` (no code revert needed).
