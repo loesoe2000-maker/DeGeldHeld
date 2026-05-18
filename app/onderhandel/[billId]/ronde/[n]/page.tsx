@@ -65,6 +65,47 @@ export default async function RoundPage({
         goed genoeg is en schrijven een counter-mail als dat helpt.
       </p>
 
+      {existingRound && existingRound.outcome === "AWAITING_USER_CONFIRM" && (
+        <section
+          data-testid="awaiting-confirm"
+          className="mt-8 rounded-xl border border-emerald-200 bg-emerald-50 p-5"
+        >
+          <h2 className="text-base font-semibold text-emerald-900">
+            Provider heeft gereageerd — counter-mail klaar voor verzending
+          </h2>
+          {existingRound.counterSubject && (
+            <p className="mt-2 text-sm font-medium text-emerald-900">
+              <strong>Onderwerp:</strong> {existingRound.counterSubject}
+            </p>
+          )}
+          {existingRound.counterBody && (
+            <pre className="mt-3 whitespace-pre-wrap text-sm text-emerald-900">
+              {existingRound.counterBody}
+            </pre>
+          )}
+          <form
+            action={`/api/negotiations/round/${existingRound.id}/confirm-send`}
+            method="post"
+            className="mt-4 flex flex-col gap-3 sm:flex-row"
+          >
+            <button
+              type="submit"
+              data-testid="confirm-send"
+              className="rounded-lg bg-brand-600 px-5 py-3 font-semibold text-white hover:bg-brand-700"
+            >
+              Verstuur counter via DeGeldHeld
+            </button>
+            <a
+              href={`/onderhandel/email?bill=${billId}`}
+              data-testid="edit-first"
+              className="rounded-lg border border-slate-300 bg-white px-5 py-3 text-center font-semibold text-slate-900 hover:bg-slate-50"
+            >
+              Wijzig eerst
+            </a>
+          </form>
+        </section>
+      )}
+
       {!existingRound ? (
         <div className="mt-8 rounded-xl border border-slate-200 bg-white p-6">
           <RoundForm negotiationId={negotiation.id} />

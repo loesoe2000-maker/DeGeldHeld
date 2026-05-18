@@ -195,3 +195,51 @@ Privacy guarantees baked into code:
 - Collection requires user `ocrTrainingOptIn = true`; toggle on `/account`.
 
 Migration: `ocr_training` applied.
+
+---
+
+## 7. Auto-pingpong (FEATURE_AUTO_PINGPONG) — v10
+
+Forwarded-reply → AI counter-mail → user-confirm → Resend send. **Off
+by default.** Flip `FEATURE_AUTO_PINGPONG=true` on Vercel *only* after
+the items below are green AND we have logged 5 real provider threads
+end-to-end without the confirm-gate being skipped.
+
+External setup (one-off):
+
+- [ ] Resend: create domain `auto.degeldheld.com` with MX records
+      pointing at Resend inbound MX (instructions in Resend dashboard).
+- [ ] Resend inbound webhook URL:
+      `https://degeldheld.com/api/inbound/router`
+- [ ] Generate a fresh HMAC secret (`openssl rand -hex 32`). Set in
+      Resend webhook config AND in Vercel env as
+      `RESEND_INBOUND_SECRET`.
+- [ ] Vercel env: `RESEND_INBOUND_DOMAIN=degeldheld.com` (the domain
+      used in outbound Message-ID — must match the regex in
+      `lib/email-thread.ts`).
+- [ ] Vercel env: `APP_URL=https://degeldheld.com` (used for
+      notification-mail deep-links).
+
+Smoke test before flipping the flag on:
+
+```bash
+# 1. Unsigned POST must return 401
+curl -X POST https://degeldheld.com/api/inbound/router -d '{}' -i
+
+# 2. With FEATURE_AUTO_PINGPONG=false but valid sig must return 503
+# 3. Forward a real provider reply to auto@degeldheld.com and confirm
+#    a row appears in NegotiationRound with outcome
+#    AWAITING_USER_CONFIRM. Do NOT skip the manual click on
+#    /onderhandel/[billId]/ronde/[n].
+```
+
+Hard rule, codified in `lib/inbound-router.ts` and the confirm-send
+endpoint: **the system never sends a counter-mail without a manual
+user click**. The webhook handler only writes a row; the
+`/api/negotiations/round/[id]/confirm-send` endpoint is the only path
+that hands the mail to Resend.
+
+Migration: `20260518170000_auto_pingpong` adds RoundOutcome
+`AWAITING_USER_CONFIRM` + `Negotiation.providerThreadId` +
+`NegotiationRound.{inboundMessageId,inboundReplyTo,confirmedSentAt}`.
+Run `npx prisma migrate deploy` against prod after merging.

@@ -122,6 +122,9 @@ enum RoundOutcome {
   ACCEPTED
   REJECTED
   ESCALATED
+  // v10 auto-pingpong: AI has drafted a counter-mail; user must
+  // confirm before it is sent via Resend.
+  AWAITING_USER_CONFIRM
 }
 
 enum PaymentStatus {
@@ -206,6 +209,11 @@ model Negotiation {
   mailUsed            Boolean   @default(false)  // user kopieerde/verstuurde
   providerResponded   Boolean?  // user gaf aan dat provider antwoordde
 
+  // v10 auto-pingpong: email thread tracking voor inbound matching.
+  // Resend webhook gebruikt In-Reply-To header om binnenkomende mail
+  // aan deze negotiation te koppelen.
+  providerThreadId String? @unique
+
   user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   bill    Bill     @relation(fields: [billId], references: [id], onDelete: Cascade)
   payment Payment?
@@ -261,6 +269,12 @@ model NegotiationRound {
   counterSubject   String?
   counterBody      String?      @db.Text
   outcome          RoundOutcome @default(PENDING)
+  // v10 auto-pingpong: optional inbound-Resend metadata + confirm-send
+  // bookkeeping. confirmedSentAt is set when the user clicks "Verstuur
+  // counter via DeGeldHeld" en de mail daadwerkelijk via Resend gaat.
+  inboundMessageId String?
+  inboundReplyTo   String?
+  confirmedSentAt  DateTime?
   createdAt        DateTime     @default(now())
 
   negotiation Negotiation @relation(fields: [negotiationId], references: [id], onDelete: Cascade)

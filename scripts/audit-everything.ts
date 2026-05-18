@@ -36,6 +36,7 @@ const STATIC_PAGES = [
   "/demo",
   "/account",
   "/account/banks",
+  "/prijs",
 ];
 
 // admin-only pages are intentionally skipped from the audit since they
@@ -76,6 +77,7 @@ const API_PROBES: ApiProbe[] = [
   { path: "/api/checkout", method: "POST", body: {}, expectJson: true, okStatuses: [400, 401] },
   { path: "/api/providers/discover", method: "POST", body: {}, expectJson: true, okStatuses: [400, 401] },
   { path: "/api/inbound", method: "POST", body: {}, expectJson: true, okStatuses: [400, 401] },
+  { path: "/api/inbound/router", method: "POST", body: {}, expectJson: true, okStatuses: [401, 503] },
   { path: "/api/account/export", method: "GET", okStatuses: [200, 401] },
   { path: "/api/account/delete", method: "POST", body: {}, expectJson: true, okStatuses: [400, 401] },
   { path: "/api/account/prefs", method: "POST", body: {}, expectJson: true, okStatuses: [400, 401] },

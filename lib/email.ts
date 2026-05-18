@@ -15,6 +15,7 @@ export async function sendEmail(opts: {
   subject: string;
   html: string;
   text?: string;
+  headers?: Record<string, string>;
 }) {
   if (!apiKey || apiKey === "re_test_dummy") {
     return { id: "test-noop", skipped: true };
@@ -25,6 +26,7 @@ export async function sendEmail(opts: {
     subject: opts.subject,
     html: opts.html,
     text: opts.text,
+    headers: opts.headers,
   });
   return { id: result.data?.id ?? "unknown", skipped: false };
 }

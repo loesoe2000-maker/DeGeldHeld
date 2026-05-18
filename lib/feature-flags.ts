@@ -23,6 +23,9 @@ const FLAG_DEFAULTS = {
   EMAIL_INBOUND_ENABLED: true,
   // On by default — referral viral loop (v7)
   REFERRAL_ENABLED: true,
+  // Off by default — auto-pingpong needs proven Resend inbound + 5
+  // tested threads before flipping. User-confirm gate is mandatory.
+  AUTO_PINGPONG: false,
 } as const;
 
 export type FeatureFlag = keyof typeof FLAG_DEFAULTS;

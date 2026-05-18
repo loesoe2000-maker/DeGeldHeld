@@ -57,6 +57,30 @@ export default async function AccountPage() {
         initialOcrTrainingOptIn={user.ocrTrainingOptIn}
       />
 
+      <section
+        data-testid="auto-pingpong-toggle"
+        className="mt-8 rounded-xl border border-slate-200 bg-white p-5"
+      >
+        <h2 className="text-lg font-semibold text-slate-900">Auto-onderhandeling</h2>
+        <p className="mt-1 text-sm text-slate-600">
+          Stuur het antwoord van je provider door naar{" "}
+          <strong>auto@degeldheld.com</strong> (subject: link naar de
+          onderhandeling). Onze AI schrijft een counter-mail en zet die
+          klaar — <em>jij moet altijd zelf bevestigen</em> voordat 'm
+          verzonden wordt. We versturen nooit autonoom.
+        </p>
+        <ul className="mt-3 list-disc pl-5 text-sm text-slate-600">
+          <li>Provider stuurt antwoord per email</li>
+          <li>Jij forward naar auto@degeldheld.com</li>
+          <li>AI maakt counter-mail klaar in /onderhandel/[bill]/ronde/[n]</li>
+          <li>Jij klikt "Verstuur counter via DeGeldHeld" — pas dan gaat 'm uit</li>
+        </ul>
+        <p className="mt-3 text-xs text-slate-500">
+          Feature staat default UIT. Wordt aangezet zodra Resend inbound
+          met 5 echte threads is getest. Zie MANUAL_SETUP_REQUIRED.md.
+        </p>
+      </section>
+
       <section className="mt-8 rounded-xl border border-slate-200 bg-white p-5">
         <h2 className="text-lg font-semibold text-slate-900">Bank-koppelingen (PSD2)</h2>
         <p className="mt-1 text-sm text-slate-600">
