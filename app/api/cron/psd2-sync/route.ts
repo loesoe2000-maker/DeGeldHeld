@@ -4,6 +4,7 @@ import { decryptToken } from "@/lib/crypto";
 import { listAccounts, listTransactions, isPsd2Enabled } from "@/lib/psd2/tink";
 import { detectRecurring } from "@/lib/psd2/detect-bills";
 import { acquireCronLock, releaseCronLock } from "@/lib/cron-lock";
+import * as Sentry from "@sentry/nextjs";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -76,6 +77,9 @@ export async function GET(req: NextRequest) {
           data: { status: "expired" },
         });
       }
+      Sentry.captureException(e, {
+        tags: { module: "cron/psd2-sync", connectionId: conn.id },
+      });
     }
   }
   await releaseCronLock({ id: lockId, itemsProcessed: detected, ok: true });

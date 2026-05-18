@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { sendEmail } from "@/lib/email";
 import { buildComparison } from "@/lib/comparison";
 import { acquireCronLock, releaseCronLock } from "@/lib/cron-lock";
+import * as Sentry from "@sentry/nextjs";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -29,6 +30,7 @@ export async function GET(req: NextRequest) {
     return await runMonthlyRecheck(lockId);
   } catch (e) {
     await releaseCronLock({ id: lockId, itemsProcessed: 0, ok: false });
+    Sentry.captureException(e, { tags: { module: "cron/monthly-recheck" } });
     throw e;
   }
 }

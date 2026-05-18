@@ -443,3 +443,36 @@ FEATURE_NO_CURE_NO_PAY=true       # only after 5 verified-savings flows
 
 Each flag flip is a separate Vercel deploy. If anything regresses,
 flip back to `false` (no code revert needed).
+
+---
+
+## 12. Sentry alerts (v14 DEEL 4)
+
+Sentry SDK is wired via `instrumentation.ts` (server + edge) and
+`sentry.client.config.ts`. All 5 cron routes + 5 lib modules now
+call `Sentry.captureException` from their catch-blocks
+(audit in v14 DEEL 4 added the 3 missing crons: outcome-followup,
+psd2-sync, monthly-recheck).
+
+Configure these alerts in the Sentry dashboard
+(Settings → Alerts → New alert rule):
+
+1. **Issue first seen** — When a new issue is created.
+   *Trigger:* Always. *Action:* Email to `hallo@degeldheld.com` +
+   Slack `#alerts` if you have Slack.
+
+2. **Error rate spike** — `event.count > 5` in 1 hour.
+   *Action:* "Critical" tag → email immediately.
+
+3. **Performance regression** — When P95 transaction duration
+   for `/api/bills/upload` doubles week-over-week.
+   *Action:* Daily digest (not paged).
+
+4. **Cron-job failure** — Filter `tags.module:cron/*` AND
+   `level:error`. *Action:* Email when count > 0 in last 4 hours.
+
+Test the alert plumbing:
+```
+curl https://degeldheld.com/api/test-sentry?test=1
+```
+Expect a Sentry event within 30 seconds.

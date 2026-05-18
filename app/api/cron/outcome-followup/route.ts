@@ -4,6 +4,7 @@ import { sendEmail } from "@/lib/email";
 import { followUpBrandedHtml, followUpBrandedSubject } from "@/lib/email_templates";
 import { signOutcomeToken } from "@/lib/outcome_token";
 import { acquireCronLock, releaseCronLock } from "@/lib/cron-lock";
+import * as Sentry from "@sentry/nextjs";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -81,6 +82,9 @@ async function runOutcomeFollowup(lockId: string) {
     } catch (e) {
       console.error(`outcome-followup failed for ${n.id}`, e);
       failed += 1;
+      Sentry.captureException(e, {
+        tags: { module: "cron/outcome-followup", negotiationId: n.id },
+      });
     }
   }
 
