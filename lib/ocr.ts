@@ -74,6 +74,12 @@ export type OcrResult = {
  * Asks model to extract whatever provider name appears, in any language.
  */
 const SYSTEM_PROMPT = `Je bent een multilingual OCR-engine voor facturen (NL/EN/DE/FR/ES/IT).
+De input kan meerdere pagina's van dezelfde factuur bevatten (jaarafrekeningen
+hebben totaalbedrag op pagina 1 en specificatie op pagina 2-5). Pagina's
+worden gescheiden met "--- page N ---" markers. Combineer informatie over
+pagina's heen — het maandbedrag staat soms alleen op pagina 1, soms moet
+het berekend worden uit jaartotaal + maanden op latere pagina's.
+
 Lees de factuur en extracteer:
   - provider: bedrijfs-/leveranciersnaam (zoals afgedrukt, geen interpretatie)
   - monthly_subscription_eur: vaste maandelijkse abonnementsprijs in euro
@@ -350,10 +356,18 @@ export function parseOcrJson(raw: string): Partial<OcrResult> {
   }
 }
 
+/**
+ * Vision call. Accepts ONE or MORE data-URLs so the same call site
+ * can ship a single-image bill or a multi-page rendering of a PDF
+ * (v12 DEEL 2). Llama-4 Scout/Maverick accept multi-image input.
+ *
+ * Cost-guard: caller is expected to cap pages to MAX_PDF_PAGES (5).
+ */
 async function tryModel(
   model: string,
-  dataUrl: string,
+  dataUrls: string | string[],
 ): Promise<{ raw: string; err?: Error }> {
+  const urls = Array.isArray(dataUrls) ? dataUrls : [dataUrls];
   try {
     const resp = await client().chat.completions.create({
       model,
@@ -362,7 +376,7 @@ async function tryModel(
           role: "user",
           content: [
             { type: "text", text: SYSTEM_PROMPT },
-            { type: "image_url", image_url: { url: dataUrl } },
+            ...urls.map((url) => ({ type: "image_url" as const, image_url: { url } })),
           ],
         },
       ],
