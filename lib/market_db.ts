@@ -8,7 +8,8 @@
  * Run scripts/seed.ts om te schrijven naar Postgres. Idempotent.
  */
 
-import type { Category } from "@/lib/providers";
+import type { Category, Country } from "@/lib/providers";
+import { providerCountry } from "@/lib/providers";
 
 export type SeedPlan = {
   provider: string;
@@ -16,6 +17,8 @@ export type SeedPlan = {
   name: string;
   priceCents: number;
   features: string;
+  /** Country waar dit plan beschikbaar is. Default afgeleid via providerCountry(). */
+  country?: Country;
 };
 
 export const MARKET_PLANS: SeedPlan[] = [
@@ -221,7 +224,123 @@ export const MARKET_PLANS: SeedPlan[] = [
   { provider: "Waternet", category: "OVERIG", name: "Drinkwater abonnement", priceCents: 1500, features: "Standaard" },
   { provider: "PostNL", category: "OVERIG", name: "Pakketten Maand", priceCents: 800, features: "Maandabonnement" },
   { provider: "DPD", category: "OVERIG", name: "Pakketten Maand", priceCents: 800, features: "Maandabonnement" },
+
+  // ─────────────────────────────────────────────────────────────
+  // v10 — country-specific coverage gap-fill (≥5 alternatives per land × cat)
+  // Prijzen indicatief op basis van publieke tarieven mei 2026.
+  // ─────────────────────────────────────────────────────────────
+
+  // ===== BE ENERGIE (live bug-fix: BE Eneco kreeg ES/FR alternatieven) =====
+  { provider: "Engie Electrabel", category: "ENERGIE", name: "Easy Indexed", priceCents: 14500, features: "BE variabel indexed" },
+  { provider: "Engie Electrabel", category: "ENERGIE", name: "Fixed 1 jaar", priceCents: 16200, features: "BE 1jr vast" },
+  { provider: "Luminus", category: "ENERGIE", name: "ComfyFix 1jr", priceCents: 15800, features: "BE 1jr vast groen" },
+  { provider: "Luminus", category: "ENERGIE", name: "Optifix Variabel", priceCents: 14200, features: "BE variabel" },
+  { provider: "TotalEnergies BE", category: "ENERGIE", name: "Pixel Fixed 1jr", priceCents: 15500, features: "BE 1jr vast online" },
+  { provider: "Mega", category: "ENERGIE", name: "OnlineFlex", priceCents: 13900, features: "BE variabel online only" },
+  { provider: "Eneco BE", category: "ENERGIE", name: "VAST 1 jaar", priceCents: 15200, features: "BE 1jr vast NL-origin" },
+
+  // ===== BE TELECOM =====
+  { provider: "Orange BE", category: "TELECOM", name: "Go Plus 25GB", priceCents: 2500, features: "BE 25 GB" },
+  { provider: "Mobile Vikings", category: "TELECOM", name: "Wonderland 15GB", priceCents: 1500, features: "BE 15 GB sim only" },
+
+  // ===== BE VERZEKERING =====
+  { provider: "AG Insurance", category: "VERZEKERING", name: "Auto Standard", priceCents: 3800, features: "BE auto basis" },
+  { provider: "Ethias", category: "VERZEKERING", name: "Auto Comfort", priceCents: 3500, features: "BE auto online scherp" },
+  { provider: "AXA BE", category: "VERZEKERING", name: "Auto Comfort+", priceCents: 4100, features: "BE auto + extra dekking" },
+  { provider: "KBC", category: "VERZEKERING", name: "Auto Easy", priceCents: 3900, features: "BE auto via bank" },
+  { provider: "DKV BE", category: "VERZEKERING", name: "Hospi Basic", priceCents: 2200, features: "BE hospitalisatie" },
+
+  // ===== BE BANK =====
+  { provider: "KBC", category: "BANK", name: "Plus Account", priceCents: 600, features: "BE betaalpakket" },
+  { provider: "Belfius", category: "BANK", name: "Comfort Account", priceCents: 650, features: "BE betaalpakket" },
+  { provider: "ING BE", category: "BANK", name: "Lion Account", priceCents: 500, features: "BE betaalpakket" },
+  { provider: "BNP Paribas Fortis", category: "BANK", name: "Hello4You", priceCents: 0, features: "BE digitaal gratis" },
+  { provider: "Argenta BE", category: "BANK", name: "Privé Comfort", priceCents: 0, features: "BE gratis basis" },
+
+  // ===== DE — fill-in =====
+  { provider: "Vattenfall DE", category: "ENERGIE", name: "EasyStrom 12", priceCents: 11900, features: "DE 12mnd vast" },
+  { provider: "EnBW", category: "ENERGIE", name: "PlusStrom Komfort", priceCents: 12300, features: "DE 12mnd vast" },
+  { provider: "Congstar", category: "TELECOM", name: "Allnet Flat M", priceCents: 1500, features: "DE 10 GB op DT-netz" },
+  { provider: "Klarmobil", category: "TELECOM", name: "Smart Flat 10 GB", priceCents: 1295, features: "DE 10 GB" },
+  { provider: "Allianz DE", category: "VERZEKERING", name: "Kfz Comfort", priceCents: 4500, features: "DE auto Vollkasko" },
+  { provider: "AXA DE", category: "VERZEKERING", name: "Kfz Komfort", priceCents: 4200, features: "DE auto" },
+  { provider: "DEVK", category: "VERZEKERING", name: "Kfz Basis", priceCents: 3800, features: "DE auto basis" },
+  { provider: "Debeka", category: "VERZEKERING", name: "Hausrat Plus", priceCents: 1800, features: "DE inboedel" },
+  { provider: "DKB", category: "BANK", name: "Aktiv-Konto", priceCents: 0, features: "DE direct-bank" },
+  { provider: "Sparkasse", category: "BANK", name: "Giro Klassik", priceCents: 595, features: "DE filiaalbank" },
+
+  // ===== FR — fill-in =====
+  { provider: "Sosh", category: "TELECOM", name: "Forfait 100GB", priceCents: 1499, features: "FR 100 GB MVNO Orange" },
+  { provider: "RED by SFR", category: "TELECOM", name: "RED 100GB", priceCents: 1599, features: "FR 100 GB MVNO SFR" },
+  { provider: "B&You", category: "TELECOM", name: "B&You 130GB", priceCents: 1399, features: "FR 130 GB MVNO Bouygues" },
+  { provider: "Eni Plenitude", category: "ENERGIE", name: "Plenitude Fixe", priceCents: 10500, features: "FR vast" },
+  { provider: "Mint Energie", category: "ENERGIE", name: "Online & Green", priceCents: 10200, features: "FR online groen" },
+  { provider: "MAIF", category: "VERZEKERING", name: "Auto VAM", priceCents: 4400, features: "FR auto mutuelle" },
+  { provider: "MACIF", category: "VERZEKERING", name: "Auto Garanties+", priceCents: 4500, features: "FR auto" },
+  { provider: "Matmut", category: "VERZEKERING", name: "Auto Confort", priceCents: 4300, features: "FR auto" },
+  { provider: "Crédit Agricole", category: "BANK", name: "Eko", priceCents: 200, features: "FR digitaal" },
+  { provider: "Boursorama", category: "BANK", name: "Welcome", priceCents: 0, features: "FR gratis online" },
+
+  // ===== UK — fill-in =====
+  { provider: "BT", category: "TELECOM", name: "Full Fibre 100", priceCents: 3500, features: "UK 100 Mbps glas" },
+  { provider: "Sky", category: "TELECOM", name: "Stream + Netflix", priceCents: 2999, features: "UK streaming" },
+  { provider: "EE", category: "TELECOM", name: "Smart Unlimited 5G", priceCents: 3500, features: "UK 5G unlimited" },
+  { provider: "Three", category: "TELECOM", name: "Unlimited Data 5G", priceCents: 2200, features: "UK 5G unlimited" },
+  { provider: "O2 UK", category: "TELECOM", name: "Unlimited Plus", priceCents: 3500, features: "UK 5G unlimited" },
+  { provider: "Virgin Media", category: "TELECOM", name: "M100 Fibre", priceCents: 3200, features: "UK 100 Mbps glas" },
+  { provider: "OVO Energy", category: "ENERGIE", name: "OVO 1 Year Fixed", priceCents: 12600, features: "UK 1yr vast" },
+  { provider: "E.ON Next", category: "ENERGIE", name: "Next Flex", priceCents: 12700, features: "UK variabel" },
+  { provider: "EDF Energy UK", category: "ENERGIE", name: "Easy Online", priceCents: 12800, features: "UK online tariff" },
+  { provider: "ScottishPower", category: "ENERGIE", name: "Standard Variable", priceCents: 13100, features: "UK variabel" },
+  { provider: "Aviva", category: "VERZEKERING", name: "Car Comprehensive", priceCents: 4900, features: "UK auto comprehensive" },
+  { provider: "Direct Line", category: "VERZEKERING", name: "Car Cover", priceCents: 5100, features: "UK auto direct" },
+  { provider: "LV=", category: "VERZEKERING", name: "Car Essentials", priceCents: 4700, features: "UK auto basic" },
+  { provider: "NatWest", category: "BANK", name: "Reward", priceCents: 200, features: "UK rewarded current" },
+  { provider: "Monzo", category: "BANK", name: "Standard", priceCents: 0, features: "UK app-only" },
+
+  // ===== ES — fill-in =====
+  { provider: "Orange ES", category: "TELECOM", name: "Love 50GB", priceCents: 2500, features: "ES bundel" },
+  { provider: "Vodafone ES", category: "TELECOM", name: "One 50GB", priceCents: 2800, features: "ES 50 GB" },
+  { provider: "MasMovil", category: "TELECOM", name: "Sin Limites", priceCents: 2000, features: "ES onbeperkt" },
+  { provider: "Yoigo", category: "TELECOM", name: "Sinfin 100", priceCents: 1900, features: "ES 100 GB" },
+  { provider: "Naturgy", category: "ENERGIE", name: "Tarifa Por Uso", priceCents: 9700, features: "ES variabel" },
+  { provider: "Repsol", category: "ENERGIE", name: "Ahorro Plus", priceCents: 9400, features: "ES variabel" },
+  { provider: "Mapfre", category: "VERZEKERING", name: "Auto Terceros", priceCents: 3500, features: "ES auto terceros" },
+  { provider: "Mutua Madrileña", category: "VERZEKERING", name: "Auto Plus", priceCents: 3800, features: "ES auto" },
+  { provider: "CaixaBank", category: "BANK", name: "Cuenta Ahora", priceCents: 0, features: "ES gratis" },
+  { provider: "Sabadell", category: "BANK", name: "Cuenta Online", priceCents: 0, features: "ES online gratis" },
+
+  // ===== IT — fill-in =====
+  { provider: "Vodafone IT", category: "TELECOM", name: "RED Unlimited", priceCents: 1999, features: "IT onbeperkt" },
+  { provider: "WindTre", category: "TELECOM", name: "GO 200 Top", priceCents: 1499, features: "IT 200 GB" },
+  { provider: "Iliad", category: "TELECOM", name: "Giga 150", priceCents: 999, features: "IT 150 GB scherp" },
+  { provider: "Fastweb", category: "TELECOM", name: "Mobile Full", priceCents: 1295, features: "IT bundel" },
+  { provider: "Eni Gas e Luce", category: "ENERGIE", name: "Plenitude IT", priceCents: 12200, features: "IT vast" },
+  { provider: "A2A", category: "ENERGIE", name: "Click Energia", priceCents: 12800, features: "IT online" },
+  { provider: "Edison", category: "ENERGIE", name: "Edison Web", priceCents: 12600, features: "IT online" },
 ];
+
+/**
+ * Resolve the country of a plan. Prefers `plan.country` when set, else
+ * derives it from the provider's canonical country, falling back to "NL".
+ */
+export function planCountry(plan: SeedPlan): Country {
+  if (plan.country) return plan.country;
+  const c = providerCountry(plan.provider);
+  return c ?? "NL";
+}
+
+/**
+ * Plans for a category in a specific country. Plans tagged as "INT"
+ * (streaming/software/etc) are included for every country.
+ */
+export function plansForCategoryAndCountry(cat: Category, country: Country): SeedPlan[] {
+  return MARKET_PLANS.filter((p) => {
+    if (p.category !== cat) return false;
+    const c = planCountry(p);
+    return c === country || c === "INT";
+  });
+}
 
 export function plansForCategory(cat: Category): SeedPlan[] {
   return MARKET_PLANS.filter((p) => p.category === cat);

@@ -1,8 +1,19 @@
-import { MARKET_PLANS, type SeedPlan } from "@/lib/market_db";
-import type { Category } from "@/lib/providers";
+import { MARKET_PLANS, planCountry, type SeedPlan } from "@/lib/market_db";
+import type { Category, Country } from "@/lib/providers";
 import { ruleFor, type ComparisonUnit } from "@/lib/categories";
 
 export type { ComparisonUnit };
+
+/**
+ * Regio-monopolie categorieën: hier heeft de consument géén keuze in
+ * leverancier (water/gemeente in NL/BE, gemeente-belasting wereldwijd).
+ * Onderhandelen heeft hier weinig zin — UI toont een aparte message-card.
+ */
+export function isMonopolyCategory(category: Category, country: Country = "NL"): boolean {
+  if (category === "GEMEENTE") return true;
+  if (category === "WATER" && (country === "NL" || country === "BE" || country === "DE")) return true;
+  return false;
+}
 
 export function comparisonUnitFor(cat: Category): ComparisonUnit {
   return ruleFor(cat).comparisonUnit;
@@ -61,10 +72,14 @@ export function getCheaperAlternatives(
   category: Category,
   currentAmountCents: number,
   topN = 3,
+  country: Country = "NL",
 ): Alternative[] {
-  const candidates = MARKET_PLANS.filter(
-    (p) => p.category === category && p.priceCents < currentAmountCents,
-  );
+  const candidates = MARKET_PLANS.filter((p) => {
+    if (p.category !== category) return false;
+    if (p.priceCents >= currentAmountCents) return false;
+    const c = planCountry(p);
+    return c === country || c === "INT";
+  });
 
   const sorted = candidates.sort((a, b) => {
     const aSameProv = a.provider.toLowerCase() === currentProvider.toLowerCase() ? 1 : 0;
@@ -111,8 +126,16 @@ function rationaleFor(
  * Compute market price range for a category.
  * userPercentile = 100 → user is most expensive in market.
  */
-export function getMarketRange(category: Category, userAmountCents: number): MarketRange {
-  const prices = MARKET_PLANS.filter((p) => p.category === category)
+export function getMarketRange(
+  category: Category,
+  userAmountCents: number,
+  country: Country = "NL",
+): MarketRange {
+  const prices = MARKET_PLANS.filter((p) => {
+    if (p.category !== category) return false;
+    const c = planCountry(p);
+    return c === country || c === "INT";
+  })
     .map((p) => p.priceCents)
     .sort((a, b) => a - b);
 
@@ -167,10 +190,18 @@ export function buildComparison(input: {
   category: Category;
   amountCents: number;
   providerKnown?: boolean;
+  country?: Country;
 }): ComparisonResult {
-  const top = getCheaperAlternatives(input.provider, input.category, input.amountCents);
+  const country: Country = input.country ?? "NL";
+  const top = getCheaperAlternatives(
+    input.provider,
+    input.category,
+    input.amountCents,
+    3,
+    country,
+  );
   const best = top[0];
-  const range = getMarketRange(input.category, input.amountCents);
+  const range = getMarketRange(input.category, input.amountCents, country);
   const confidencePct = computeConfidence({
     alternatives: top,
     range,
@@ -178,7 +209,7 @@ export function buildComparison(input: {
     providerKnown: input.providerKnown ?? true,
   });
   return {
-    current: input,
+    current: { provider: input.provider, category: input.category, amountCents: input.amountCents },
     topAlternatives: top,
     bestSavingsCents: best?.yearlySavingsCents ?? 0,
     bestSavingsPct: best?.percentSaved ?? 0,

@@ -62,7 +62,7 @@ import type { AppSession } from "@/lib/auth";
 type Analysis = Awaited<ReturnType<typeof analyseProviderResponse>>;
 type LoadedNegotiation = NonNullable<
   Awaited<ReturnType<typeof prisma.negotiation.findFirst>>
-> & { bill: { provider: string; category: string; amountCents: number; monthlyCents: number | null; plan: string | null; customerNumber: string | null }; rounds: { offeredCents: number | null }[] };
+> & { bill: { provider: string; category: string; amountCents: number; monthlyCents: number | null; plan: string | null; customerNumber: string | null; country: string | null }; rounds: { offeredCents: number | null }[] };
 
 function actionToOutcome(action: Analysis["action"]): "ACCEPTED" | "REJECTED" | "ESCALATED" | "PENDING" {
   if (action === "accept") return "ACCEPTED";
@@ -83,6 +83,7 @@ async function generateCounterIfNeeded(opts: {
     provider: negotiation.bill.provider,
     category: negotiation.bill.category as never,
     amountCents: negotiation.bill.amountCents,
+    country: (negotiation.bill.country as import("@/lib/providers").Country | null) ?? "NL",
   });
   const previousOfferedCents =
     opts.analysis.offeredCents ??

@@ -2,7 +2,8 @@ import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import Comparison from "@/components/Comparison";
-import { buildComparison } from "@/lib/comparison";
+import { buildComparison, isMonopolyCategory } from "@/lib/comparison";
+import type { Country } from "@/lib/providers";
 import { requiresPayment } from "@/lib/payments";
 import { compareEnergy } from "@/lib/categories/energie";
 import { compareInsurance, type InsuranceCoverageType } from "@/lib/categories/verzekering";
@@ -86,6 +87,7 @@ export default async function AnalysePage({
     provider: bill.provider,
     category: bill.category,
     amountCents: comparisonAmount,
+    country: (bill.country as Country | null) ?? "NL",
   });
 
   // Toon blauwe info-balk als factuur eenmalige posten bevat (>5% verschil
@@ -135,6 +137,25 @@ export default async function AnalysePage({
           €{(oneTimeDeltaCents / 100).toFixed(2).replace(".", ",")} aan eenmalige
           posten. We vergelijken op je vaste maand-abonnement van{" "}
           €{((bill.monthlyCents ?? 0) / 100).toFixed(2).replace(".", ",")}.
+        </div>
+      )}
+      {isMonopolyCategory(bill.category, (bill.country as Country | null) ?? "NL") && (
+        <div
+          role="status"
+          data-testid="monopoly-banner"
+          className="mt-6 rounded-xl border border-slate-300 bg-slate-50 p-5 text-sm text-slate-900"
+        >
+          <h2 className="text-base font-semibold">Dit is een regio-monopolie</h2>
+          <p className="mt-1">
+            Onderhandelen heeft hier weinig effect — je kunt niet overstappen
+            naar een andere leverancier. Wel kun je besparen door je verbruik
+            te verlagen.
+          </p>
+          <ul className="mt-2 list-disc pl-5">
+            <li>Controleer of er kwijtschelding mogelijk is bij laag inkomen.</li>
+            <li>Check water-besparingstips (douche timer, kraan-perlator).</li>
+            <li>Stel automatische incasso in om aanmaningskosten te voorkomen.</li>
+          </ul>
         </div>
       )}
       <div className="mt-8">

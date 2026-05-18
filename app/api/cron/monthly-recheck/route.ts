@@ -61,6 +61,7 @@ async function runMonthlyRecheck(lockId: string) {
       provider: bill.provider,
       category: bill.category,
       amountCents: bill.monthlyCents ?? bill.amountCents,
+      country: (bill.country as import("@/lib/providers").Country | null) ?? "NL",
     });
     const newSavings = comparison.bestSavingsCents ?? 0;
     const prevSavings = bill.negotiation?.expectedSavingsCents ?? 0;

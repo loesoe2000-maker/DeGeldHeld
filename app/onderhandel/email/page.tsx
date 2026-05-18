@@ -29,6 +29,7 @@ export default async function EmailPage({
     provider: bill.provider,
     category: bill.category,
     amountCents: bill.amountCents,
+    country: (bill.country as import("@/lib/providers").Country | null) ?? "NL",
   });
 
   // v4: use monthlyCents (vast abonnement) ipv amountCents (totaal) zodat
