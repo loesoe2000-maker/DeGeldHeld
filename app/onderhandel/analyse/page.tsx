@@ -4,6 +4,9 @@ import { prisma } from "@/lib/db";
 import Comparison from "@/components/Comparison";
 import { buildComparison, isMonopolyCategory } from "@/lib/comparison";
 import type { Country } from "@/lib/providers";
+import { primaryFromLegacy } from "@/lib/categories";
+import { infoFor } from "@/lib/category-info";
+import CategoryInfoSection from "@/components/CategoryInfoSection";
 import { requiresPayment } from "@/lib/payments";
 import { compareEnergy } from "@/lib/categories/energie";
 import { compareInsurance, type InsuranceCoverageType } from "@/lib/categories/verzekering";
@@ -161,6 +164,11 @@ export default async function AnalysePage({
       <div className="mt-8">
         <Comparison result={comparison} subType={bill.subType} />
       </div>
+
+      <CategoryInfoSection
+        primary={primaryFromLegacy(bill.category)}
+        info={infoFor(primaryFromLegacy(bill.category))}
+      />
 
       {bill.category === "ENERGIE" && (() => {
         const r = compareEnergy({

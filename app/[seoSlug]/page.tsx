@@ -17,6 +17,9 @@ import {
   findCategorySlug,
   findProviderSlug,
 } from "@/lib/seo-data";
+import { primaryFromLegacy } from "@/lib/categories";
+import { infoFor } from "@/lib/category-info";
+import CategoryInfoSection from "@/components/CategoryInfoSection";
 
 export const dynamic = "force-static";
 export const dynamicParams = false;
@@ -218,6 +221,11 @@ function CategoryPage({ record: c }: { record: NonNullable<ReturnType<typeof fin
           ))}
         </ul>
       </section>
+
+      <CategoryInfoSection
+        primary={primaryFromLegacy(c.category)}
+        info={infoFor(primaryFromLegacy(c.category))}
+      />
 
       <section className="mt-10 rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 p-6 text-white">
         <h2 className="text-xl font-bold">Doe 't met DeGeldHeld</h2>
