@@ -58,6 +58,9 @@ export function negotiationLabel(state: NegotiationState): string {
     SUCCESS: "Geslaagd",
     FAILED: "Niet gelukt",
     BILLED: "Afgerond",
+    SUCCESS_UNVERIFIED: "Geslaagd (niet geverifieerd)",
+    BILLED_PENDING_PAYMENT: "Fee — wacht op betaling",
+    BILLED_OVERDUE: "Fee — betaling te laat",
   };
   return labels[state] ?? state;
 }

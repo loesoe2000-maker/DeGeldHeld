@@ -115,6 +115,10 @@ enum NegotiationState {
   SUCCESS
   FAILED
   BILLED
+  // v11 revenue verification:
+  SUCCESS_UNVERIFIED       // user claims success without uploading proof
+  BILLED_PENDING_PAYMENT   // proof verified, fee invoice waiting on user
+  BILLED_OVERDUE           // 14 days passed without payment
 }
 
 enum RoundOutcome {
@@ -214,11 +218,19 @@ model Negotiation {
   // aan deze negotiation te koppelen.
   providerThreadId String? @unique
 
+  // v11 revenue verification: user moet bewijs leveren voordat
+  // actualSavingsCents als verified telt en de fee getriggerd wordt.
+  proofRequired    Boolean   @default(true)
+  proofVerifiedAt  DateTime?
+  feeInvoicedAt    DateTime?
+  feeAmountCents   Int?
+
   user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   bill    Bill     @relation(fields: [billId], references: [id], onDelete: Cascade)
   payment Payment?
   rounds  NegotiationRound[]
   whatsappThread WhatsAppThread?
+  proofs  OutcomeProof[]
 
   @@index([userId])
   @@index([state])
@@ -281,6 +293,26 @@ model NegotiationRound {
 
   @@unique([negotiationId, roundNumber])
   @@index([negotiationId])
+}
+
+// v11 revenue verification: bewijsstuk dat de user daadwerkelijk
+// bespaard heeft. Zonder verified proof: state = SUCCESS_UNVERIFIED,
+// telt niet mee voor /proof aggregates en triggert geen fee.
+model OutcomeProof {
+  id                 String    @id @default(cuid())
+  negotiationId      String
+  kind               String    // "forwarded_email" | "new_bill" | "screenshot" | "manual"
+  storageUrl         String?
+  parsedAmountCents  Int?
+  verifiedAt         DateTime?
+  verificationStatus String    @default("pending") // pending | verified | rejected | manual_review
+  verifierNote       String?   @db.Text
+  createdAt          DateTime  @default(now())
+
+  negotiation Negotiation @relation(fields: [negotiationId], references: [id], onDelete: Cascade)
+
+  @@index([negotiationId])
+  @@index([verificationStatus])
 }
 
 model Payment {

@@ -15,15 +15,20 @@ const TRANSITIONS: Record<NegotiationState, NegotiationState[]> = {
   BILL_UPLOAD: ["ANALYSE", "FAILED"],
   ANALYSE: ["EMAIL_GEN", "FAILED"],
   EMAIL_GEN: ["AWAITING", "EMAIL_SENT", "FAILED"],
-  AWAITING: ["SUCCESS", "FAILED", "RESPONSE_RECEIVED"],
+  AWAITING: ["SUCCESS", "SUCCESS_UNVERIFIED", "FAILED", "RESPONSE_RECEIVED"],
   EMAIL_SENT: ["RESPONSE_RECEIVED", "ACCEPTED", "REJECTED", "FAILED"],
   RESPONSE_RECEIVED: ["COUNTER_SENT", "ACCEPTED", "REJECTED", "FAILED"],
   COUNTER_SENT: ["RESPONSE_RECEIVED", "ACCEPTED", "REJECTED", "FAILED"],
-  ACCEPTED: ["BILLED"],
+  ACCEPTED: ["BILLED", "BILLED_PENDING_PAYMENT"],
   REJECTED: [],
-  SUCCESS: ["BILLED"],
+  SUCCESS: ["BILLED", "BILLED_PENDING_PAYMENT"],
   FAILED: [],
   BILLED: [],
+  // v11 revenue verification — unverified can be promoted once proof
+  // arrives; billing states cascade independently.
+  SUCCESS_UNVERIFIED: ["SUCCESS", "FAILED"],
+  BILLED_PENDING_PAYMENT: ["BILLED", "BILLED_OVERDUE"],
+  BILLED_OVERDUE: ["BILLED"],
 };
 
 export function canTransition(from: NegotiationState, to: NegotiationState): boolean {
@@ -70,13 +75,22 @@ export function shouldFollowUp(opts: {
 
 export type OutcomeChoice = "SUCCESS_SAVED" | "FAILED_NO_DEAL" | "STILL_WAITING";
 
-export function outcomeToState(choice: OutcomeChoice): {
+export function outcomeToState(
+  choice: OutcomeChoice,
+  opts: { proofRequired?: boolean } = {},
+): {
   state: NegotiationState;
   closedAt: Date | null;
 } {
   switch (choice) {
     case "SUCCESS_SAVED":
-      return { state: "SUCCESS", closedAt: new Date() };
+      // v11: a success claim without proof now lands in
+      // SUCCESS_UNVERIFIED. The proof-flow flips it to SUCCESS once
+      // verified.
+      return {
+        state: opts.proofRequired ? "SUCCESS_UNVERIFIED" : "SUCCESS",
+        closedAt: new Date(),
+      };
     case "FAILED_NO_DEAL":
       return { state: "FAILED", closedAt: new Date() };
     case "STILL_WAITING":

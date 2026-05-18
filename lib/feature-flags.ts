@@ -26,6 +26,14 @@ const FLAG_DEFAULTS = {
   // Off by default — auto-pingpong needs proven Resend inbound + 5
   // tested threads before flipping. User-confirm gate is mandatory.
   AUTO_PINGPONG: false,
+  // Off by default — v11 revenue verification. Once on, /api/inbound/proof
+  // accepts forwarded provider confirmations and proof-flow gates count
+  // toward verified savings.
+  PROOF_REQUIRED: false,
+  // Off by default — v11 no-cure-no-pay charging. Only flip after 5
+  // real verified-savings flows confirmed end-to-end. Without this,
+  // legacy paywall stays in place.
+  NO_CURE_NO_PAY: false,
 } as const;
 
 export type FeatureFlag = keyof typeof FLAG_DEFAULTS;

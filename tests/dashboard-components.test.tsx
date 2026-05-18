@@ -99,6 +99,10 @@ describe("components/NegotiationList", () => {
     mailUsed: false,
     providerResponded: null,
     providerThreadId: null,
+    proofRequired: true,
+    proofVerifiedAt: null,
+    feeInvoicedAt: null,
+    feeAmountCents: null,
     bill: { provider: "T-Mobile", amountCents: 4250, category: "TELECOM" as const },
   };
 

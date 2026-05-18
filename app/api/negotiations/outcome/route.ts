@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { outcomeToState, type OutcomeChoice } from "@/lib/flow";
 import { verifyOutcomeToken } from "@/lib/outcome_token";
 import { negotiationOutcomeSchema, firstIssueMessage } from "@/lib/schemas";
+import { isEnabled } from "@/lib/feature-flags";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -44,7 +45,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { state, closedAt } = outcomeToState(outcome as OutcomeChoice);
+  // v11: when proof-flow is enabled, a SUCCESS_SAVED claim parks the
+  // negotiation in SUCCESS_UNVERIFIED until the user uploads a proof
+  // (via /api/outcome/[id]/proof or via the bewijs@ webhook).
+  // actualSavingsCents stays null until verified — so /proof aggregates
+  // never count an unverified claim.
+  const proofGateOn = isEnabled("PROOF_REQUIRED");
+  const { state, closedAt } = outcomeToState(outcome as OutcomeChoice, {
+    proofRequired: proofGateOn,
+  });
 
   const updated = await prisma.negotiation.update({
     where: { id: negotiationId },
@@ -52,7 +61,9 @@ export async function POST(req: NextRequest) {
       state,
       closedAt,
       actualSavingsCents:
-        outcome === "SUCCESS_SAVED" ? actualSavingsCents ?? null : null,
+        outcome === "SUCCESS_SAVED" && !proofGateOn
+          ? actualSavingsCents ?? null
+          : null,
     },
   });
   return NextResponse.json({ ok: true, state: updated.state });

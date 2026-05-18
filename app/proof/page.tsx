@@ -91,6 +91,15 @@ async function loadStats(period: Period, basis: Basis, country: string | null, c
   });
   const failed = await prisma.negotiation.count({ where: failedWhere });
 
+  // v11: count unverified claims separately for transparency. They do
+  // NOT contribute to totalSavedCents — only the verified set does.
+  const unverifiedWhere: Record<string, unknown> = {
+    state: "SUCCESS_UNVERIFIED",
+  };
+  if (cutoff) unverifiedWhere.createdAt = { gte: cutoff };
+  if (Object.keys(billWhere).length > 0) unverifiedWhere.bill = billWhere;
+  const unverifiedCount = await prisma.negotiation.count({ where: unverifiedWhere });
+
   function val(n: { actualSavingsCents: number | null; expectedSavingsCents: number | null }): number {
     if (basis === "actual") return n.actualSavingsCents ?? 0;
     return n.expectedSavingsCents ?? 0;
@@ -117,6 +126,7 @@ async function loadStats(period: Period, basis: Basis, country: string | null, c
     avgCents,
     byCategory,
     failed,
+    unverifiedCount,
   };
 }
 
@@ -320,6 +330,16 @@ export default async function ProofPage({
               suffix="%"
             />
           </div>
+          {stats.unverifiedCount > 0 && (
+            <p
+              data-testid="unverified-disclaimer"
+              className="mt-4 text-sm text-slate-500"
+            >
+              <strong>{stats.unverifiedCount}</strong> claim
+              {stats.unverifiedCount === 1 ? "" : "s"} niet geverifieerd —
+              deze tellen niet mee in het bovenstaande totaal.
+            </p>
+          )}
         </section>
 
         <section className="mt-12">
