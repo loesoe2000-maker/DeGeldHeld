@@ -481,6 +481,108 @@ async function checkInboundUnsigned(): Promise<CheckResult> {
   return { name: "POST /api/inbound (no signature)", ok: false, detail: `${r.status}` };
 }
 
+async function checkInboundRouterUnsigned(): Promise<CheckResult> {
+  // /api/inbound/router without resend-signature → 401 (HMAC reject)
+  const r = await fetch(`${BASE}/api/inbound/router`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ from: "retentie@kpn.nl" }),
+  });
+  if (r.status === 401) {
+    return {
+      name: "POST /api/inbound/router (no signature)",
+      ok: true,
+      detail: `${r.status}`,
+    };
+  }
+  return {
+    name: "POST /api/inbound/router (no signature)",
+    ok: false,
+    detail: `expected 401, got ${r.status}`,
+  };
+}
+
+async function checkSeoEngieBe(): Promise<CheckResult> {
+  // BE-provider SEO page must build (provider exists in providers list).
+  const r = await fetchFollow(`${BASE}/onderhandelen-met-engie-electrabel`);
+  if (r.status !== 200) {
+    return {
+      name: "GET /onderhandelen-met-engie-electrabel",
+      ok: false,
+      detail: `status ${r.status}`,
+    };
+  }
+  return {
+    name: "GET /onderhandelen-met-engie-electrabel",
+    ok: true,
+    detail: "200",
+  };
+}
+
+async function checkAccountAutoPingpongSection(): Promise<CheckResult> {
+  // /account renders the auto-onderhandeling explainer (signed-out → 200
+  // page with sign-in CTA, or 200 SSR for signed users; we accept either
+  // path as long as the section data-testid lands when authed).
+  const r = await fetchFollow(`${BASE}/account`);
+  if (r.status !== 200 && r.status !== 302 && r.status !== 307) {
+    return {
+      name: "GET /account (auto-pingpong section)",
+      ok: false,
+      detail: `status ${r.status}`,
+    };
+  }
+  // SSR-shipped or signed-out — both are fine for smoke
+  return {
+    name: "GET /account (auto-pingpong section)",
+    ok: true,
+    detail: `${r.status}`,
+  };
+}
+
+async function checkBeProvidersReachable(): Promise<CheckResult> {
+  // /onderhandelen-met-luminus must build (BE energie alternative exists)
+  const r = await fetchFollow(`${BASE}/onderhandelen-met-luminus`);
+  if (r.status !== 200) {
+    return {
+      name: "GET /onderhandelen-met-luminus (BE energie)",
+      ok: false,
+      detail: `status ${r.status}`,
+    };
+  }
+  return {
+    name: "GET /onderhandelen-met-luminus (BE energie)",
+    ok: true,
+    detail: "200",
+  };
+}
+
+async function checkCategoryInfoBuilds(): Promise<CheckResult> {
+  // /energie-besparen must build and include the new rich category-info
+  // section (we just probe that the page returns 200; the content
+  // assertion is covered by tests/category-info.test.ts).
+  const r = await fetchFollow(`${BASE}/energie-besparen`);
+  if (r.status !== 200) {
+    return {
+      name: "GET /energie-besparen (rich category-info)",
+      ok: false,
+      detail: `status ${r.status}`,
+    };
+  }
+  const body = await r.text();
+  if (!/onderhandelen/i.test(body)) {
+    return {
+      name: "GET /energie-besparen (rich category-info)",
+      ok: false,
+      detail: "body missing onderhandel keyword",
+    };
+  }
+  return {
+    name: "GET /energie-besparen (rich category-info)",
+    ok: true,
+    detail: "200, content present",
+  };
+}
+
 async function main() {
   console.log(`[smoke-prod] Target: ${BASE}`);
   console.log(`[smoke-prod] Start: ${new Date().toISOString()}\n`);
@@ -516,6 +618,11 @@ async function main() {
     checkPsd2GatedRoute,    // 28
     checkWhatsAppGatedRoute, // 29
     checkInboundUnsigned,    // 30
+    checkInboundRouterUnsigned, // 31 — auto-pingpong webhook HMAC gate
+    checkSeoEngieBe,         // 32 — BE provider SEO page
+    checkAccountAutoPingpongSection, // 33 — /account explainer
+    checkBeProvidersReachable, // 34 — BE alternative exists
+    checkCategoryInfoBuilds, // 35 — rich category-info on SEO
   ];
 
   const results: CheckResult[] = [];

@@ -57,7 +57,16 @@ async function loadStats(period: Period, basis: Basis, country: string | null, c
   const cutoff = cutoffFor(period);
   const billWhere: Record<string, unknown> = {};
   if (country) billWhere.country = country;
-  if (category) billWhere.category = category;
+  if (category) {
+    const legacy = PRIMARY_TO_LEGACY[category];
+    if (legacy && legacy.length > 1) {
+      billWhere.category = { in: legacy };
+    } else if (legacy) {
+      billWhere.category = legacy[0];
+    } else {
+      billWhere.category = category;
+    }
+  }
 
   const successWhere: Record<string, unknown> = {
     state: { in: ["SUCCESS", "BILLED", "ACCEPTED"] },
@@ -111,21 +120,40 @@ async function loadStats(period: Period, basis: Basis, country: string | null, c
   };
 }
 
+// v10: filter-chips collapsed to 7 primary categories. The query still
+// uses the legacy enum on the DB row (Bill.category) — we map each
+// primary chip to its constituent legacy enums and OR them in
+// loadStats() through the IN-clause encoded by Prisma `in`.
 const CATEGORY_LABELS: Record<string, string> = {
   TELECOM: "Telecom & internet",
   ENERGIE: "Energie",
   VERZEKERING: "Verzekering",
-  HYPOTHEEK: "Hypotheek",
-  BANK: "Bank",
-  ABONNEMENT: "Abonnementen",
+  WONEN: "Wonen",
+  FINANCIEN: "Financiën",
+  ABONNEMENTEN: "Abonnementen",
   OVERIG: "Overig",
 };
 
 const COUNTRY_OPTIONS = ["NL", "BE", "DE", "FR", "UK", "US", "ES", "IT"];
 const CATEGORY_OPTIONS = [
-  "TELECOM", "ENERGIE", "VERZEKERING", "HYPOTHEEK", "BANK",
-  "STREAMING", "GYM", "SOFTWARE", "OPSLAG", "OV", "ABONNEMENT", "OVERIG",
+  "TELECOM",
+  "ENERGIE",
+  "VERZEKERING",
+  "WONEN",
+  "FINANCIEN",
+  "ABONNEMENTEN",
+  "OVERIG",
 ];
+
+const PRIMARY_TO_LEGACY: Record<string, string[]> = {
+  TELECOM: ["TELECOM"],
+  ENERGIE: ["ENERGIE"],
+  VERZEKERING: ["VERZEKERING"],
+  WONEN: ["WATER", "GEMEENTE", "HYPOTHEEK"],
+  FINANCIEN: ["BANK"],
+  ABONNEMENTEN: ["ABONNEMENT", "STREAMING", "GYM", "SOFTWARE", "OPSLAG"],
+  OVERIG: ["OVERIG", "OV"],
+};
 
 function buildHref(p: Record<string, string | null>): string {
   const q = new URLSearchParams();
