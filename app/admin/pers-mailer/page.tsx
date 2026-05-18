@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { isAdmin } from "@/lib/admin_auth";
+import CopyButton from "./CopyButton";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Outreach-mailer — Admin" };
@@ -15,6 +16,10 @@ type Contact = {
   greeting: string;
   outletHook: string;
   language?: "nl" | "en";
+  /** Bewezen dat het adres bestaat (auto-reply of inhoudelijke reactie). */
+  verified?: boolean;
+  /** Alternatieve web-contact-pagina als email mogelijk niet werkt. */
+  webContact?: string;
 };
 
 // ─────────────────────────────────────────────────────────────
@@ -122,7 +127,8 @@ const CONTACTS: Contact[] = [
   },
   {
     kind: "press",
-    to: "tips@sprout.nl",
+    to: "redactie@sprout.nl",
+    webContact: "https://www.sprout.nl/contact",
     outlet: "Sprout",
     greeting: "Beste Sprout-redactie,",
     outletHook:
@@ -133,6 +139,7 @@ const CONTACTS: Contact[] = [
     to: "redactie@bnr.nl",
     outlet: "BNR Newsroom",
     greeting: "Beste BNR-redactie,",
+    verified: true,
     outletHook:
       "Voor BNR Newsroom lijkt het mij een audio-vriendelijk verhaal: concreet, één founder, harde cijfers en directe relevantie voor luisteraars met dure vaste lasten.",
   },
@@ -192,6 +199,7 @@ const CONTACTS: Contact[] = [
   {
     kind: "tv",
     to: "kassa@bnnvara.nl",
+    webContact: "https://kassa.bnnvara.nl/meld",
     outlet: "Kassa (BNNVARA)",
     greeting: "Beste Kassa-redactie,",
     outletHook:
@@ -200,6 +208,7 @@ const CONTACTS: Contact[] = [
   {
     kind: "tv",
     to: "radar@avrotros.nl",
+    webContact: "https://radar.avrotros.nl/meld",
     outlet: "Radar (AVROTROS)",
     greeting: "Beste Radar-redactie,",
     outletHook:
@@ -207,7 +216,7 @@ const CONTACTS: Contact[] = [
   },
   {
     kind: "tv",
-    to: "tips@eenvandaag.nl",
+    webContact: "https://eenvandaag.avrotros.nl/contact",
     outlet: "EenVandaag",
     greeting: "Beste EenVandaag-redactie,",
     outletHook:
@@ -215,7 +224,7 @@ const CONTACTS: Contact[] = [
   },
   {
     kind: "tv",
-    to: "tip@hartvannederland.nl",
+    webContact: "https://www.hartvannederland.nl/contact",
     outlet: "Hart van Nederland",
     greeting: "Hallo,",
     outletHook:
@@ -324,6 +333,23 @@ function buildMailto(c: Contact): string | null {
   const filled = template.replace("{OUTLET_HOOK}", c.outletHook);
   const body = `${c.greeting}\n\n${filled}`;
   return `mailto:${encodeURIComponent(c.to)}?subject=${encodeURIComponent(subj)}&body=${encodeURIComponent(body)}`;
+}
+
+function buildMessageText(c: Contact): string {
+  const isEn = c.language === "en";
+  const subj = isEn ? SUBJECTS[c.kind].en ?? SUBJECTS[c.kind].nl : SUBJECTS[c.kind].nl;
+  const template =
+    c.kind === "press"
+      ? isEn
+        ? PRESS_TEMPLATE_EN
+        : PRESS_TEMPLATE_NL
+      : c.kind === "tv"
+        ? TV_TEMPLATE
+        : c.kind === "partnership"
+          ? PARTNERSHIP_TEMPLATE
+          : INFLUENCER_TEMPLATE_NL;
+  const filled = template.replace("{OUTLET_HOOK}", c.outletHook);
+  return `Onderwerp: ${subj}\n\n${c.greeting}\n\n${filled}`;
 }
 
 function buildSocialDeepLink(c: Contact): string | null {
@@ -444,25 +470,54 @@ export default async function PersMailerPage() {
                         </details>
                       )}
                     </div>
-                    <div className="flex shrink-0 gap-2">
-                      {mailto && (
-                        <a
-                          href={mailto}
-                          className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700"
-                        >
-                          Open mail →
-                        </a>
-                      )}
-                      {social && (
-                        <a
-                          href={social}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-                        >
-                          Open profiel →
-                        </a>
-                      )}
+                    <div className="flex shrink-0 flex-col items-end gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
+                        {c.verified ? (
+                          <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-800">
+                            Geverifieerd
+                          </span>
+                        ) : c.to ? (
+                          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-800">
+                            Onbevestigd
+                          </span>
+                        ) : null}
+                      </div>
+                      <div className="flex flex-wrap justify-end gap-2">
+                        {mailto && (
+                          <a
+                            href={mailto}
+                            className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700"
+                          >
+                            Open mail →
+                          </a>
+                        )}
+                        {c.webContact && (
+                          <a
+                            href={c.webContact}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="rounded-lg border border-sky-300 bg-sky-50 px-4 py-2 text-sm font-medium text-sky-800 hover:bg-sky-100"
+                          >
+                            Web-form →
+                          </a>
+                        )}
+                        {social && (
+                          <a
+                            href={social}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                          >
+                            Open profiel →
+                          </a>
+                        )}
+                        {(c.webContact || c.kind === "influencer") && (
+                          <CopyButton
+                            text={buildMessageText(c)}
+                            label="Kopieer tekst"
+                          />
+                        )}
+                      </div>
                     </div>
                   </li>
                 );
