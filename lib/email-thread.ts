@@ -55,6 +55,27 @@ export function extractThreadId(header: string | null | undefined): string | nul
   return null;
 }
 
+/**
+ * v12 subject-token helpers — the inbound router multiplexes proof
+ * uploads and negotiation replies on the SAME webhook (DEEL 1).
+ * Discrimination falls back to In-Reply-To when neither token is set.
+ *
+ *  - [PROOF-<billId>]        → proof-flow
+ *  - [NEGOTIATION-<negId>]   → auto-pingpong
+ */
+
+/** Extract a [PROOF-<id>] token from a subject. Returns the bare id. */
+export function extractProofSubjectToken(subject: string): string | null {
+  const m = /\[PROOF-([a-zA-Z0-9_-]{20,40})\]/.exec(subject);
+  return m ? m[1] : null;
+}
+
+/** Extract a [NEGOTIATION-<id>] token from a subject. Returns the bare id. */
+export function extractNegotiationSubjectToken(subject: string): string | null {
+  const m = /\[NEGOTIATION-([a-zA-Z0-9_-]{20,40})\]/.exec(subject);
+  return m ? m[1] : null;
+}
+
 /** Pretty header bundle for outbound mails — caller spreads into `headers` opt. */
 export function outboundThreadHeaders(threadId: string, inReplyToThreadId?: string | null) {
   const hdrs: Record<string, string> = {
