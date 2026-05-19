@@ -476,3 +476,51 @@ Test the alert plumbing:
 curl https://degeldheld.com/api/test-sentry?test=1
 ```
 Expect a Sentry event within 30 seconds.
+
+---
+
+## 13. Cloudflare Turnstile (v15 DEEL 1 + 5)
+
+Anonymous upload + email-signup are gated behind Cloudflare Turnstile.
+Graceful fallback: when `TURNSTILE_SECRET_KEY` is missing,
+`lib/turnstile.ts` returns `{ ok: true, skipped: true }` so dev /
+freshly-deployed prod is never blocked. Configure the secret to
+turn the guard on.
+
+External setup (free tier):
+
+1. Go to https://www.cloudflare.com/products/turnstile
+2. Create a new site, name it "DeGeldHeld production".
+3. Copy the **Site Key** (public) and **Secret Key** (private).
+4. Add both to Vercel env:
+   - `NEXT_PUBLIC_TURNSTILE_SITE_KEY=<site key>` (frontend widget)
+   - `TURNSTILE_SECRET_KEY=<secret key>` (server-side verify)
+5. Optional: in Cloudflare Turnstile settings, add the production
+   domain (`degeldheld.com`) and a `localhost` entry for dev.
+
+Verification:
+
+```
+# Without secret → 200 ok (graceful fallback path):
+curl -X POST https://degeldheld.com/api/anon/email-signup \
+  -H 'content-type: application/json' \
+  -d '{"email":"test@example.com","billId":"x","hp":"","renderedAt":0}'
+
+# With invalid turnstileToken → 400 (route's anti-bot bundle rejects):
+curl -X POST https://degeldheld.com/api/anon/email-signup \
+  -H 'content-type: application/json' \
+  -H 'user-agent: curl/8.0' \
+  -d '{"email":"test@example.com","billId":"x","hp":"","renderedAt":0}'
+```
+
+Anti-bot defence-in-depth on `/api/bills/upload` (anonymous flow) +
+`/api/anon/email-signup` (always):
+
+1. **Cloudflare Turnstile** — server-verified CAPTCHA token.
+2. **Honeypot field** — invisible input, bots fill, humans don't.
+3. **Time-gate** — submissions <2s after render are rejected.
+4. **User-Agent blocklist** — curl / wget / python-requests /
+   headless Chrome are refused. Real browsers + Googlebot pass.
+5. **Per-IP rate-limit** — 3 anonymous uploads/h, 5 email-signups/h.
+
+The 5 layers run in order; the first reject short-circuits the rest.

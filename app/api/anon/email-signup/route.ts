@@ -12,11 +12,10 @@
  */
 import { NextResponse } from "next/server";
 import { rateLimit, rateLimitResponse, ipFromRequest } from "@/lib/rate-limit";
+import { evaluateAntiBot } from "@/lib/anti-bot";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-const MIN_TIME_TO_SUBMIT_MS = 2000;
 
 export async function POST(req: Request) {
   let body: { email?: string; billId?: string; hp?: string; renderedAt?: number };
@@ -26,20 +25,17 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "invalid json" }, { status: 400 });
   }
 
-  // Honeypot — bots fill every input; legit users leave it empty.
-  if (typeof body.hp === "string" && body.hp.trim().length > 0) {
-    return NextResponse.json({ ok: false, error: "rejected" }, { status: 400 });
-  }
-
-  // Time-gate — bots submit instantly; require ≥2s.
-  if (typeof body.renderedAt === "number") {
-    const elapsed = Date.now() - body.renderedAt;
-    if (elapsed < MIN_TIME_TO_SUBMIT_MS) {
-      return NextResponse.json(
-        { ok: false, error: "submitted too fast" },
-        { status: 400 },
-      );
-    }
+  // v15 DEEL 5 anti-bot bundle: honeypot + time-gate + UA blocklist.
+  const verdict = evaluateAntiBot({
+    honeypot: body.hp ?? null,
+    renderedAt: body.renderedAt ?? null,
+    userAgent: req.headers.get("user-agent"),
+  });
+  if (!verdict.ok) {
+    return NextResponse.json(
+      { ok: false, error: `rejected: ${verdict.reason}` },
+      { status: 400 },
+    );
   }
 
   const email = (body.email ?? "").trim().toLowerCase();
