@@ -161,6 +161,12 @@ model Bill {
   // anonymousSessionId cleared, claimedAt stamped).
   userId       String?
   anonymousSessionId String?
+  // v15.1: cross-browser claim fix — when a visitor submits the
+  // email-prompt, we stamp this column on every bill in their
+  // anonymous session. The magic-link callback then claims by
+  // email match in addition to the cookie, so the link can open
+  // in a different browser than the upload happened in.
+  anonymousEmail String?
   claimedAt    DateTime?
   provider     String
   category     BillCategory @default(OVERIG)
@@ -209,6 +215,7 @@ model Bill {
   @@index([imageHash])
   @@index([userId, createdAt])
   @@index([anonymousSessionId])
+  @@index([anonymousEmail])
 }
 
 model Negotiation {

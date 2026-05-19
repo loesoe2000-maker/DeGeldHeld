@@ -25,20 +25,38 @@ export type ClaimResult = {
 export async function claimAnonymousBills(
   userId: string,
   sessionId: string | null | undefined,
+  email?: string | null,
 ): Promise<ClaimResult> {
-  if (!isValidAnonSessionId(sessionId)) {
+  // v15.1: claim by session-cookie OR by stamped anonymous email.
+  // The email branch covers the cross-browser case (upload in incognito,
+  // magic-link opens in default browser). Either branch is sufficient.
+  const validSid = isValidAnonSessionId(sessionId);
+  const sid = validSid ? (sessionId as string) : null;
+  const normalizedEmail = email?.trim().toLowerCase() || null;
+  if (!sid && !normalizedEmail) {
     return { claimed: 0, firstBillId: null };
   }
-  const sid = sessionId as string;
+
+  const orClauses: Array<Record<string, unknown>> = [];
+  if (sid) orClauses.push({ anonymousSessionId: sid });
+  if (normalizedEmail) orClauses.push({ anonymousEmail: normalizedEmail });
+
+  const where = { userId: null, OR: orClauses };
+
   const bills = await prisma.bill.findMany({
-    where: { anonymousSessionId: sid, userId: null },
+    where,
     orderBy: { createdAt: "desc" },
     select: { id: true },
   });
   if (bills.length === 0) return { claimed: 0, firstBillId: null };
   await prisma.bill.updateMany({
-    where: { anonymousSessionId: sid, userId: null },
-    data: { userId, anonymousSessionId: null, claimedAt: new Date() },
+    where,
+    data: {
+      userId,
+      anonymousSessionId: null,
+      anonymousEmail: null,
+      claimedAt: new Date(),
+    },
   });
   return { claimed: bills.length, firstBillId: bills[0].id };
 }

@@ -13,6 +13,9 @@
 import { NextResponse } from "next/server";
 import { rateLimit, rateLimitResponse, ipFromRequest } from "@/lib/rate-limit";
 import { evaluateAntiBot } from "@/lib/anti-bot";
+import { prisma } from "@/lib/db";
+import { cookies } from "next/headers";
+import { ANON_COOKIE_NAME, isValidAnonSessionId } from "@/lib/anon-session";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -54,6 +57,22 @@ export async function POST(req: Request) {
     windowSec: 3600,
   });
   if (!rl.ok) return rateLimitResponse(rl);
+
+  // v15.1: stamp the email on every anonymous bill in this session so
+  // the magic-link callback can claim cross-browser. The cookie alone
+  // doesn't survive the email-client → default-browser jump.
+  try {
+    const jar = await cookies();
+    const sid = jar.get(ANON_COOKIE_NAME)?.value;
+    if (isValidAnonSessionId(sid)) {
+      await prisma.bill.updateMany({
+        where: { anonymousSessionId: sid, userId: null },
+        data: { anonymousEmail: email },
+      });
+    }
+  } catch {
+    // never block the magic-link dispatch on this best-effort stamp
+  }
 
   return NextResponse.json({ ok: true });
 }

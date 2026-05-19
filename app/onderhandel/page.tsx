@@ -13,8 +13,12 @@ export default async function OnderhandelPage() {
   // no need to upload anything again.
   const session = await auth();
   const userId = (session?.user as { id?: string } | undefined)?.id ?? null;
+  const userEmail = session?.user?.email ?? null;
   if (userId) {
-    const claim = await ensureBillsClaimed(userId);
+    // v15.1: pass email so cross-browser magic-link clicks claim by the
+    // stamped Bill.anonymousEmail even if the anon-cookie didn't survive
+    // the email-client → default-browser jump.
+    const claim = await ensureBillsClaimed(userId, userEmail);
     if (claim.firstBillId) {
       redirect(`/onderhandel/email?bill=${claim.firstBillId}`);
     }

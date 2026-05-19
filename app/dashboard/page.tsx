@@ -21,12 +21,13 @@ export default async function DashboardPage() {
   if (!session?.user) redirect("/login?from=/dashboard");
   const userId = (session.user as { id: string }).id;
 
-  // v15 page-level claim: catch anonymous-cookie holders who landed
-  // here right after magic-link signup (default NextAuth redirect).
-  // If a claim succeeds, jump them into their email-page directly
-  // so they never have to re-upload.
+  // v15 page-level claim: catch anonymous bills via cookie OR via
+  // the email stamped during the email-prompt. Email-branch handles
+  // the cross-browser case (magic-link opens in default browser
+  // outside the incognito session that did the upload).
+  const userEmail = session.user.email ?? null;
   const { ensureBillsClaimed } = await import("@/lib/ensure-claim");
-  const claim = await ensureBillsClaimed(userId);
+  const claim = await ensureBillsClaimed(userId, userEmail);
   if (claim.firstBillId) {
     redirect(`/onderhandel/email?bill=${claim.firstBillId}`);
   }
