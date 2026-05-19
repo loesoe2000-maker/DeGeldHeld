@@ -21,6 +21,16 @@ export default async function DashboardPage() {
   if (!session?.user) redirect("/login?from=/dashboard");
   const userId = (session.user as { id: string }).id;
 
+  // v15 page-level claim: catch anonymous-cookie holders who landed
+  // here right after magic-link signup (default NextAuth redirect).
+  // If a claim succeeds, jump them into their email-page directly
+  // so they never have to re-upload.
+  const { ensureBillsClaimed } = await import("@/lib/ensure-claim");
+  const claim = await ensureBillsClaimed(userId);
+  if (claim.firstBillId) {
+    redirect(`/onderhandel/email?bill=${claim.firstBillId}`);
+  }
+
   const negotiations = await prisma.negotiation.findMany({
     where: { userId, bill: { deletedAt: null } },
     include: { bill: true },
