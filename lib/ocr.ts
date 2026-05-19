@@ -634,17 +634,18 @@ async function extractFromImage(
     return { ...empty, rawText: "OCR_SKIPPED_NO_API_KEY", needsManual: true };
   }
 
-  // Groq Vision rejects retina-sized screenshots, HEIC files, and CMYK
-  // JPEGs with "invalid image data". Normalise to sRGB JPEG, max 1568px
+  // Groq Vision rejects retina-sized screenshots, HEIC files, CMYK JPEGs
+  // and Mac-screenshot JPEGs with non-sRGB colour profiles with
+  // "invalid image data". Normalise to baseline sRGB JPEG, max 1280px
   // long-edge, no metadata — see lib/image-normalize.ts.
-  const { normalizeImageForVision } = await import("@/lib/image-normalize");
+  const { normalizeImageForVision, renormalizeForVisionFallback } = await import(
+    "@/lib/image-normalize"
+  );
   const normalized = await normalizeImageForVision(imageBuf, mimeType);
-  // Diagnostic log — visible in Vercel function logs so we can see exactly
-  // what sharp did with the input image (or whether it fell through to
-  // the unprocessed fallback).
   console.log(
     `[ocr] image normalised: source=${normalized.sourceFormat} ` +
-    `mime=${normalized.mimeType} ${normalized.width}x${normalized.height} ` +
+    `space=${normalized.sourceSpace} ch=${normalized.sourceChannels} ` +
+    `→ mime=${normalized.mimeType} ${normalized.width}x${normalized.height} ` +
     `bytes=${normalized.bytes} resized=${normalized.resized} ` +
     `inputBytes=${imageBuf.length} inputMime=${mimeType}`,
   );
@@ -653,11 +654,35 @@ async function extractFromImage(
   let lastErr: Error | undefined;
   let attempts = 0;
 
-  for (const model of models) {
+  // v15.2: detect the specific Groq "invalid image data" 400 — when that
+  // surfaces we get one shot at a fallback re-encode (smaller + PNG) and
+  // retry the cascade once. This rescues Mac-screenshot JPEGs whose
+  // exact byte layout sharp passes through but Groq's decoder rejects.
+  const isInvalidImageError = (e: Error) => /invalid[\s_]image[\s_]data/i.test(e.message);
+  let fallbackUsed = false;
+  let activeDataUrl = dataUrl;
+
+  for (let i = 0; i < models.length; i++) {
+    const model = models[i];
     attempts += 1;
-    const { raw, err } = await tryModelWithRetry(model, dataUrl);
+    const { raw, err } = await tryModelWithRetry(model, activeDataUrl);
     if (err) {
       lastErr = err;
+      // First time we see "invalid image data": rebuild the payload as
+      // a smaller PNG and retry from the top of the cascade.
+      if (!fallbackUsed && isInvalidImageError(err)) {
+        fallbackUsed = true;
+        const fb = await renormalizeForVisionFallback(imageBuf, mimeType);
+        console.log(
+          `[ocr] groq rejected image — retry with fallback ` +
+          `mime=${fb.mimeType} ${fb.width}x${fb.height} bytes=${fb.bytes}`,
+        );
+        activeDataUrl = `data:${fb.mimeType};base64,${fb.buffer.toString("base64")}`;
+        // Retry this same model with the new payload before falling
+        // through to the next one in the cascade.
+        i--;
+        continue;
+      }
       continue;
     }
     const parsed = parseOcrJson(raw);
@@ -665,7 +690,7 @@ async function extractFromImage(
       const result = buildSuccessResult({
         parsed,
         imageHash,
-        modelUsed: model,
+        modelUsed: fallbackUsed ? `${model} (fallback-encode)` : model,
         attempts,
         rawText: raw,
         fromVision: true,
