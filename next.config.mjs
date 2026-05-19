@@ -7,7 +7,7 @@ const nextConfig = {
     // → PNG rendering) is een native .node binary. Webpack kan die niet
     // bundelen — markeer als external zodat 'm op de Vercel Node runtime
     // dynamisch wordt geladen i.p.v. in de bundle.
-    serverComponentsExternalPackages: ["@napi-rs/canvas", "pdfjs-dist"],
+    serverComponentsExternalPackages: ["@napi-rs/canvas", "pdfjs-dist", "sharp"],
   },
   webpack: (config, { isServer }) => {
     if (isServer) {
@@ -15,6 +15,7 @@ const nextConfig = {
       config.externals = config.externals || [];
       config.externals.push({
         "@napi-rs/canvas": "commonjs @napi-rs/canvas",
+        sharp: "commonjs sharp",
       });
     }
     return config;

@@ -639,6 +639,15 @@ async function extractFromImage(
   // long-edge, no metadata — see lib/image-normalize.ts.
   const { normalizeImageForVision } = await import("@/lib/image-normalize");
   const normalized = await normalizeImageForVision(imageBuf, mimeType);
+  // Diagnostic log — visible in Vercel function logs so we can see exactly
+  // what sharp did with the input image (or whether it fell through to
+  // the unprocessed fallback).
+  console.log(
+    `[ocr] image normalised: source=${normalized.sourceFormat} ` +
+    `mime=${normalized.mimeType} ${normalized.width}x${normalized.height} ` +
+    `bytes=${normalized.bytes} resized=${normalized.resized} ` +
+    `inputBytes=${imageBuf.length} inputMime=${mimeType}`,
+  );
   const dataUrl = `data:${normalized.mimeType};base64,${normalized.buffer.toString("base64")}`;
   const models = visionModelOverride ? [visionModelOverride] : VISION_MODELS;
   let lastErr: Error | undefined;
