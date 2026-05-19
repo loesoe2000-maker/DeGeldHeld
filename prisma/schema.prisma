@@ -155,7 +155,13 @@ enum PaymentStatus {
 
 model Bill {
   id           String       @id @default(cuid())
-  userId       String
+  // v15: userId is nullable so anonymous visitors can upload before
+  // they sign up. Anonymous bills carry an anonymousSessionId cookie
+  // value; on magic-link signup the bills are claimed (userId set,
+  // anonymousSessionId cleared, claimedAt stamped).
+  userId       String?
+  anonymousSessionId String?
+  claimedAt    DateTime?
   provider     String
   category     BillCategory @default(OVERIG)
   amountCents  Int
@@ -196,12 +202,13 @@ model Bill {
   lastRecheckMailAt DateTime?
   deletedAt        DateTime?
 
-  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user         User?        @relation(fields: [userId], references: [id], onDelete: Cascade)
   negotiation  Negotiation?
 
   @@index([userId])
   @@index([imageHash])
   @@index([userId, createdAt])
+  @@index([anonymousSessionId])
 }
 
 model Negotiation {

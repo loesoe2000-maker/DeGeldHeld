@@ -82,6 +82,11 @@ async function runMonthlyRecheck(lockId: string) {
     if (delta >= SIGNIFICANT_DELTA_CENTS) {
       if (recentMail) {
         skippedCooldown++;
+      } else if (!bill.user) {
+        // v15: anonymous bills have no user.email — skip the recheck-
+        // mail until they're claimed. The cron still tracked the
+        // newSavings on the bill itself.
+        skippedNoDelta++;
       } else {
         try {
           await sendEmail({
