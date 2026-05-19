@@ -23,7 +23,7 @@ const JPEG_QUALITY = 88;
 
 export type NormalizeResult = {
   buffer: Buffer;
-  mimeType: "image/jpeg";
+  mimeType: "image/jpeg" | "image/png";
   width: number;
   height: number;
   bytes: number;
@@ -50,6 +50,27 @@ export async function normalizeImageForVision(
     const originalHeight = meta.height ?? 0;
     const longEdge = Math.max(originalWidth, originalHeight);
     const needsResize = longEdge > MAX_LONG_EDGE;
+    const isJpegOrPng = meta.format === "jpeg" || meta.format === "png";
+    const isSrgb = !meta.space || meta.space === "srgb";
+
+    // Fast path: if input is already a small sRGB JPEG/PNG, pass it
+    // through untouched. Re-encoding with mozjpeg has triggered Groq's
+    // "invalid image data" rejection on otherwise-valid uploads, so we
+    // only transform when there's an actual reason (oversize / HEIC /
+    // CMYK / weird orientation).
+    const hasOrientation = (meta.orientation ?? 1) !== 1;
+    const canPassThrough = isJpegOrPng && !needsResize && isSrgb && !hasOrientation;
+    if (canPassThrough) {
+      return {
+        buffer: inputBuffer,
+        mimeType: meta.format === "png" ? "image/png" : "image/jpeg",
+        width: originalWidth,
+        height: originalHeight,
+        bytes: inputBuffer.length,
+        sourceFormat: meta.format ?? "unknown",
+        resized: false,
+      };
+    }
 
     let processed = pipeline
       .rotate() // honor EXIF orientation, then strip
@@ -64,8 +85,10 @@ export async function normalizeImageForVision(
       });
     }
 
+    // Plain libjpeg-turbo encode (no mozjpeg). Standard baseline JPEG
+    // is the only thing Groq Vision parses reliably.
     const buffer = await processed
-      .jpeg({ quality: JPEG_QUALITY, mozjpeg: true, progressive: false })
+      .jpeg({ quality: JPEG_QUALITY, mozjpeg: false, progressive: false })
       .toBuffer();
 
     return {
