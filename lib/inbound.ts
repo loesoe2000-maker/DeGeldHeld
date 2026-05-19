@@ -5,7 +5,7 @@
  * The signature comes in `resend-signature` header (hex).
  */
 
-import crypto from "node:crypto";
+import crypto from "crypto";
 import { prisma } from "@/lib/db";
 
 const SIG_HEADER = "resend-signature";

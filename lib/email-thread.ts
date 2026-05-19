@@ -13,7 +13,7 @@
  *   - lib/email.ts                 (outbound Message-ID injection)
  */
 
-import crypto from "node:crypto";
+import crypto from "crypto";
 
 const DOMAIN = process.env.RESEND_INBOUND_DOMAIN ?? "degeldheld.com";
 

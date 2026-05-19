@@ -11,7 +11,7 @@
  */
 
 import Groq from "groq-sdk";
-import crypto from "node:crypto";
+import crypto from "crypto";
 import { findProvider, providerCountry, type Category, type Country } from "@/lib/providers";
 import { primaryFromLegacy, type PrimaryCategory } from "@/lib/categories";
 import { ocrCache } from "@/lib/llm_cache";

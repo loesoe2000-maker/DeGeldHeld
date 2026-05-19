@@ -6,7 +6,7 @@
  * The token binds billId + a 30-day expiry to a server-side secret.
  */
 
-import crypto from "node:crypto";
+import crypto from "crypto";
 
 const TOKEN_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 

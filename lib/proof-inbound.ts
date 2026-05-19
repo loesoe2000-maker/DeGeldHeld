@@ -8,7 +8,7 @@
  * an In-Reply-To matching a Negotiation thread-id.
  */
 
-import crypto from "node:crypto";
+import crypto from "crypto";
 
 export const PROOF_SIG_HEADER = "resend-signature";
 

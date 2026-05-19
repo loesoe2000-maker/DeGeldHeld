@@ -9,7 +9,7 @@
  * AI counter generation reuses the Groq text model (llama-3.3-70b-versatile).
  */
 
-import crypto from "node:crypto";
+import crypto from "crypto";
 import Groq from "groq-sdk";
 
 const TEXT_MODEL = "llama-3.3-70b-versatile";

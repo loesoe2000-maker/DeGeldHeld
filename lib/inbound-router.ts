@@ -20,7 +20,7 @@
  * is the only path that puts a counter-mail on the wire.
  */
 
-import crypto from "node:crypto";
+import crypto from "crypto";
 import { prisma } from "@/lib/db";
 import { extractThreadId } from "@/lib/email-thread";
 import { analyseProviderResponse, MAX_ROUNDS } from "@/lib/rounds";

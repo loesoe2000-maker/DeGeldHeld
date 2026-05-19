@@ -21,7 +21,7 @@
  * still decryptable with the primary key.
  */
 
-import crypto from "node:crypto";
+import crypto from "crypto";
 
 const ALGO = "aes-256-gcm";
 const VERSION = "v1";

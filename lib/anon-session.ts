@@ -6,7 +6,7 @@
  * complete a magic-link signup, at which point the bills are
  * claimed under their User.id.
  */
-import crypto from "node:crypto";
+import crypto from "crypto";
 
 export const ANON_COOKIE_NAME = "dgh_anon_session";
 export const ANON_COOKIE_MAX_AGE_SECONDS = 24 * 60 * 60; // 24h
