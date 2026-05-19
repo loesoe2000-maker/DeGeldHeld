@@ -634,7 +634,12 @@ async function extractFromImage(
     return { ...empty, rawText: "OCR_SKIPPED_NO_API_KEY", needsManual: true };
   }
 
-  const dataUrl = `data:${mimeType};base64,${imageBuf.toString("base64")}`;
+  // Groq Vision rejects retina-sized screenshots, HEIC files, and CMYK
+  // JPEGs with "invalid image data". Normalise to sRGB JPEG, max 1568px
+  // long-edge, no metadata — see lib/image-normalize.ts.
+  const { normalizeImageForVision } = await import("@/lib/image-normalize");
+  const normalized = await normalizeImageForVision(imageBuf, mimeType);
+  const dataUrl = `data:${normalized.mimeType};base64,${normalized.buffer.toString("base64")}`;
   const models = visionModelOverride ? [visionModelOverride] : VISION_MODELS;
   let lastErr: Error | undefined;
   let attempts = 0;
