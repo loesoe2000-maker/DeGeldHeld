@@ -4,6 +4,7 @@ import HowItWorks from "@/components/HowItWorks";
 import Examples from "@/components/Examples";
 import FAQ from "@/components/FAQ";
 import Footer from "@/components/Footer";
+import ActivityFeed from "@/components/ActivityFeed";
 
 const APP_URL = process.env.APP_URL ?? "https://degeldheld.com";
 
@@ -48,6 +49,7 @@ export default function HomePage() {
       <Examples />
       <FAQ />
       <Footer />
+      <ActivityFeed />
     </>
   );
 }

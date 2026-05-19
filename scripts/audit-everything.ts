@@ -79,6 +79,7 @@ const API_PROBES: ApiProbe[] = [
   { path: "/api/inbound", method: "POST", body: {}, expectJson: true, okStatuses: [400, 401] },
   { path: "/api/inbound/router", method: "POST", body: {}, expectJson: true, okStatuses: [401, 503] },
   { path: "/api/anon/email-signup", method: "POST", body: {}, expectJson: true, okStatuses: [400] },
+  { path: "/api/activity", method: "GET", expectJson: true, okStatuses: [200] },
   { path: "/api/inbound/proof", method: "POST", body: {}, expectJson: true, okStatuses: [401, 503] },
   { path: "/api/account/export", method: "GET", okStatuses: [200, 401] },
   { path: "/api/account/delete", method: "POST", body: {}, expectJson: true, okStatuses: [400, 401] },
