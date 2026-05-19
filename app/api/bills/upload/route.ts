@@ -221,8 +221,23 @@ export async function POST(req: NextRequest) {
 
     stage = "cache";
     const cached = await prisma.bill.findUnique({ where: { imageHash } });
-    if (cached && isBillUsable(cached)) {
-      const resp = NextResponse.json({ ok: true, billId: cached.id, cached: true });
+
+    // v15.4: a cache hit only counts if the bill is *still* owned by the
+    // current session. After magic-link claim, anonymous bills get
+    // reassigned (anonymousSessionId → null, userId set) — but the
+    // imageHash stays put because it was computed before the claim. The
+    // same incognito window re-uploading the same file would otherwise
+    // find a bill it can no longer view, get redirected back to
+    // /onderhandel by the analyse page, and appear to do nothing.
+    const ownedByCurrentSession =
+      !!cached &&
+      (userId
+        ? cached.userId === userId
+        : cached.anonymousSessionId === anonSessionId);
+    const cachedOwned = ownedByCurrentSession ? cached : null;
+
+    if (cachedOwned && isBillUsable(cachedOwned)) {
+      const resp = NextResponse.json({ ok: true, billId: cachedOwned.id, cached: true });
       if (setCookieAfter && anonSessionId) {
         resp.cookies.set(ANON_COOKIE_NAME, anonSessionId, ANON_COOKIE_OPTIONS);
       }
@@ -233,12 +248,23 @@ export async function POST(req: NextRequest) {
     const ocr = await extractBill(buf, file.type);
 
     stage = "db";
+    // If a bill exists under this imageHash but belongs to someone else
+    // (e.g. previously-anonymous bill claimed by the magic-link flow),
+    // we cannot reuse the hash on a fresh insert without violating the
+    // global UNIQUE(imageHash) constraint. Append random bytes so the
+    // new record gets its own slot; dedup is sacrificed in this rare
+    // post-claim re-upload case but data isolation stays intact.
+    const persistHash = !cached || ownedByCurrentSession
+      ? imageHash
+      : `${imageHash}:${crypto.randomBytes(8).toString("hex")}`;
     const bill = await persistBill({
       userId,
       anonymousSessionId: isAnonymous ? anonSessionId : null,
       ocr,
-      imageHash,
-      cached,
+      imageHash: persistHash,
+      // Only treat as "update existing" when the existing record really
+      // belongs to the current session/user.
+      cached: cachedOwned,
     });
     if (userId) {
       await collectTrainingSampleIfOptIn({
