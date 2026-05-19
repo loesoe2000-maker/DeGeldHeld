@@ -505,3 +505,55 @@ functions >100 lines, raw `process.env.X` reads (should go via
 
 Tests `tests/self-review.test.ts` enforce zero `any`/`ts-ignore`/
 `console.log` as a hard gate — adding any of those will fail CI.
+
+## Anonymous-bill flow (v15)
+
+Visitors can upload a bill without signing up. Flow:
+
+1. `POST /api/bills/upload` from a logged-out browser mints a
+   `dgh_anon_session` UUID cookie (httpOnly, 24h maxAge).
+2. The Bill is stored with `userId=NULL` and
+   `anonymousSessionId=<cookie>`.
+3. `/onderhandel/analyse` reads the cookie when there's no session
+   and looks the Bill up via `anonymousSessionId`. The page
+   renders the full analysis but hides the "Genereer mail" button.
+   Instead it shows `<AnonymousMailPrompt>` — email input + CTA.
+4. Visitor submits email → `POST /api/anon/email-signup` validates
+   anti-bot (honeypot + time-gate + UA blocklist) + per-IP rate
+   limit, then `signIn("resend")` triggers the magic-link via the
+   standard NextAuth Resend provider with
+   `callbackUrl=/onderhandel/email?bill=X`.
+5. On magic-link click, NextAuth's `events.createUser` (or
+   `events.signIn` for returning users) calls
+   `claimAnonymousBills(userId, cookieValue)`, which:
+   - Reassigns every Bill with `anonymousSessionId=cookieValue`
+     to the new `userId`.
+   - Clears `anonymousSessionId`, stamps `claimedAt`.
+   - Clears the `dgh_anon_session` cookie.
+6. Daily 03:00 UTC cron `/api/cron/cleanup-anonymous` deletes
+   anonymous Bills older than 24h that were never claimed.
+
+### Manual claim recovery
+
+If a user reports "I uploaded before signing up and my bill is
+missing", admin can manually run:
+
+```sql
+UPDATE "Bill"
+   SET "userId" = '<user-id>',
+       "claimedAt" = NOW(),
+       "anonymousSessionId" = NULL
+ WHERE "anonymousSessionId" IS NOT NULL
+   AND "createdAt" >= NOW() - INTERVAL '24 hours'
+   AND id = '<bill-id>';
+```
+
+The 24h horizon protects against accidental reassignment to a
+different visitor's stale cookie.
+
+## Turnstile setup (v15 DEEL 5)
+
+See `MANUAL_SETUP_REQUIRED.md §13` for the Cloudflare free-tier
+walkthrough + verification curl. Without `TURNSTILE_SECRET_KEY`
+the gate skips (graceful fallback per user spec); set the secret
+to activate it.

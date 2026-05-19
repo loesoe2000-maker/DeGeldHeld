@@ -980,6 +980,81 @@ async function checkGoLiveChecklistFile(): Promise<CheckResult> {
   };
 }
 
+// ─────────────────────────────────────────────────────────────
+// v15 DEEL 6 — checks 61-65 — anonymous flow + activity feed
+// ─────────────────────────────────────────────────────────────
+
+async function checkAnonUploadEmpty(): Promise<CheckResult> {
+  // POST /api/bills/upload without any form data — must NOT 500.
+  // 400 (no file) or 401 (auth-not-required path returns clean) is fine.
+  const r = await fetch(`${BASE}/api/bills/upload`, { method: "POST" });
+  return {
+    name: "POST /api/bills/upload (anonymous, no body)",
+    ok: r.status === 400 || r.status === 401,
+    detail: `${r.status}`,
+  };
+}
+
+async function checkActivityApi(): Promise<CheckResult> {
+  const r = await fetchFollow(`${BASE}/api/activity`);
+  if (r.status !== 200) {
+    return { name: "GET /api/activity", ok: false, detail: `${r.status}` };
+  }
+  const body = await r.text();
+  let parsed: { items?: unknown[] };
+  try {
+    parsed = JSON.parse(body) as { items?: unknown[] };
+  } catch {
+    return { name: "GET /api/activity", ok: false, detail: "bad json" };
+  }
+  if (!Array.isArray(parsed.items)) {
+    return { name: "GET /api/activity", ok: false, detail: "no items array" };
+  }
+  return { name: "GET /api/activity", ok: true, detail: `${parsed.items.length} items` };
+}
+
+async function checkActivityCacheHeader(): Promise<CheckResult> {
+  const r = await fetchFollow(`${BASE}/api/activity`);
+  const cc = r.headers.get("cache-control") ?? "";
+  return {
+    name: "GET /api/activity (Cache-Control s-maxage)",
+    ok: /s-maxage=30/.test(cc),
+    detail: cc || "no header",
+  };
+}
+
+async function checkAnonSignupAntiBot(): Promise<CheckResult> {
+  // curl UA must be blocked by the v15 anti-bot bundle.
+  const r = await fetch(`${BASE}/api/anon/email-signup`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "user-agent": "curl/8.6.0",
+    },
+    body: JSON.stringify({
+      email: "smoke@example.com",
+      billId: "x",
+      hp: "",
+      renderedAt: Date.now() - 5000,
+    }),
+  });
+  return {
+    name: "POST /api/anon/email-signup (curl UA blocked)",
+    ok: r.status === 400,
+    detail: `${r.status}`,
+  };
+}
+
+async function checkCleanupAnonCronUnauth(): Promise<CheckResult> {
+  // /api/cron/cleanup-anonymous without bearer secret → 401.
+  const r = await fetch(`${BASE}/api/cron/cleanup-anonymous`);
+  return {
+    name: "GET /api/cron/cleanup-anonymous (no secret)",
+    ok: r.status === 401,
+    detail: `${r.status}`,
+  };
+}
+
 async function main() {
   console.log(`[smoke-prod] Target: ${BASE}`);
   console.log(`[smoke-prod] Start: ${new Date().toISOString()}\n`);
@@ -1045,6 +1120,11 @@ async function main() {
     checkAdminCostDashboardGated, // 58 — v14 admin no 500
     checkPdfRenderRouteExists, // 59 — v14 PDF path live
     checkGoLiveChecklistFile,  // 60 — v14 deploy fresh
+    checkAnonUploadEmpty,      // 61 — v15 anonymous upload route loads
+    checkActivityApi,          // 62 — v15 activity feed JSON
+    checkActivityCacheHeader,  // 63 — v15 activity cache header
+    checkAnonSignupAntiBot,    // 64 — v15 UA blocklist rejects curl
+    checkCleanupAnonCronUnauth, // 65 — v15 cleanup cron requires secret
   ];
 
   const results: CheckResult[] = [];
