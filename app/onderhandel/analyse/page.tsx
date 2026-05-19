@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { prisma } from "@/lib/db";
 import Comparison from "@/components/Comparison";
 import { buildComparison, isMonopolyCategory } from "@/lib/comparison";
@@ -11,6 +12,8 @@ import { requiresPayment } from "@/lib/payments";
 import { compareEnergy } from "@/lib/categories/energie";
 import { compareInsurance, type InsuranceCoverageType } from "@/lib/categories/verzekering";
 import { compareMortgage } from "@/lib/categories/hypotheek";
+import { ANON_COOKIE_NAME, isValidAnonSessionId } from "@/lib/anon-session";
+import AnonymousMailPrompt from "@/components/AnonymousMailPrompt";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -22,18 +25,33 @@ export default async function AnalysePage({
   searchParams: Promise<{ bill?: string; paid?: string }>;
 }) {
   const session = await auth();
-  if (!session?.user) redirect("/login");
-  const userId = (session.user as { id: string }).id;
-
   const params = await searchParams;
   const billId = params.bill;
   if (!billId) redirect("/onderhandel");
 
-  const bill = await prisma.bill.findFirst({ where: { id: billId, userId } });
+  // v15 anonymous flow: when there's no session, look up the bill via
+  // the anonymous-session cookie. We still scope by cookie so visitor
+  // A can't read visitor B's bills.
+  const userId = (session?.user as { id?: string } | undefined)?.id ?? null;
+  const cookieStore = await cookies();
+  const anonCookie = cookieStore.get(ANON_COOKIE_NAME)?.value ?? null;
+  const anonymousSessionId = isValidAnonSessionId(anonCookie) ? anonCookie : null;
+
+  if (!userId && !anonymousSessionId) {
+    redirect("/onderhandel");
+  }
+
+  const bill = userId
+    ? await prisma.bill.findFirst({ where: { id: billId, userId } })
+    : await prisma.bill.findFirst({ where: { id: billId, anonymousSessionId } });
   if (!bill) redirect("/onderhandel");
 
+  const isAnonymous = !userId;
+
   // DEEL 10 paywall — first bill free, others require payment first.
-  if (await requiresPayment(userId, billId)) {
+  // Anonymous flow skips paywall entirely; we want them to see value
+  // before any signup gate.
+  if (userId && (await requiresPayment(userId, billId))) {
     redirect(`/pay/${billId}?type=paywall`);
   }
 
@@ -232,20 +250,28 @@ export default async function AnalysePage({
         );
       })()}
 
-      <div className="mt-10 flex gap-3">
-        <Link
-          href={`/onderhandel/email?bill=${bill.id}`}
-          className="rounded-lg bg-brand-600 px-6 py-3 font-semibold text-white hover:bg-brand-700"
-        >
-          Genereer onderhandel-email
-        </Link>
-        <Link
-          href="/dashboard"
-          className="rounded-lg border border-slate-300 px-6 py-3 font-medium text-slate-700 hover:bg-slate-50"
-        >
-          Annuleren
-        </Link>
-      </div>
+      {isAnonymous ? (
+        <AnonymousMailPrompt
+          billId={bill.id}
+          provider={bill.provider}
+          yearlySavingsCents={comparison.bestSavingsCents}
+        />
+      ) : (
+        <div className="mt-10 flex gap-3">
+          <Link
+            href={`/onderhandel/email?bill=${bill.id}`}
+            className="rounded-lg bg-brand-600 px-6 py-3 font-semibold text-white hover:bg-brand-700"
+          >
+            Genereer onderhandel-email
+          </Link>
+          <Link
+            href="/dashboard"
+            className="rounded-lg border border-slate-300 px-6 py-3 font-medium text-slate-700 hover:bg-slate-50"
+          >
+            Annuleren
+          </Link>
+        </div>
+      )}
     </main>
   );
 }
