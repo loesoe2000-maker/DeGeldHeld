@@ -6,8 +6,15 @@ const nextConfig = {
     // @napi-rs/canvas (gebruikt door lib/pdf_render.ts voor multi-page PDF
     // → PNG rendering) is een native .node binary. Webpack kan die niet
     // bundelen — markeer als external zodat 'm op de Vercel Node runtime
-    // dynamisch wordt geladen i.p.v. in de bundle.
-    serverComponentsExternalPackages: ["@napi-rs/canvas", "pdfjs-dist", "sharp"],
+    // dynamisch wordt geladen i.p.v. in de bundle. Hetzelfde geldt voor
+    // sharp en de pure-JS HEIC-decoder (libheif-js ships als wasm).
+    serverComponentsExternalPackages: [
+      "@napi-rs/canvas",
+      "pdfjs-dist",
+      "sharp",
+      "heic-convert",
+      "libheif-js",
+    ],
   },
   webpack: (config, { isServer }) => {
     if (isServer) {

@@ -30,6 +30,7 @@
     "@sentry/nextjs": "^8.45.0",
     "@vercel/analytics": "^2.0.1",
     "groq-sdk": "^0.9.1",
+    "heic-convert": "^2.1.0",
     "next": "14.2.18",
     "next-auth": "5.0.0-beta.25",
     "pdfjs-dist": "^5.7.284",

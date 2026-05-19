@@ -5,7 +5,10 @@
  * Why this exists:
  *   - MacBook screenshots are retina (2880-5120px wide). Groq Vision
  *     rejects oversized images with "invalid image data".
- *   - iPhone HEIC images aren't supported by Groq at all.
+ *   - iPhone HEIC images aren't supported by sharp on Vercel (no libheif
+ *     in the pre-built binary) and Groq doesn't read HEIC either — we
+ *     pre-convert HEIC → JPEG using the pure-JS heic-convert package
+ *     before handing off to sharp.
  *   - Some JPEGs ship with CMYK / Display P3 / Adobe-RGB color profiles
  *     which Groq's OpenAI-compatible vision endpoint can't parse.
  *   - Mac screenshot JPEGs sometimes embed Adobe APP14 markers, non-
@@ -16,6 +19,9 @@
  * fix is to always re-encode through libjpeg-turbo with the most
  * conservative possible settings.
  *
+ * v15.3: HEIC pre-conversion via heic-convert (wasm-based, pure JS, no
+ * native libheif required).
+ *
  * After normalisation every image is:
  *   - JPEG, sRGB color, no alpha, no ICC profile, no EXIF metadata
  *   - Long-edge at most 1280px (Llama 4 Scout's vision tower runs at
@@ -24,6 +30,56 @@
  */
 
 import sharp from "sharp";
+
+/**
+ * HEIC detection by magic bytes. The MIME label from the browser is
+ * unreliable on cross-platform uploads ("image/heif", "image/heic" or
+ * sometimes "application/octet-stream") so we sniff the actual ftyp
+ * box at byte offset 4.
+ *
+ * https://nokiatech.github.io/heif/technical.html — supported brands:
+ *   heic, heix, hevc, hevx, heim, heis, hevm, hevs, mif1, msf1
+ */
+function isHeicBuffer(buf: Buffer): boolean {
+  if (buf.length < 12) return false;
+  if (buf.toString("ascii", 4, 8) !== "ftyp") return false;
+  const brand = buf.toString("ascii", 8, 12).toLowerCase();
+  return [
+    "heic",
+    "heix",
+    "hevc",
+    "hevx",
+    "heim",
+    "heis",
+    "hevm",
+    "hevs",
+    "mif1",
+    "msf1",
+  ].includes(brand);
+}
+
+/**
+ * Decode an HEIC/HEIF buffer to a JPEG buffer using the pure-JS
+ * heic-convert library. Returns null on failure so the caller can
+ * surface a clean error instead of crashing.
+ */
+async function heicToJpegBuffer(buf: Buffer): Promise<Buffer | null> {
+  try {
+    // heic-convert ships no types; require dynamically so the build
+    // doesn't break if the package is missing in a future tree-shake.
+    const mod = await import("heic-convert");
+    const convert = (mod.default ?? mod) as (opts: {
+      buffer: Buffer | ArrayBuffer | Uint8Array;
+      format: "JPEG" | "PNG";
+      quality?: number;
+    }) => Promise<ArrayBuffer>;
+    const out = await convert({ buffer: buf, format: "JPEG", quality: 0.92 });
+    return Buffer.from(out);
+  } catch (e) {
+    console.error("[image-normalize] heic-convert failed:", (e as Error).message);
+    return null;
+  }
+}
 
 const MAX_LONG_EDGE = 1280;
 const FALLBACK_LONG_EDGE = 800;
@@ -85,7 +141,31 @@ async function encodeWithSharp(
   opts: EncodeOpts,
 ): Promise<NormalizeResult> {
   try {
-    const pipeline = sharp(inputBuffer, { failOn: "none" });
+    // v15.3: HEIC/HEIF pre-convert. Vercel's pre-built sharp binary has
+    // no libheif, so sharp().metadata() throws on iPhone photos. Detect
+    // by magic bytes (mime is unreliable across platforms) and convert
+    // to JPEG via heic-convert before sharp ever sees the buffer.
+    const heicByMagic = isHeicBuffer(inputBuffer);
+    const heicByMime = /heic|heif/i.test(inputMime);
+    let workingBuffer = inputBuffer;
+    let preConverted = false;
+    if (heicByMagic || heicByMime) {
+      const jpeg = await heicToJpegBuffer(inputBuffer);
+      if (jpeg) {
+        workingBuffer = jpeg;
+        preConverted = true;
+        console.log(
+          `[image-normalize] HEIC → JPEG pre-convert: ${inputBuffer.length} → ${jpeg.length} bytes`,
+        );
+      } else {
+        // Conversion failed — surface a hard error so the OCR layer can
+        // catch and message the user, rather than silently shipping
+        // undecodable bytes to Groq.
+        throw new Error("HEIC_CONVERT_FAILED");
+      }
+    }
+
+    const pipeline = sharp(workingBuffer, { failOn: "none" });
     const meta = await pipeline.metadata();
     const originalWidth = meta.width ?? 0;
     const originalHeight = meta.height ?? 0;
@@ -133,7 +213,10 @@ async function encodeWithSharp(
       width: outWidth,
       height: outHeight,
       bytes: buffer.length,
-      sourceFormat: meta.format ?? "unknown",
+      // Preserve true source format — sharp's meta.format reports "jpeg"
+      // on the heic-converted intermediate, which would hide the fact
+      // that the upload was HEIC.
+      sourceFormat: preConverted ? "heic" : meta.format ?? "unknown",
       sourceSpace: meta.space ?? "unknown",
       sourceChannels: meta.channels ?? 0,
       resized: needsResize,
