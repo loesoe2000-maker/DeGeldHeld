@@ -189,7 +189,17 @@ export async function POST(req: NextRequest) {
     if (!rl.ok) return rateLimitResponse(rl);
 
     stage = "form";
-    const form = await req.formData();
+    let form: FormData;
+    try {
+      form = await req.formData();
+    } catch {
+      // v16: malformed/empty body throws inside formData(). Collapse
+      // to a clean 400 so the route never 500s on bot/probe POSTs.
+      return NextResponse.json(
+        { error: "Ongeldig formulier — geen multipart-body" },
+        { status: 400 },
+      );
+    }
     const file = form.get("file");
     if (!(file instanceof File)) {
       return NextResponse.json({ error: "Geen bestand bijgevoegd" }, { status: 400 });
