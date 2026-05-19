@@ -90,6 +90,6 @@ export async function requireUser(): Promise<AppSession["user"]> {
   return session.user;
 }
 
-export function isProtectedPath(pathname: string): boolean {
-  return ["/dashboard", "/onderhandel", "/pay"].some((p) => pathname.startsWith(p));
-}
+// v15: re-export the shared helper so middleware uses the same anonymous-
+// allowed list as the NextAuth authorized callback.
+export { isPathProtected as isProtectedPath } from "@/lib/auth-callbacks";

@@ -3,6 +3,21 @@
 
 export const PROTECTED_PATHS = ["/dashboard", "/onderhandel", "/pay"];
 
+/**
+ * v15 anonymous flow: these /onderhandel paths are publicly accessible
+ * so first-time visitors can upload + see analysis WITHOUT signing up.
+ * Sub-routes that touch real user data still require auth.
+ */
+const ANON_ALLOWED_EXACT = new Set([
+  "/onderhandel",
+  "/onderhandel/analyse",
+]);
+
+export function isPathProtected(pathname: string): boolean {
+  if (ANON_ALLOWED_EXACT.has(pathname)) return false;
+  return PROTECTED_PATHS.some((p) => pathname.startsWith(p));
+}
+
 export function jwtCallback({
   token,
   user,
@@ -36,7 +51,6 @@ export function authorizedCallback({
   request: { nextUrl: { pathname: string } };
 }) {
   const path = request.nextUrl.pathname;
-  const isProtected = PROTECTED_PATHS.some((p) => path.startsWith(p));
-  if (!isProtected) return true;
+  if (!isPathProtected(path)) return true;
   return !!auth?.user;
 }
