@@ -58,13 +58,31 @@ export default async function AnalysePage({
   // Empty bill → OCR couldn't extract usable data. Show a graceful fallback
   // instead of letting Comparison render an empty page or silently failing.
   const ocrFailed = bill.amountCents <= 0 || bill.provider === "Onbekend" || bill.provider === "";
+  const isHeicFailure = ocrFailed && bill.rawOcr?.startsWith("HEIC_CONVERT_FAILED");
   if (ocrFailed) {
     return (
       <main className="mx-auto max-w-3xl px-6 py-12">
-        <h1 className="text-3xl font-bold text-slate-900">We konden je rekening niet automatisch uitlezen</h1>
+        <h1 className="text-3xl font-bold text-slate-900">
+          {isHeicFailure
+            ? "iPhone HEIC kunnen we nog niet uitlezen"
+            : "We konden je rekening niet automatisch uitlezen"}
+        </h1>
         <p className="mt-3 text-slate-600">
-          De OCR herkende geen provider of bedrag. Dit gebeurt soms bij onscherpe foto's,
-          handgeschreven facturen of een onbekende leverancier.
+          {isHeicFailure ? (
+            <>
+              Open de foto in <strong>Foto&apos;s</strong> op je iPhone, tik op{" "}
+              <strong>Deel → Kopieer foto</strong>, plak 'm hier opnieuw — dan
+              komt 'ie als JPEG binnen. Of zet je iPhone op JPEG via{" "}
+              <strong>Instellingen → Camera → Indelingen → Meest compatibel</strong>{" "}
+              en maak een nieuwe foto.
+            </>
+          ) : (
+            <>
+              De OCR herkende geen provider of bedrag. Dit gebeurt soms bij
+              onscherpe foto&apos;s, handgeschreven facturen of een onbekende
+              leverancier.
+            </>
+          )}
         </p>
         <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
           <strong>Wat we wel zagen:</strong>

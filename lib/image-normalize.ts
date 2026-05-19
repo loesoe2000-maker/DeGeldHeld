@@ -62,8 +62,14 @@ function isHeicBuffer(buf: Buffer): boolean {
  * Decode an HEIC/HEIF buffer to a JPEG buffer using the pure-JS
  * heic-convert library. Returns null on failure so the caller can
  * surface a clean error instead of crashing.
+ *
+ * Hard 20s timeout: libheif-js can hang on edge-case inputs and we
+ * never want to silently consume the function's full 60s budget.
  */
+const HEIC_CONVERT_TIMEOUT_MS = 20_000;
+
 async function heicToJpegBuffer(buf: Buffer): Promise<Buffer | null> {
+  const start = Date.now();
   try {
     // heic-convert ships no types; require dynamically so the build
     // doesn't break if the package is missing in a future tree-shake.
@@ -73,10 +79,24 @@ async function heicToJpegBuffer(buf: Buffer): Promise<Buffer | null> {
       format: "JPEG" | "PNG";
       quality?: number;
     }) => Promise<ArrayBuffer>;
-    const out = await convert({ buffer: buf, format: "JPEG", quality: 0.92 });
+
+    const convertPromise = convert({ buffer: buf, format: "JPEG", quality: 0.85 });
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(
+        () => reject(new Error(`heic-convert timeout after ${HEIC_CONVERT_TIMEOUT_MS}ms`)),
+        HEIC_CONVERT_TIMEOUT_MS,
+      ),
+    );
+    const out = await Promise.race([convertPromise, timeoutPromise]);
+    const elapsed = Date.now() - start;
+    console.log(`[image-normalize] heic-convert ok in ${elapsed}ms`);
     return Buffer.from(out);
   } catch (e) {
-    console.error("[image-normalize] heic-convert failed:", (e as Error).message);
+    const elapsed = Date.now() - start;
+    console.error(
+      `[image-normalize] heic-convert failed after ${elapsed}ms:`,
+      (e as Error).message,
+    );
     return null;
   }
 }

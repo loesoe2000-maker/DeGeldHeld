@@ -641,7 +641,21 @@ async function extractFromImage(
   const { normalizeImageForVision, renormalizeForVisionFallback } = await import(
     "@/lib/image-normalize"
   );
-  const normalized = await normalizeImageForVision(imageBuf, mimeType);
+  let normalized;
+  try {
+    normalized = await normalizeImageForVision(imageBuf, mimeType);
+  } catch (e) {
+    // HEIC pre-convert can throw HEIC_CONVERT_FAILED when libheif-js fails
+    // or times out. Surface a clean user-facing marker rather than letting
+    // the upload route 500.
+    const msg = (e as Error).message;
+    console.error(`[ocr] normalisation crashed: ${msg}`);
+    return {
+      ...empty,
+      rawText: msg.includes("HEIC") ? "HEIC_CONVERT_FAILED" : `NORMALIZE_FAIL: ${msg}`,
+      needsManual: true,
+    };
+  }
   console.log(
     `[ocr] image normalised: source=${normalized.sourceFormat} ` +
     `space=${normalized.sourceSpace} ch=${normalized.sourceChannels} ` +
