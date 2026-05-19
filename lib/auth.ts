@@ -37,13 +37,43 @@ export const authConfig: NextAuthConfig = {
         const { cookies } = await import("next/headers");
         const jar = await cookies();
         const code = jar.get("ref_code")?.value;
-        if (!code || !user?.id) return;
-        const { consumeReferral } = await import("@/lib/referral");
-        await consumeReferral(code, user.id);
-        // Clear the cookie so a refresh doesn't double-fire (harmless but tidy).
-        jar.set("ref_code", "", { maxAge: 0, path: "/" });
+        if (code && user?.id) {
+          const { consumeReferral } = await import("@/lib/referral");
+          await consumeReferral(code, user.id);
+          jar.set("ref_code", "", { maxAge: 0, path: "/" });
+        }
       } catch {
         // swallow — referral is not critical for signup
+      }
+      // v15 claim-on-signup — reassign anonymous bills to this user.
+      try {
+        const { cookies } = await import("next/headers");
+        const jar = await cookies();
+        const { ANON_COOKIE_NAME } = await import("@/lib/anon-session");
+        const sid = jar.get(ANON_COOKIE_NAME)?.value;
+        if (!sid || !user?.id) return;
+        const { claimAnonymousBills } = await import("@/lib/anon-claim");
+        await claimAnonymousBills(user.id, sid);
+        jar.set(ANON_COOKIE_NAME, "", { maxAge: 0, path: "/" });
+      } catch {
+        // swallow — claim is best-effort; cron cleans up stale bills
+      }
+    },
+    async signIn({ user }) {
+      // v15: existing users who are already logged in but still carry
+      // an anonymous cookie (e.g. browsed anonymously after signing
+      // out, then signed in again) get their bills claimed here too.
+      try {
+        const { cookies } = await import("next/headers");
+        const jar = await cookies();
+        const { ANON_COOKIE_NAME } = await import("@/lib/anon-session");
+        const sid = jar.get(ANON_COOKIE_NAME)?.value;
+        if (!sid || !user?.id) return;
+        const { claimAnonymousBills } = await import("@/lib/anon-claim");
+        await claimAnonymousBills(user.id, sid);
+        jar.set(ANON_COOKIE_NAME, "", { maxAge: 0, path: "/" });
+      } catch {
+        // never block signin
       }
     },
   },

@@ -14,7 +14,8 @@ export type CronJobName =
   | "psd2-sync"
   | "follow-up"
   | "recheck-savings"
-  | "fraud-check";
+  | "fraud-check"
+  | "cleanup-anonymous";
 
 function todayUtc(): string {
   return new Date().toISOString().slice(0, 10);
