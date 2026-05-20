@@ -1,30 +1,12 @@
 /**
  * lib/inbound.ts — helpers voor Resend Inbound (mail-forward) webhook.
  *
- * Resend signs inbound webhooks with HMAC-SHA256(secret, raw-body).
- * The signature comes in `resend-signature` header (hex).
+ * Signature verification lives in lib/inbound-verify.ts (Svix). This module
+ * keeps the legacy payload-parse + the user lookup; the canonical webhook
+ * entry-point is lib/inbound-handler.ts.
  */
 
-import crypto from "crypto";
 import { prisma } from "@/lib/db";
-
-const SIG_HEADER = "resend-signature";
-
-export function verifyResendSignature(rawBody: string, signatureHex: string | null): boolean {
-  const secret = process.env.RESEND_WEBHOOK_SECRET;
-  if (!secret) return false; // never accept unsigned in prod
-  if (!signatureHex) return false;
-  const expected = crypto.createHmac("sha256", secret).update(rawBody).digest("hex");
-  // constant-time compare (lengths must match for timingSafeEqual)
-  try {
-    const a = Buffer.from(signatureHex, "hex");
-    const b = Buffer.from(expected, "hex");
-    if (a.length !== b.length) return false;
-    return crypto.timingSafeEqual(a, b);
-  } catch {
-    return false;
-  }
-}
 
 export type InboundAttachment = {
   filename: string;
@@ -89,6 +71,3 @@ export async function userForFromAddress(from: string): Promise<{ id: string; em
   });
   return u;
 }
-
-/** Re-export of header constant for the route handler. */
-export const RESEND_SIGNATURE_HEADER = SIG_HEADER;

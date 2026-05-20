@@ -3,9 +3,8 @@
  *
  * Wired into POST /api/inbound/router (Resend webhook).
  *
- * Flow:
- *   1. Verify HMAC against RESEND_INBOUND_SECRET (NOT the same key as
- *      regular inbound; auto-pingpong has its own webhook URL + secret).
+ * Flow (caller = the canonical lib/inbound-handler.ts):
+ *   1. Svix-verify the webhook (lib/inbound-verify.ts, single secret).
  *   2. Extract thread-id from In-Reply-To header.
  *   3. Look up Negotiation by providerThreadId.
  *   4. analyseProviderResponse() on the email body.
@@ -20,7 +19,6 @@
  * is the only path that puts a counter-mail on the wire.
  */
 
-import crypto from "crypto";
 import { prisma } from "@/lib/db";
 import { extractThreadId } from "@/lib/email-thread";
 import { analyseProviderResponse, MAX_ROUNDS } from "@/lib/rounds";
@@ -29,26 +27,6 @@ import { buildComparison } from "@/lib/comparison";
 import type { Country, Category } from "@/lib/providers";
 import type { BillCategory } from "@prisma/client";
 import { sendEmail, escapeHtml } from "@/lib/email";
-
-export const INBOUND_ROUTER_SIG_HEADER = "resend-signature";
-
-export function verifyInboundRouterSignature(
-  rawBody: string,
-  signatureHex: string | null,
-): boolean {
-  const secret = process.env.RESEND_INBOUND_SECRET;
-  if (!secret) return false;
-  if (!signatureHex) return false;
-  const expected = crypto.createHmac("sha256", secret).update(rawBody).digest("hex");
-  try {
-    const a = Buffer.from(signatureHex, "hex");
-    const b = Buffer.from(expected, "hex");
-    if (a.length !== b.length) return false;
-    return crypto.timingSafeEqual(a, b);
-  } catch {
-    return false;
-  }
-}
 
 export type InboundRouterPayload = {
   from: string;
@@ -94,7 +72,7 @@ export function parseInboundRouterPayload(raw: unknown): InboundRouterPayload | 
 }
 
 export type RouteResult =
-  | { ok: false; reason: "no-thread-id" | "no-match" | "max-rounds" | "no-counter-needed" }
+  | { ok: false; reason: "no-thread-id" | "no-match" | "max-rounds" | "no-counter-needed" | "feature-disabled" }
   | { ok: true; roundId: string; negotiationId: string };
 
 /**

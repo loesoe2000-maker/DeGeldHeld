@@ -2,33 +2,11 @@
  * lib/proof-inbound.ts — HMAC verification + payload parsing for the
  * proof webhook (`/api/inbound/proof`).
  *
- * Distinct from /api/inbound (which seeds new bills) and
- * /api/inbound/router (auto-pingpong) because the matching logic is
- * different — we look for a [PROOF-{negotiationId}] subject token or
- * an In-Reply-To matching a Negotiation thread-id.
+ * The proof-matching logic — a [PROOF-{id}] subject token or an
+ * In-Reply-To matching a Negotiation thread-id — is reused by the
+ * canonical webhook handler (lib/inbound-handler.ts). Signature
+ * verification is shared via lib/inbound-verify.ts (Svix).
  */
-
-import crypto from "crypto";
-
-export const PROOF_SIG_HEADER = "resend-signature";
-
-export function verifyProofSignature(
-  rawBody: string,
-  signatureHex: string | null,
-): boolean {
-  const secret = process.env.RESEND_PROOF_WEBHOOK_SECRET;
-  if (!secret) return false;
-  if (!signatureHex) return false;
-  const expected = crypto.createHmac("sha256", secret).update(rawBody).digest("hex");
-  try {
-    const a = Buffer.from(signatureHex, "hex");
-    const b = Buffer.from(expected, "hex");
-    if (a.length !== b.length) return false;
-    return crypto.timingSafeEqual(a, b);
-  } catch {
-    return false;
-  }
-}
 
 export type ProofInboundPayload = {
   from: string;
