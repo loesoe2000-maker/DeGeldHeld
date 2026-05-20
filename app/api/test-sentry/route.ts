@@ -25,6 +25,31 @@ function dsnConfigured(): boolean {
   return !!(process.env.SENTRY_DSN ?? process.env.NEXT_PUBLIC_SENTRY_DSN);
 }
 
+// Extract the (public) project-id from a DSN's trailing path segment.
+// Project ids are NOT secret — they appear in client-side bundles.
+function dsnProjectId(dsn: string | undefined | null): string | null {
+  if (!dsn) return null;
+  const m = /\/(\d+)\/?$/.exec(dsn.trim());
+  return m ? m[1] : "unparseable";
+}
+
+// Diagnostic: what the server env holds + what the initialised Sentry
+// SDK actually bound to. Lets us see exactly where a mismatch is.
+function dsnDiagnostics() {
+  let sdkDsn: string | undefined;
+  try {
+    sdkDsn = Sentry.getClient()?.getOptions()?.dsn as string | undefined;
+  } catch {
+    sdkDsn = undefined;
+  }
+  return {
+    envServerProject: dsnProjectId(process.env.SENTRY_DSN),
+    envPublicProject: dsnProjectId(process.env.NEXT_PUBLIC_SENTRY_DSN),
+    sdkProject: dsnProjectId(sdkDsn),
+    sdkInitialised: !!Sentry.getClient(),
+  };
+}
+
 export async function GET(req: Request) {
   if (!isAllowed(req)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -41,7 +66,7 @@ export async function GET(req: Request) {
   // poll. Pass ?fire=1 to actually throw a tagged test error.
   const url = new URL(req.url);
   if (url.searchParams.get("fire") !== "1") {
-    return NextResponse.json({ ok: true, configured, environment });
+    return NextResponse.json({ ok: true, configured, environment, ...dsnDiagnostics() });
   }
 
   const err = new Error(
