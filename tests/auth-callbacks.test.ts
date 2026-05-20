@@ -76,8 +76,16 @@ describe("auth/authorizedCallback", () => {
 
   it("blocks protected routes when not authed", () => {
     expect(authorizedCallback({ auth: null, request: { nextUrl: { pathname: "/dashboard" } } })).toBe(false);
-    expect(authorizedCallback({ auth: null, request: { nextUrl: { pathname: "/onderhandel" } } })).toBe(false);
     expect(authorizedCallback({ auth: null, request: { nextUrl: { pathname: "/pay/abc" } } })).toBe(false);
+  });
+
+  it("v15 anonymous flow: /onderhandel + /onderhandel/analyse are PUBLIC", () => {
+    // First-time visitors must reach the upload form + analysis page
+    // without signing up. Both return true (allowed) even with no auth.
+    expect(authorizedCallback({ auth: null, request: { nextUrl: { pathname: "/onderhandel" } } })).toBe(true);
+    expect(
+      authorizedCallback({ auth: null, request: { nextUrl: { pathname: "/onderhandel/analyse" } } }),
+    ).toBe(true);
   });
 
   it("allows protected routes when authed", () => {
@@ -86,11 +94,12 @@ describe("auth/authorizedCallback", () => {
     expect(authorizedCallback({ auth, request: { nextUrl: { pathname: "/onderhandel/email" } } })).toBe(true);
   });
 
-  it("blocks /onderhandel/* deep paths when not authed", () => {
+  it("blocks /onderhandel/* DEEP paths (not the public exacts) when not authed", () => {
+    // /onderhandel/email touches real user data → still protected.
     expect(
       authorizedCallback({
         auth: null,
-        request: { nextUrl: { pathname: "/onderhandel/analyse" } },
+        request: { nextUrl: { pathname: "/onderhandel/email" } },
       }),
     ).toBe(false);
   });

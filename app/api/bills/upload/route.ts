@@ -3,12 +3,11 @@ import crypto from "crypto";
 import { cookies } from "next/headers";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { extractBill, hashImage, parseInvoiceDate, validateUploadedFile, pdfFallbackMessage } from "@/lib/ocr";
+import { extractBill, hashImage, validateUploadedFile, pdfFallbackMessage } from "@/lib/ocr";
 import * as Sentry from "@sentry/nextjs";
-import { currencyForCountry } from "@/lib/format";
 import { rateLimit, rateLimitResponse, ipFromRequest } from "@/lib/rate-limit";
 import { anonymizeStructured } from "@/lib/anonymizer";
-import { inferSubType } from "@/lib/categories";
+import { billDataFromOcr } from "@/lib/bill-from-ocr";
 import {
   ANON_COOKIE_NAME,
   ANON_COOKIE_OPTIONS,
@@ -47,28 +46,6 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 type OcrFields = Awaited<ReturnType<typeof extractBill>>;
-
-function billDataFromOcr(ocr: OcrFields) {
-  const subType =
-    ocr.subType ??
-    (ocr.category ? inferSubType(ocr.category, ocr.provider ?? "") : null) ??
-    null;
-  return {
-    provider: ocr.provider ?? "Onbekend",
-    category: ocr.category ?? "OVERIG",
-    subType,
-    amountCents: ocr.amountCents ?? 0,
-    monthlyCents: ocr.monthlyAmountCents,
-    totalCents: ocr.totalAmountCents,
-    plan: ocr.plan,
-    period: ocr.period,
-    invoiceDate: parseInvoiceDate(ocr.period),
-    customerNumber: ocr.customerNumber,
-    country: ocr.country ?? undefined,
-    currency: currencyForCountry(ocr.country),
-    rawOcr: ocr.rawText.slice(0, 4000),
-  };
-}
 
 async function persistBill(opts: {
   userId: string | null;

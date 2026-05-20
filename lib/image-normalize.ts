@@ -89,7 +89,7 @@ async function heicToJpegBuffer(buf: Buffer): Promise<Buffer | null> {
     );
     const out = await Promise.race([convertPromise, timeoutPromise]);
     const elapsed = Date.now() - start;
-    console.log(`[image-normalize] heic-convert ok in ${elapsed}ms`);
+    console.warn(`[image-normalize] heic-convert ok in ${elapsed}ms`);
     return Buffer.from(out);
   } catch (e) {
     const elapsed = Date.now() - start;
@@ -174,7 +174,7 @@ async function encodeWithSharp(
       if (jpeg) {
         workingBuffer = jpeg;
         preConverted = true;
-        console.log(
+        console.warn(
           `[image-normalize] HEIC → JPEG pre-convert: ${inputBuffer.length} → ${jpeg.length} bytes`,
         );
       } else {

@@ -192,6 +192,18 @@ model Bill {
   subType      String?
   // v5: currency from valuta-symbol / IBAN-prefix. Default EUR for NL/EU.
   currency     String       @default("EUR")
+  // v17: category-specific OCR fields, persisted so the analyse-page
+  // can compare against the user's REAL invoice instead of hardcoded
+  // market medians. All nullable — only filled when OCR was confident.
+  energyKwhRateCents       Int?
+  energyM3RateCents        Int?
+  energyContractType       String?   // vast/variabel/dynamisch/unknown
+  insuranceCoverage        String?   // WA/WA+/CASCO/UNKNOWN
+  insuranceDeductibleCents Int?
+  mortgageInterestPct      Float?
+  mortgageTermYears        Int?
+  bankAccountTier          String?
+  streamingTier            String?
   imageHash    String?      @unique
   rawOcr       String?      @db.Text
   createdAt    DateTime     @default(now())

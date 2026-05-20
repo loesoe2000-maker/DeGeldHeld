@@ -49,6 +49,7 @@ export type OcrResult = {
   /** Optional category-specific extras — only populated when OCR was confident. */
   energyKwhRateCents?: number | null;     // ENERGIE: cent per kWh
   energyM3RateCents?: number | null;      // ENERGIE: cent per m³ gas
+  energyContractType?: string | null;     // ENERGIE: vast/variabel/dynamisch/unknown
   insuranceCoverage?: string | null;      // VERZEKERING: WA/casco/uitgebreid
   insuranceDeductibleCents?: number | null; // VERZEKERING: eigen risico in cents
   mortgageInterestPct?: number | null;    // HYPOTHEEK: rentepercentage
@@ -106,6 +107,7 @@ Lees de factuur en extracteer:
     anders null):
       energy_kwh_rate_eur: prijs per kWh (energie-factuur)
       energy_m3_rate_eur: prijs per m³ gas (energie-factuur)
+      energy_contract_type: "vast" | "variabel" | "dynamisch" (energie-factuur, null bij twijfel)
       insurance_coverage: dekking-type (WA/casco/uitgebreid)
       insurance_deductible_eur: eigen risico in euro
       mortgage_interest_pct: rente in procent (hypotheek-factuur)
@@ -178,6 +180,18 @@ function detectCountry(input: unknown): Country | null {
   if (upper === "BEL") return "BE";
   if (upper === "ESP") return "ES";
   if (upper === "ITA") return "IT";
+  return null;
+}
+
+/** Map an LLM energy_contract_type value to our canonical set. */
+function detectContractType(input: unknown): string | null {
+  if (typeof input !== "string") return null;
+  const lower = input.toLowerCase().trim();
+  if (lower.includes("vast") || lower.includes("fixed")) return "vast";
+  if (lower.includes("dynamisch") || lower.includes("dynamic") || lower.includes("spot"))
+    return "dynamisch";
+  if (lower.includes("variabel") || lower.includes("variable") || lower.includes("flex"))
+    return "variabel";
   return null;
 }
 
@@ -341,6 +355,7 @@ export function parseOcrJson(raw: string): Partial<OcrResult> {
       country: detectCountry(obj.country),
       energyKwhRateCents: toCentsLoose(obj.energy_kwh_rate_eur),
       energyM3RateCents: toCentsLoose(obj.energy_m3_rate_eur),
+      energyContractType: detectContractType(obj.energy_contract_type),
       insuranceCoverage: strOrNull(obj.insurance_coverage),
       insuranceDeductibleCents: toCentsLoose(obj.insurance_deductible_eur),
       mortgageInterestPct: numOrNull(obj.mortgage_interest_pct),
@@ -527,6 +542,7 @@ function buildSuccessResult(opts: {
     country,
     energyKwhRateCents: parsed.energyKwhRateCents ?? null,
     energyM3RateCents: parsed.energyM3RateCents ?? null,
+    energyContractType: parsed.energyContractType ?? null,
     insuranceCoverage: parsed.insuranceCoverage ?? null,
     insuranceDeductibleCents: parsed.insuranceDeductibleCents ?? null,
     mortgageInterestPct: parsed.mortgageInterestPct ?? null,
@@ -656,7 +672,7 @@ async function extractFromImage(
       needsManual: true,
     };
   }
-  console.log(
+  console.warn(
     `[ocr] image normalised: source=${normalized.sourceFormat} ` +
     `space=${normalized.sourceSpace} ch=${normalized.sourceChannels} ` +
     `→ mime=${normalized.mimeType} ${normalized.width}x${normalized.height} ` +
@@ -687,7 +703,7 @@ async function extractFromImage(
       if (!fallbackUsed && isInvalidImageError(err)) {
         fallbackUsed = true;
         const fb = await renormalizeForVisionFallback(imageBuf, mimeType);
-        console.log(
+        console.warn(
           `[ocr] groq rejected image — retry with fallback ` +
           `mime=${fb.mimeType} ${fb.width}x${fb.height} bytes=${fb.bytes}`,
         );
