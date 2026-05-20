@@ -62,6 +62,11 @@ export default function BillUpload({ onUploaded }: { onUploaded?: (r: UploadResp
   const widgetIdRef = useRef<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [busy, setBusy] = useState(false);
+  // v18: synchronous guard against double-submit. setBusy(true) is
+  // async (React batches it) so two fast clicks could both pass the
+  // `busy` state check before the first re-render. A ref flips
+  // immediately, so the second call returns instantly.
+  const busyRef = useRef(false);
   const [error, setError] = useState("");
   const [selectedName, setSelectedName] = useState("");
   const [progress, setProgress] = useState<"validating" | "uploading" | "analysing" | "">("");
@@ -109,6 +114,8 @@ export default function BillUpload({ onUploaded }: { onUploaded?: (r: UploadResp
 
   const submit = useCallback(
     async (file: File) => {
+      // v18: hard double-submit guard — bail if an upload is in flight.
+      if (busyRef.current) return;
       setError("");
       setSelectedName(file.name);
       setProgress("validating");
@@ -124,6 +131,7 @@ export default function BillUpload({ onUploaded }: { onUploaded?: (r: UploadResp
         setProgress("");
         return;
       }
+      busyRef.current = true;
       setBusy(true);
       setProgress("uploading");
       try {
@@ -180,6 +188,7 @@ export default function BillUpload({ onUploaded }: { onUploaded?: (r: UploadResp
             : `Upload mislukt: ${msg || "onbekende fout"}`,
         );
       } finally {
+        busyRef.current = false;
         setBusy(false);
         setProgress("");
       }
