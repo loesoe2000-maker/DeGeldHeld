@@ -19,7 +19,7 @@ const PROD = process.env.PROD_URL ?? "https://www.degeldheld.com";
 
 export default defineConfig({
   testDir: "./tests/e2e",
-  testMatch: /journey-.*\.spec\.ts$/,
+  testMatch: /(journey-.*|category-roundtrip)\.spec\.ts$/,
   fullyParallel: false,
   workers: 1,
   retries: process.env.CI ? 1 : 0,

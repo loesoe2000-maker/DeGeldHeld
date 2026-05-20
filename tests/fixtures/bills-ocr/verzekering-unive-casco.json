@@ -1,0 +1,16 @@
+{
+  "provider": "Univé",
+  "monthly_subscription_eur": 58.00,
+  "total_eur": 58.00,
+  "one_time_items": [],
+  "plan": "Auto Allrisk (CASCO)",
+  "period": "mei 2026",
+  "customer_number": "UNV-44218",
+  "language": "nl",
+  "country": "NL",
+  "primary_category": "VERZEKERING",
+  "sub_type": "auto",
+  "insurance_coverage": "CASCO",
+  "insurance_deductible_eur": 300,
+  "confidence": 0.9
+}

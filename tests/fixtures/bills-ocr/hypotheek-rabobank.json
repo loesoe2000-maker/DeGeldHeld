@@ -1,0 +1,16 @@
+{
+  "provider": "Rabobank",
+  "monthly_subscription_eur": 1250.00,
+  "total_eur": 1250.00,
+  "one_time_items": [],
+  "plan": "Annuïteitenhypotheek 20 jaar vast",
+  "period": "mei 2026",
+  "customer_number": "RABO-99120",
+  "language": "nl",
+  "country": "NL",
+  "primary_category": "WONEN",
+  "sub_type": "hypotheek",
+  "mortgage_interest_pct": 4.6,
+  "mortgage_term_years": 20,
+  "confidence": 0.88
+}

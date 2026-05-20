@@ -1,0 +1,15 @@
+{
+  "provider": "Vitens",
+  "monthly_subscription_eur": 11.92,
+  "total_eur": 11.92,
+  "one_time_items": [],
+  "plan": "Drinkwater",
+  "period": "mei 2026",
+  "customer_number": "VIT-8842211",
+  "language": "nl",
+  "country": "NL",
+  "primary_category": "ENERGIE",
+  "sub_type": "water",
+  "energy_m3_rate_eur": 1.30,
+  "confidence": 0.9
+}

@@ -1,0 +1,17 @@
+{
+  "provider": "Eneco",
+  "monthly_subscription_eur": 142.50,
+  "total_eur": 142.50,
+  "one_time_items": [],
+  "plan": "HollandseWind variabel",
+  "period": "mei 2026",
+  "customer_number": "ENE-553120",
+  "language": "nl",
+  "country": "NL",
+  "primary_category": "ENERGIE",
+  "sub_type": "stroom+gas",
+  "energy_kwh_rate_eur": 0.34,
+  "energy_m3_rate_eur": 1.55,
+  "energy_contract_type": "variabel",
+  "confidence": 0.93
+}
