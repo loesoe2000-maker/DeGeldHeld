@@ -127,6 +127,41 @@ verbatim values (DKIM selector + SES region differ per account).
    → aim for 9–10/10 (SPF + DKIM + DMARC all pass, not on a blocklist).
 4. Send to a Gmail + Outlook account; verify it lands in inbox, not spam.
 
+## Inbound e-mail path (v20)
+
+Three Resend inbound webhooks, each HMAC-SHA256 signed (header
+`resend-signature`, hex of `HMAC(secret, raw-body)`). All three FAIL CLOSED:
+a missing secret or bad/missing signature → **401**, never processed.
+
+| Endpoint | Subdomain (MX → Resend) | Secret env | Purpose |
+|----------|-------------------------|------------|---------|
+| `POST /api/inbound`        | `inbox@degeldheld.com`   | `RESEND_WEBHOOK_SECRET`        | user forwards a bill → OCR → new Bill + analysis reply |
+| `POST /api/inbound/proof`  | `bewijs@degeldheld.com`  | `RESEND_PROOF_WEBHOOK_SECRET`  | user forwards proof of new price → matches negotiation → records OutcomeProof (the fee-trigger) |
+| `POST /api/inbound/router` | `auto@degeldheld.com`    | `RESEND_INBOUND_SECRET`        | provider reply → auto-pingpong counter draft (never auto-sent) |
+
+Matching priority: `[PROOF-<id>]` / `[NEGOTIATION-<id>]` subject token →
+`In-Reply-To`/`References` thread-id (UUID@degeldheld.com) → from-address
+fallback. Unmatched / spam → **200 no-op** (so Resend doesn't retry; only
+signature failures 401, only Resend infra errors should retry).
+
+The proof path is the fee-trigger: it sets `Negotiation.proofVerifiedAt`,
+which is what makes `actualSavingsCents` count toward /proof + invoicing.
+It does **not** work until the MX records below are live.
+
+### Required DNS for inbound (Cloudflare → degeldheld.com)
+Resend Inbound gives you the MX target when you add each inbound address;
+add an MX record per subdomain (priority 10) pointing at Resend's inbound
+host (e.g. `inbound-smtp.<region>.resend.com` — use the literal value Resend
+shows):
+
+| Host | Type | Value (Resend-provided) | Prio |
+|------|------|-------------------------|------|
+| `auto.degeldheld.com`   | MX | `<resend inbound host>` | 10 |
+| `bewijs.degeldheld.com` | MX | `<resend inbound host>` | 10 |
+
+Then in Resend → Inbound: point each address at its webhook URL above and
+copy each signing secret into the matching Vercel env var.
+
 ## v8 incident response
 
 ### Tink token expiry
