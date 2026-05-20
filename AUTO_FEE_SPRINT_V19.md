@@ -28,6 +28,23 @@ Lees /Users/bdb/alpharadar-pro/degeldheld/AUTO_FEE_SPRINT_V19.md en voer alle de
 
 ---
 
+## DEEL 0 — Fee-cap naar €500
+
+a. In `lib/payments.ts`: zet `NO_CURE_NO_PAY_FEE_CAP_CENTS` van `5000`
+   (€50) naar **`50000`** (€500). Model blijft eenmalig 20% van de
+   jaarbesparing — alleen de cap gaat omhoog zodat grote wins
+   (hypotheek, energie) meer opleveren.
+
+b. Werk de comment bij `NO_CURE_NO_PAY_FEE_CAP_CENTS` bij naar €500,00.
+
+c. Zoek élke plek die de oude cap noemt (€25 of €50) in copy/tests en
+   werk bij naar €500,00 — zie ook DEEL 5a. Let op `feeForVerifiedSavings`
+   tests die de cap-clamp checken: pas verwachte waarden aan.
+
+d. Commit: `feat(fee): raise no-cure-no-pay cap €50 → €500`.
+
+---
+
 ## DEEL 1 — Schema: mandaat + payment-method op User
 
 a. Voeg aan `model User` toe (migratie):
@@ -150,9 +167,11 @@ e. Commit: `feat(fee): auto off-session charge on verified savings + fallback`.
 
 ## DEEL 5 — UX, copy-fix, tests, rapport
 
-a. **Copy-bug fixen:** `/uitkomst` zegt nog "maximum van €25,00" — de cap
-   is €50 (`NO_CURE_NO_PAY_FEE_CAP_CENTS = 5000`). Vervang door €50,00.
-   Zoek ook andere plekken die de oude cap noemen.
+a. **Copy-bug fixen:** `/uitkomst` zegt nog "maximum van €25,00" — na
+   DEEL 0 is de cap €500 (`NO_CURE_NO_PAY_FEE_CAP_CENTS = 50000`).
+   Vervang door €500,00. Zoek élke andere plek die de oude cap (€25 of
+   €50) noemt — copy, voorwaarden, mandaat-tekst, tests — en maak er
+   €500,00 van.
 
 b. **/uitkomst statussen:** toon nette tekst per state:
    - `FEE_PAID` → "Fee van €X automatisch voldaan — bedankt!"
@@ -185,7 +204,7 @@ f. Commit: `docs(v19): auto no-cure-no-pay verified, copy + account fixes`.
 - [ ] Bewijs geverifieerd → automatische 20%-afschrijving wanneer kaart op bestand
 - [ ] Off-session fail → terugval op bestaande handmatige knop + mail (geen dunning)
 - [ ] Geen kaart → huidige flow ongewijzigd (degradeert netjes)
-- [ ] Copy-bug €25 → €50 gefixt
+- [ ] Fee-cap €50 → €500 + alle copy/voorwaarden/tests bijgewerkt
 - [ ] /account: kaart bekijken + mandaat intrekken
 - [ ] `npm test` + `npx tsc --noEmit` + e2e groen
 - [ ] V19_REPORT.md met eigenaar-stappen + juridisch restpunt
@@ -195,6 +214,7 @@ f. Commit: `docs(v19): auto no-cure-no-pay verified, copy + account fixes`.
 ```
 AUTO_FEE_V19 — Final report
 
+DEEL 0  ✓ <hash> — fee-cap €50 → €500
 DEEL 1  ✓ <hash> — schema mandaat + payment-method
 DEEL 2  ✓ <hash> — gehoste setup-checkout + consent
 DEEL 3  ✓ <hash> — webhook slaat kaart + mandaat op
