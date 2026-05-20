@@ -1,205 +1,175 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import crypto from "node:crypto";
+import type { FetchedEmail } from "@/lib/resend-receiving";
 
-// Pin secret BEFORE any imports that read it.
-process.env.RESEND_WEBHOOK_SECRET = "test-secret";
+/**
+ * DEEL 3 — the canonical /api/inbound handler. We mock the verification +
+ * the Resend fetch layer + dispatch, and assert routing: signature gate,
+ * proof/negotiation via dispatch, bewijs@ from-fallback, inbox@ bill-OCR,
+ * and junk → 200 no-op.
+ */
 
-const userFind = vi.fn();
-const billCount = vi.fn(async () => 0);
-const billFindUnique = vi.fn(async (): Promise<unknown> => null);
-const billCreate = vi.fn(async (a: { data: Record<string, unknown> }) => ({
-  id: "b1",
-  provider: a.data.provider,
-  amountCents: a.data.amountCents,
+const h = vi.hoisted(() => ({
+  verifyOk: true,
+  email: null as FetchedEmail | null,
+  dispatchResult: { kind: "unknown" } as { kind: string; [k: string]: unknown },
+  userFor: null as { id: string; email: string } | null,
+  negotiation: null as Record<string, unknown> | null,
+  recordProof: vi.fn(async (_a?: unknown) => ({ proofId: "p1", verdict: { verdict: "verified" } })),
+  billCreate: vi.fn(async (a: { data: Record<string, unknown> }) => ({ id: "b1", provider: a.data.provider, amountCents: a.data.amountCents })),
+  billFindUnique: vi.fn(async (): Promise<unknown> => null),
+  sendEmail: vi.fn(async (_a?: unknown) => ({ id: "noop", skipped: true })),
 }));
-vi.mock("../lib/db", () => ({
+
+vi.mock("@/lib/inbound-verify", () => ({
+  verifyResendWebhook: () => h.verifyOk,
+}));
+
+vi.mock("@/lib/resend-receiving", async () => {
+  const actual = await vi.importActual<typeof import("@/lib/resend-receiving")>("@/lib/resend-receiving");
+  return {
+    ...actual, // keep the real parseReceivedEvent
+    fetchReceivedEmail: vi.fn(async () => h.email),
+    fetchAttachmentBuffer: vi.fn(async () => ({ contentType: "image/jpeg", buffer: Buffer.from("img") })),
+  };
+});
+
+vi.mock("@/lib/auto-pingpong", () => ({
+  dispatch: vi.fn(async () => h.dispatchResult),
+}));
+
+vi.mock("@/lib/inbound", () => ({
+  userForFromAddress: vi.fn(async () => h.userFor),
+}));
+
+vi.mock("@/lib/db", () => ({
   prisma: {
-    user: { findUnique: (a: unknown) => userFind(a) },
+    negotiation: { findFirst: vi.fn(async () => h.negotiation) },
     bill: {
-      count: () => billCount(),
-      findUnique: () => billFindUnique(),
-      create: (a: { data: Record<string, unknown> }) => billCreate(a),
+      findUnique: () => h.billFindUnique(),
+      count: vi.fn(async () => 0),
+      create: (a: { data: Record<string, unknown> }) => h.billCreate(a),
     },
   },
 }));
 
-vi.mock("../lib/ocr", async () => {
-  const actual = await vi.importActual<typeof import("../lib/ocr")>("../lib/ocr");
-  return {
-    ...actual,
-    extractBill: vi.fn(async () => ({
-      ok: true,
-      provider: "KPN",
-      category: "TELECOM",
-      monthlyAmountCents: 2965,
-      totalAmountCents: 2965,
-      amountCents: 2965,
-      oneTimeItems: [],
-      plan: "Compleet",
-      period: "mei 2026",
-      customerNumber: null,
-      language: "nl",
-      country: "NL",
-      confidence: 0.92,
-      rawText: "stub",
-      imageHash: "abc",
-      attempts: 1,
-    })),
-  };
-});
-
-vi.mock("../lib/email", () => ({
-  sendEmail: vi.fn(async () => ({ id: "noop", skipped: true })),
-  // v20: inbound reply now escapes the provider name in the HTML body.
-  escapeHtml: (s: string) =>
-    s
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#39;"),
+vi.mock("@/lib/ocr", () => ({
+  extractBill: vi.fn(async () => ({
+    provider: "KPN", category: "TELECOM", amountCents: 2965, monthlyAmountCents: 2965,
+    totalAmountCents: 2965, plan: "Compleet", period: "mei 2026", customerNumber: null,
+    country: "NL", rawText: "stub",
+  })),
+  hashImage: vi.fn(() => "hash"),
+  parseInvoiceDate: vi.fn(() => null),
 }));
 
-import { POST } from "../app/api/inbound/route";
-import {
-  verifyResendSignature,
-  parseInboundPayload,
-} from "../lib/inbound";
+vi.mock("@/lib/email", () => ({
+  sendEmail: (a: unknown) => h.sendEmail(a),
+  escapeHtml: (s: string) => s,
+}));
 
-function sign(body: string): string {
-  return crypto.createHmac("sha256", "test-secret").update(body).digest("hex");
+vi.mock("@/lib/format", () => ({ currencyForCountry: () => "EUR" }));
+
+vi.mock("@/lib/outcome-proof", () => ({ recordProof: (a: unknown) => h.recordProof(a) }));
+
+import { handleInbound } from "@/lib/inbound-handler";
+
+function makeReq(event: unknown): Request {
+  return new Request("https://t/api/inbound", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(event),
+  });
 }
 
-function makeReq(body: unknown, sig?: string): Request {
-  const raw = JSON.stringify(body);
-  const headers = new Headers({ "content-type": "application/json" });
-  if (sig !== undefined) headers.set("resend-signature", sig);
-  else headers.set("resend-signature", sign(raw));
-  return new Request("https://t/inbound", { method: "POST", headers, body: raw });
+function email(over: Partial<FetchedEmail>): FetchedEmail {
+  return {
+    emailId: "e1", from: "klant@voorbeeld.nl", to: ["inbox@degeldheld.com"], subject: "",
+    text: "", html: "", headers: {}, messageId: null, inReplyTo: null, references: null,
+    attachments: [], ...over,
+  };
 }
+const event = (over: Record<string, unknown> = {}) => ({
+  type: "email.received",
+  data: { email_id: "e1", from: "klant@voorbeeld.nl", to: ["inbox@degeldheld.com"], ...over },
+});
 
 beforeEach(() => {
-  userFind.mockReset();
-  billCount.mockReset().mockResolvedValue(0);
-  billFindUnique.mockReset().mockResolvedValue(null);
-  billCreate.mockReset().mockImplementation(async (a) => ({
-    id: "b1",
-    provider: a.data.provider,
-    amountCents: a.data.amountCents,
-  }));
+  h.verifyOk = true;
+  h.email = email({});
+  h.dispatchResult = { kind: "unknown" };
+  h.userFor = null;
+  h.negotiation = null;
+  h.recordProof.mockClear();
+  h.billCreate.mockClear();
+  h.billFindUnique.mockReset().mockResolvedValue(null);
+  h.sendEmail.mockClear();
 });
 
-describe("verifyResendSignature", () => {
-  it("accepts a correct hmac", () => {
-    const body = "hello";
-    expect(verifyResendSignature(body, sign(body))).toBe(true);
-  });
-  it("rejects empty signature", () => {
-    expect(verifyResendSignature("hello", null)).toBe(false);
-  });
-  it("rejects wrong signature", () => {
-    expect(verifyResendSignature("hello", "deadbeef")).toBe(false);
-  });
-});
-
-describe("parseInboundPayload", () => {
-  it("extracts from-string + subject + attachments", () => {
-    const p = parseInboundPayload({
-      data: {
-        from: "user@example.com",
-        subject: "factuur",
-        text: "zie bijlage",
-        attachments: [{ filename: "bill.jpg", content_type: "image/jpeg", content: "Zm9v" }],
-      },
-    });
-    expect(p?.from).toBe("user@example.com");
-    expect(p?.attachments).toHaveLength(1);
-  });
-  it("extracts from-object shape", () => {
-    const p = parseInboundPayload({
-      from: { email: "user@example.com" },
-      attachments: [],
-    });
-    expect(p?.from).toBe("user@example.com");
-  });
-  it("returns null when no from-address", () => {
-    expect(parseInboundPayload({})).toBeNull();
-  });
-});
-
-describe("POST /api/inbound", () => {
-  it("401 on invalid signature", async () => {
-    const req = makeReq({ from: "u@x.nl" }, "0000");
-    const res = await POST(req);
+describe("canonical /api/inbound handler", () => {
+  it("401 on invalid Svix signature", async () => {
+    h.verifyOk = false;
+    const res = await handleInbound(makeReq(event()));
     expect(res.status).toBe(401);
   });
 
-  it("400 when no attachments", async () => {
-    userFind.mockResolvedValue({ id: "u1", email: "u@x.nl" });
-    const req = makeReq({ data: { from: "u@x.nl", subject: "", text: "", attachments: [] } });
-    const res = await POST(req);
-    expect(res.status).toBe(400);
-  });
-
-  it("unknown sender → 200, replied, no DB write", async () => {
-    userFind.mockResolvedValue(null);
-    const req = makeReq({
-      data: {
-        from: "stranger@x.nl",
-        subject: "",
-        text: "",
-        attachments: [{ filename: "x.jpg", content_type: "image/jpeg", content: "Zm9v" }],
-      },
-    });
-    const res = await POST(req);
+  it("200 no-op on a non-email.received event", async () => {
+    const res = await handleInbound(makeReq({ type: "email.delivered", data: {} }));
     expect(res.status).toBe(200);
-    const body = await res.json();
-    expect(body.sender).toBe("unknown");
-    expect(billCreate).not.toHaveBeenCalled();
+    expect((await res.json()).reason).toMatch(/not an email.received/);
   });
 
-  it("known sender + image attachment → bill created", async () => {
-    userFind.mockResolvedValue({ id: "u1", email: "u@x.nl" });
-    const req = makeReq({
-      data: {
-        from: "u@x.nl",
-        subject: "factuur",
-        text: "",
-        attachments: [{ filename: "kpn.jpg", content_type: "image/jpeg", content: "Zm9v" }],
-      },
-    });
-    const res = await POST(req);
+  it("502 when the email body cannot be fetched (transient → Resend retries)", async () => {
+    h.email = null;
+    const res = await handleInbound(makeReq(event()));
+    expect(res.status).toBe(502);
+  });
+
+  it("proof/negotiation by token → routed via dispatch", async () => {
+    h.dispatchResult = { kind: "proof", ok: true, proofId: "p1" };
+    h.email = email({ subject: "Re: [PROOF-clz1234567890abcdefghijk]" });
+    const res = await handleInbound(makeReq(event({ subject: "Re: [PROOF-clz1234567890abcdefghijk]" })));
     expect(res.status).toBe(200);
-    expect(billCreate).toHaveBeenCalled();
-    const body = await res.json();
-    expect(body.processed).toBe(1);
+    expect((await res.json()).routed).toBe("proof");
   });
 
-  it("dedupe — same imageHash → reuse existing bill", async () => {
-    userFind.mockResolvedValue({ id: "u1", email: "u@x.nl" });
-    billFindUnique.mockResolvedValue({ id: "b-old", provider: "KPN", amountCents: 2965 });
-    const req = makeReq({
-      data: {
-        from: "u@x.nl",
-        attachments: [{ filename: "kpn.jpg", content_type: "image/jpeg", content: "Zm9v" }],
-      },
-    });
-    const res = await POST(req);
+  it("bewijs@ without token → proof-by-from fallback (recordProof)", async () => {
+    h.dispatchResult = { kind: "unknown" };
+    h.email = email({ to: ["bewijs@degeldheld.com"], text: "nieuw bedrag €29,95" });
+    h.negotiation = {
+      id: "n1",
+      user: { email: "klant@voorbeeld.nl" },
+      bill: { monthlyCents: 4000, amountCents: 4000 },
+    };
+    const res = await handleInbound(makeReq(event({ to: ["bewijs@degeldheld.com"] })));
     expect(res.status).toBe(200);
-    expect(billCreate).not.toHaveBeenCalled();
-    const body = await res.json();
-    expect(body.processed).toBe(1);
+    expect(h.recordProof).toHaveBeenCalled();
   });
 
-  it("non-image attachment skipped → 400 no-supported", async () => {
-    userFind.mockResolvedValue({ id: "u1", email: "u@x.nl" });
-    const req = makeReq({
-      data: {
-        from: "u@x.nl",
-        attachments: [{ filename: "tx.txt", content_type: "text/plain", content: "Zm9v" }],
-      },
+  it("inbox@ + known sender + image attachment → bill created", async () => {
+    h.userFor = { id: "u1", email: "klant@voorbeeld.nl" };
+    h.email = email({
+      to: ["inbox@degeldheld.com"],
+      attachments: [{ id: "a1", filename: "kpn.jpg", contentType: "image/jpeg" }],
     });
-    const res = await POST(req);
-    expect(res.status).toBe(400);
+    const res = await handleInbound(makeReq(event()));
+    expect(res.status).toBe(200);
+    expect(h.billCreate).toHaveBeenCalled();
+    expect((await res.json()).processed).toBe(1);
+  });
+
+  it("inbox@ + unknown sender → 200, signup reply, no bill", async () => {
+    h.userFor = null;
+    h.email = email({ attachments: [{ id: "a1", filename: "x.jpg", contentType: "image/jpeg" }] });
+    const res = await handleInbound(makeReq(event()));
+    expect(res.status).toBe(200);
+    expect((await res.json()).sender).toBe("unknown");
+    expect(h.billCreate).not.toHaveBeenCalled();
+  });
+
+  it("junk mail (no token/thread/attachment, unknown recipient) → 200 no match", async () => {
+    h.email = email({ to: ["random@degeldheld.com"], subject: "WIN A PRIZE", attachments: [] });
+    const res = await handleInbound(makeReq(event({ to: ["random@degeldheld.com"] })));
+    expect(res.status).toBe(200);
+    expect((await res.json()).reason).toBe("no match");
   });
 });

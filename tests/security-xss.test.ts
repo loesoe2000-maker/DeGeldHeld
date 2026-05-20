@@ -42,7 +42,7 @@ describe("v20 DEEL 4 — inline cron/inbound mail builders escape the provider",
     "lib/inbound-router.ts",
     "app/api/cron/monthly-recheck/route.ts",
     "app/api/cron/recheck-savings/route.ts",
-    "app/api/inbound/route.ts",
+    "lib/inbound-handler.ts", // inbound reply HTML lives here post-consolidation
   ];
   for (const f of FILES) {
     it(`${f} wraps the provider in escapeHtml inside html:`, () => {

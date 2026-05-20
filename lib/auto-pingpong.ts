@@ -32,6 +32,7 @@ import {
 } from "@/lib/inbound-router";
 import { recordProof } from "@/lib/outcome-proof";
 import { extractBill } from "@/lib/ocr";
+import { isEnabled } from "@/lib/feature-flags";
 
 export type DiscriminatedIntent =
   | { kind: "proof"; billId: string }
@@ -129,6 +130,13 @@ export async function dispatch(
   }
 
   if (intent.kind === "negotiation") {
+    // Feature-flag gate: auto-pingpong only generates counter-drafts when
+    // AUTO_PINGPONG is on. Off → no-op (the canonical handler returns 200,
+    // no retry storm). The proof branch above is intentionally NOT gated
+    // here — it has its own gate inside recordProof.
+    if (!isEnabled("AUTO_PINGPONG")) {
+      return { kind: "negotiation", result: { ok: false, reason: "feature-disabled" } };
+    }
     // routeInboundReply does its own thread-id extraction — it falls
     // back to In-Reply-To even if we don't pass a NEGOTIATION token.
     // For subject-token routing we patch the payload so the thread

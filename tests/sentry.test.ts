@@ -67,6 +67,7 @@ describe("/api/test-sentry route", () => {
     vi.doMock("@sentry/nextjs", () => ({
       captureException: (e: unknown, opts: unknown) => captureMock(e, opts),
       flush: async () => true,
+      getClient: () => undefined,
     }));
     vi.resetModules();
     const mod = await import("../app/api/test-sentry/route");
@@ -85,6 +86,7 @@ describe("/api/test-sentry route", () => {
     vi.doMock("@sentry/nextjs", () => ({
       captureException: (e: unknown, opts: unknown) => captureMock(e, opts),
       flush: async () => true,
+      getClient: () => undefined,
     }));
     vi.resetModules();
     const mod = await import("../app/api/test-sentry/route");
@@ -106,6 +108,7 @@ describe("/api/test-sentry route", () => {
     vi.doMock("@sentry/nextjs", () => ({
       captureException: (e: unknown, opts: unknown) => captureMock(e, opts),
       flush: async () => true,
+      getClient: () => undefined,
     }));
     // Re-import to pick up the changed env
     vi.resetModules();
@@ -120,6 +123,7 @@ describe("/api/test-sentry route", () => {
     vi.doMock("@sentry/nextjs", () => ({
       captureException: () => "evt-3",
       flush: async () => true,
+      getClient: () => undefined,
     }));
     vi.resetModules();
     const mod = await import("../app/api/test-sentry/route");

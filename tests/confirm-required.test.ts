@@ -64,15 +64,14 @@ describe("user-confirm gate / confirm-send is the only outbound path", () => {
   });
 });
 
-describe("user-confirm gate / webhook is HMAC-gated and feature-flagged", () => {
-  const src = read("app/api/inbound/router/route.ts");
-  it("checks signature before doing anything", () => {
-    expect(src).toMatch(/verifyInboundRouterSignature/);
-    // 401 must appear in the unauthorized path
-    expect(src).toMatch(/401/);
+describe("user-confirm gate / webhook is signature-gated and feature-flagged", () => {
+  it("canonical handler verifies the Svix signature before doing anything", () => {
+    const src = read("lib/inbound-handler.ts");
+    expect(src).toMatch(/verifyResendWebhook/);
+    expect(src).toMatch(/status:\s*401/);
   });
-  it("returns 503 when feature flag is off", () => {
-    expect(src).toMatch(/AUTO_PINGPONG/);
-    expect(src).toMatch(/503/);
+  it("negotiation branch is gated behind AUTO_PINGPONG (no-op when off)", () => {
+    const src = read("lib/auto-pingpong.ts");
+    expect(src).toMatch(/isEnabled\("AUTO_PINGPONG"\)/);
   });
 });

@@ -1,41 +1,8 @@
 import { describe, it, expect } from "vitest";
-import crypto from "node:crypto";
-import {
-  verifyInboundRouterSignature,
-  parseInboundRouterPayload,
-} from "@/lib/inbound-router";
+import { parseInboundRouterPayload } from "@/lib/inbound-router";
 
-describe("inbound-router / verifyInboundRouterSignature", () => {
-  const SECRET = "test-secret-bytes-32-chars-padding-x";
-
-  it("rejects unsigned body", () => {
-    process.env.RESEND_INBOUND_SECRET = SECRET;
-    expect(verifyInboundRouterSignature("{}", null)).toBe(false);
-    expect(verifyInboundRouterSignature("{}", "")).toBe(false);
-  });
-
-  it("rejects when secret env var is missing", () => {
-    delete process.env.RESEND_INBOUND_SECRET;
-    expect(verifyInboundRouterSignature("{}", "abcd")).toBe(false);
-  });
-
-  it("rejects when signature does not match", () => {
-    process.env.RESEND_INBOUND_SECRET = SECRET;
-    expect(verifyInboundRouterSignature("{}", "00".repeat(32))).toBe(false);
-  });
-
-  it("accepts a correctly-signed body", () => {
-    process.env.RESEND_INBOUND_SECRET = SECRET;
-    const body = JSON.stringify({ hello: "world" });
-    const sig = crypto.createHmac("sha256", SECRET).update(body).digest("hex");
-    expect(verifyInboundRouterSignature(body, sig)).toBe(true);
-  });
-
-  it("rejects malformed hex signature", () => {
-    process.env.RESEND_INBOUND_SECRET = SECRET;
-    expect(verifyInboundRouterSignature("{}", "zzz-not-hex")).toBe(false);
-  });
-});
+// Signature verification moved to lib/inbound-verify.ts (Svix) — see
+// tests/inbound-handler.test.ts. This file now only covers the parser.
 
 describe("inbound-router / parseInboundRouterPayload", () => {
   it("returns null for non-object input", () => {

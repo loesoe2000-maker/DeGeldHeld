@@ -58,14 +58,14 @@ describe("auto-pingpong / confirm-send endpoint stays the only outbound path", (
 });
 
 describe("auto-pingpong / webhook gating", () => {
-  it("router rejects unsigned bodies with 401", () => {
-    const src = read("app/api/inbound/router/route.ts");
-    expect(src).toMatch(/verifyInboundRouterSignature/);
-    expect(src).toMatch(/401/);
+  it("canonical handler Svix-verifies + 401s on invalid signature", () => {
+    const src = read("lib/inbound-handler.ts");
+    expect(src).toMatch(/verifyResendWebhook/);
+    expect(src).toMatch(/status:\s*401/);
   });
-  it("router returns 503 when AUTO_PINGPONG flag is off (negotiation branch only)", () => {
-    const src = read("app/api/inbound/router/route.ts");
-    expect(src).toMatch(/AUTO_PINGPONG/);
-    expect(src).toMatch(/503/);
+  it("dispatch gates the negotiation branch behind AUTO_PINGPONG (no-op when off)", () => {
+    const src = read("lib/auto-pingpong.ts");
+    expect(src).toMatch(/isEnabled\("AUTO_PINGPONG"\)/);
+    expect(src).toMatch(/feature-disabled/);
   });
 });
