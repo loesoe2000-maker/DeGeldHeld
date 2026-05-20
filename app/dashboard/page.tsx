@@ -10,6 +10,9 @@ import ActiveNegotiationCard from "@/components/ActiveNegotiationCard";
 import { computeSavingsStats, isOpenState } from "@/lib/savings";
 import { formatEurCents } from "@/lib/format";
 import type { Category } from "@/lib/providers";
+import SavingsOverTime from "@/components/SavingsOverTime";
+import { cumulativeByMonth, milestoneCopy } from "@/lib/savings-timeline";
+import { pickNudgeCategory } from "@/lib/category-gap";
 import { ensureReferralCode, buildShareUrl } from "@/lib/referral";
 import ReferralBlock from "@/components/ReferralBlock";
 
@@ -62,6 +65,15 @@ export default async function DashboardPage() {
     new Set(negotiations.map((n) => n.bill.category as Category)),
   );
 
+  // v21 savings-over-time: cumulative wins per month + a milestone nudge
+  // toward the highest-value category the user hasn't covered yet.
+  const savedPoints = negotiations
+    .filter((n) => (n.state === "SUCCESS" || n.state === "BILLED") && (n.actualSavingsCents ?? 0) > 0)
+    .map((n) => ({ at: n.closedAt ?? n.createdAt, cents: n.actualSavingsCents ?? 0 }));
+  const timeline = cumulativeByMonth(savedPoints);
+  const allBillCategories = negotiations.map((n) => n.bill.category);
+  const milestone = milestoneCopy(stats.totalSavedCents, pickNudgeCategory(allBillCategories));
+
   return (
     <main className="mx-auto max-w-5xl px-6 py-12">
       <header className="flex items-center justify-between">
@@ -95,6 +107,8 @@ export default async function DashboardPage() {
       <div className="mt-8">
         <SavingsCard stats={stats} />
       </div>
+
+      <SavingsOverTime buckets={timeline} milestone={milestone} />
 
       {active.length > 0 && (
         <section className="mt-10">
