@@ -68,8 +68,17 @@ export function compareEnergy(bill: EnergyBill): EnergyComparison {
     vastOverpay * 12;
 
   const notes: string[] = [];
-  if (yourKwh == null) notes.push("kWh-prijs niet gedetecteerd — schatting gebaseerd op gemiddeld verbruik");
-  if (yourM3 == null) notes.push("m³ gas-prijs niet gedetecteerd");
+  if (bill.contractType === "dynamisch") {
+    notes.push(
+      "Dynamisch contract — je tarief volgt de groothandel-/spotprijs per uur; vergelijking gebruikt de variabele markt-mediaan als richtlijn.",
+    );
+  }
+  if (yourKwh == null && yourM3 == null) {
+    notes.push("Geen tarieven uit de factuur gehaald — besparing geschat op gemiddeld NL-verbruik.");
+  } else {
+    if (yourKwh == null) notes.push("kWh-prijs niet gedetecteerd — schatting gebaseerd op gemiddeld verbruik");
+    if (yourM3 == null) notes.push("m³ gas-prijs niet gedetecteerd");
+  }
   if (kwhOverpay > 5) notes.push(`Je betaalt €${(kwhOverpay / 100).toFixed(2)}/kWh boven markt-mediaan`);
 
   return {
