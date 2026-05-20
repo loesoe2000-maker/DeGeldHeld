@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { sendEmail } from "@/lib/email";
+import { sendEmail, escapeHtml } from "@/lib/email";
 import { buildComparison } from "@/lib/comparison";
 import { acquireCronLock, releaseCronLock } from "@/lib/cron-lock";
 import * as Sentry from "@sentry/nextjs";
@@ -102,7 +102,7 @@ ${APP_URL}/onderhandel/email?bill=${bill.id}&fromRecheck=1
 
 — DeGeldHeld`,
             html: `<p>Hoi,</p>
-<p>We deden net een nieuwe markt-check op je <strong>${bill.provider}</strong>-rekening en zien meer ruimte:
+<p>We deden net een nieuwe markt-check op je <strong>${escapeHtml(bill.provider)}</strong>-rekening en zien meer ruimte:
 nu <strong>€${Math.round(newSavings / 100)}/jaar</strong> besparing mogelijk (was €${Math.round(prevSavings / 100)}/jaar).</p>
 <p><a href="${APP_URL}/onderhandel/email?bill=${bill.id}&amp;fromRecheck=1">Genereer nieuwe onderhandel-mail →</a></p>
 <p>— DeGeldHeld</p>`,

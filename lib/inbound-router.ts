@@ -28,7 +28,7 @@ import { generateEmail } from "@/lib/negotiator";
 import { buildComparison } from "@/lib/comparison";
 import type { Country, Category } from "@/lib/providers";
 import type { BillCategory } from "@prisma/client";
-import { sendEmail } from "@/lib/email";
+import { sendEmail, escapeHtml } from "@/lib/email";
 
 export const INBOUND_ROUTER_SIG_HEADER = "resend-signature";
 
@@ -183,7 +183,7 @@ ${link}
 (De counter wordt niet automatisch verzonden — je moet 'm zelf bevestigen.)
 
 — DeGeldHeld`,
-      html: `<p><strong>${negotiation.bill.provider}</strong> heeft gereageerd op je onderhandel-mail.</p>
+      html: `<p><strong>${escapeHtml(negotiation.bill.provider)}</strong> heeft gereageerd op je onderhandel-mail.</p>
 <p>We hebben een counter-mail klaargezet. <a href="${link}">Bekijk + bevestig hier →</a></p>
 <p><em>De counter wordt niet automatisch verzonden — je moet 'm zelf bevestigen.</em></p>
 <p>— DeGeldHeld</p>`,

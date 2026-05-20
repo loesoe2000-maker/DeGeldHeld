@@ -18,7 +18,7 @@ import {
 } from "@/lib/inbound";
 import { extractBill, hashImage, parseInvoiceDate } from "@/lib/ocr";
 import { prisma } from "@/lib/db";
-import { sendEmail } from "@/lib/email";
+import { sendEmail, escapeHtml } from "@/lib/email";
 import { currencyForCountry } from "@/lib/format";
 
 export const runtime = "nodejs";
@@ -72,7 +72,7 @@ Open een link om direct de onderhandel-mail te genereren.
 <ul>${bills
   .map(
     (b) =>
-      `<li><strong>${b.provider}</strong> — €${(b.amountCents / 100).toFixed(2).replace(".", ",")} —
+      `<li><strong>${escapeHtml(b.provider)}</strong> — €${(b.amountCents / 100).toFixed(2).replace(".", ",")} —
        <a href="${APP_URL}/onderhandel/email?bill=${b.id}">Genereer onderhandel-mail</a> ·
        <a href="${APP_URL}/onderhandel/analyse?bill=${b.id}">Analyse</a></li>`,
   )

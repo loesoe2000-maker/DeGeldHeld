@@ -7,7 +7,7 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { sendEmail } from "@/lib/email";
+import { sendEmail, escapeHtml } from "@/lib/email";
 import { acquireCronLock, releaseCronLock } from "@/lib/cron-lock";
 import * as Sentry from "@sentry/nextjs";
 import { isDueForRecheck } from "@/lib/recheck-savings";
@@ -75,7 +75,7 @@ Zodra we de nieuwe maandkosten zien, kunnen we bevestigen hoeveel je écht hebt 
 
 — DeGeldHeld`,
           html: `<p>Hé,</p>
-<p>We zien dat we ongeveer een maand geleden namens jou onderhandeld hebben met <strong>${neg.bill.provider}</strong>.
+<p>We zien dat we ongeveer een maand geleden namens jou onderhandeld hebben met <strong>${escapeHtml(neg.bill.provider)}</strong>.
 Ontvang je nu al je nieuwe factuur? Forward 'm naar <strong>bewijs@degeldheld.com</strong> of upload via
 <a href="${link}">${link}</a>.</p>
 <p>Zodra we de nieuwe maandkosten zien, bevestigen we hoeveel je écht hebt bespaard.</p>

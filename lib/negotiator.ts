@@ -204,13 +204,47 @@ Antwoord in JSON met velden:
   confidence (0-1, hoe sterk is deze case).`;
 }
 
+/**
+ * Sanitize an OCR-derived field before it goes into the LLM prompt.
+ *
+ * The provider/plan/customerNumber/name come straight from a user-uploaded
+ * bill, so a crafted image could carry a prompt-injection payload ("ignore
+ * previous instructions…") or use newlines to fake new prompt sections.
+ * We:
+ *   - collapse all newlines/control chars to single spaces (kills the
+ *     "inject a fake instruction line" trick),
+ *   - strip markdown/code fences + angle brackets,
+ *   - neutralise common role/instruction tokens,
+ *   - cap the length so a runaway OCR blob can't dominate the prompt.
+ */
+export function sanitizePromptField(raw: string | null | undefined, maxLen = 120): string {
+  if (!raw) return "";
+  let s = String(raw)
+    .replace(/\s+/g, " ") // newlines + tabs + repeated spaces -> single space
+    .replace(/[`<>]/g, " ") // code fences + tag brackets
+    .replace(/\b(system|assistant|user)\s*:/gi, "$1 ") // fake chat-role prefixes
+    .replace(/ignore (all |the |your )?(previous|prior|above) (instructions?|prompts?)/gi, "[verwijderd]")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+  if (s.length > maxLen) s = s.slice(0, maxLen).trim();
+  return s;
+}
+
 function buildUserPrompt(opts: {
   input: NegotiatorInput;
   strategy: NegotiationStrategy;
   language: Language;
   hint: string | undefined;
 }): string {
-  const { input, strategy, language, hint } = opts;
+  const { strategy, language, hint } = opts;
+  // Sanitize the OCR-derived free-text fields before interpolation.
+  const input: NegotiatorInput = {
+    ...opts.input,
+    provider: sanitizePromptField(opts.input.provider, 80),
+    customerName: sanitizePromptField(opts.input.customerName, 80),
+    customerNumber: sanitizePromptField(opts.input.customerNumber, 60) || null,
+    currentPlan: sanitizePromptField(opts.input.currentPlan, 120) || null,
+  };
   const best = input.alternatives[0];
   const altSummary = input.alternatives
     .slice(0, 3)
