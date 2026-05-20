@@ -330,12 +330,17 @@ export const PROVIDERS: Provider[] = [
   P({ canonical: "Tulp Hypotheken", names: ["tulp hypotheken", "tulphypotheken"], category: "HYPOTHEEK", country: "NL" }),
   P({ canonical: "Centraal Beheer Hypotheek", names: ["centraal beheer hypotheek"], category: "HYPOTHEEK", country: "NL" }),
 
+  // v17: complete the 10 NL drinkwaterbedrijven (regional monopolies).
   P({ canonical: "Vitens", names: ["vitens"], category: "WATER", country: "NL" }),
   P({ canonical: "Brabant Water", names: ["brabant water"], category: "WATER", country: "NL" }),
   P({ canonical: "PWN", names: ["pwn waterleiding", "pwn drinkwater"], category: "WATER", country: "NL" }),
-  P({ canonical: "Evides", names: ["evides"], category: "WATER", country: "NL" }),
+  P({ canonical: "Evides", names: ["evides", "evides waterbedrijf"], category: "WATER", country: "NL" }),
   P({ canonical: "Dunea", names: ["dunea"], category: "WATER", country: "NL" }),
   P({ canonical: "Waternet", names: ["waternet"], category: "WATER", country: "NL" }),
+  P({ canonical: "WML", names: ["wml", "waterleiding maatschappij limburg"], category: "WATER", country: "NL" }),
+  P({ canonical: "Oasen", names: ["oasen"], category: "WATER", country: "NL" }),
+  P({ canonical: "Waterbedrijf Groningen", names: ["waterbedrijf groningen"], category: "WATER", country: "NL" }),
+  P({ canonical: "WMD", names: ["wmd", "waterbedrijf drenthe", "wmd drenthe"], category: "WATER", country: "NL" }),
   P({ canonical: "PostNL", names: ["postnl", "post nl"], category: "OVERIG", country: "NL" }),
 
   // ===== BE =====
@@ -542,6 +547,10 @@ export const PROVIDERS: Provider[] = [
   P({ canonical: "SportCity", names: ["sportcity", "sport city"], category: "GYM", country: "NL" }),
   P({ canonical: "Anytime Fitness", names: ["anytime fitness"], category: "GYM", country: "INT" }),
   P({ canonical: "Fit For Free", names: ["fit for free"], category: "GYM", country: "NL" }),
+  P({ canonical: "TrainMore", names: ["trainmore", "train more"], category: "GYM", country: "NL" }),
+  P({ canonical: "Fit20", names: ["fit20", "fit 20"], category: "GYM", country: "NL" }),
+  P({ canonical: "HealthCity", names: ["healthcity", "health city"], category: "GYM", country: "NL" }),
+  P({ canonical: "David Lloyd", names: ["david lloyd"], category: "GYM", country: "NL" }),
   // ===== WATER / GEMEENTE / OV =====
   // Promoted from OVERIG. Water heeft géén onderhandel-mogelijkheid maar wel
   // monitoring (zie lib/categories.ts) — gemeente idem.
@@ -550,6 +559,12 @@ export const PROVIDERS: Provider[] = [
   P({ canonical: "OV-chipkaart", names: ["ov-chipkaart", "ovchipkaart"], category: "OV", country: "NL" }),
   P({ canonical: "Greenwheels", names: ["greenwheels"], category: "OV", country: "NL" }),
   P({ canonical: "Swapfiets", names: ["swapfiets"], category: "OV", country: "NL" }),
+  P({ canonical: "GVB", names: ["gvb", "gvb amsterdam"], category: "OV", country: "NL" }),
+  P({ canonical: "RET", names: ["ret", "ret rotterdam"], category: "OV", country: "NL" }),
+  P({ canonical: "HTM", names: ["htm", "htm den haag"], category: "OV", country: "NL" }),
+  P({ canonical: "Arriva", names: ["arriva"], category: "OV", country: "NL" }),
+  P({ canonical: "Connexxion", names: ["connexxion"], category: "OV", country: "NL" }),
+  P({ canonical: "Qbuzz", names: ["qbuzz"], category: "OV", country: "NL" }),
 ];
 
 // ─────────────────────────────────────────────────────────────
