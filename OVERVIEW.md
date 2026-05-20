@@ -44,8 +44,14 @@ DeGeldHeld is een AI die je vaste lasten verlaagt — upload factuur, krijg onde
 ### Voor gebruikers (na signup)
 - **Factuur OCR** — Llama 4 Scout Vision herkent provider + bedragen
 - **Multi-page PDF support** — werkt voor jaarafrekeningen
-- **Categorie-aware** — Telecom / Energie / Verzekering / Hypotheek / Bank / Streaming / Overig
-- **Markt-vergelijking** — 200+ providers in 8 landen (NL/BE/DE/FR/UK/US/ES/IT)
+- **Categorie-aware** — Telecom / Energie / Water / Verzekering / Hypotheek / Bank / Streaming / Overig
+- **Gepersonaliseerde categorie-besparing (v17)** — energie/water/
+  hypotheek/verzekering vergelijken op de ECHTE OCR-waarden van je
+  factuur (kWh/m³-tarief, rente, dekking, eigen risico), niet op
+  hardcoded marktgemiddelden. Water-blok is monopolie-bewust
+  (besparing via verbruik, niet overstappen).
+- **Markt-vergelijking** — 200+ providers in 8 landen (NL/BE/DE/FR/UK/US/ES/IT);
+  NL water compleet (10 drinkwaterbedrijven), GYM + OV uitgebreid
 - **Onderhandel-mail generator** — Llama 3.3, provider-specifieke tone
 - **Multi-round counter-mails** — tot 3 rondes met AI-analyse van provider-respons
 - **Bewijs-flow** — forward bevestigingsmail naar bewijs@degeldheld.com
