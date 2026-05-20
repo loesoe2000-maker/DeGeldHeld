@@ -193,7 +193,48 @@ f. Commit: `test(concurrency): double-submit + magic-link replay + claim race`.
 
 ---
 
-## DEEL 6 — Aggregate + rapport
+## DEEL 6 — Groq graceful 429 + wachtrij (capaciteit)
+
+De gratis Groq-tier 429't onder gelijktijdige load (één virale piek =
+iedereen faalt). Tot de paid-tier upgrade: degradeer netjes i.p.v. hard
+falen. Raakt `lib/ocr.ts` + `app/api/bills/upload/route.ts` +
+`components/BillUpload.tsx`.
+
+a. **Detecteer 429/rate-limit van Groq.** In `lib/ocr.ts` `tryModel`/
+   `tryModelWithRetry`: herken de Groq rate-limit error (status 429 of
+   message bevat "rate limit"/"rate_limit_exceeded"). Lees waar mogelijk
+   de `retry-after` header / `Retry-After` uit de error.
+
+b. **Backoff-retry binnen de function.** Bij 429: wacht (respecteer
+   retry-after, anders exponentieel 1s→2s→4s, max 3 pogingen binnen het
+   60s function-budget) en probeer opnieuw. Dit vangt korte pieken
+   volledig op zonder dat de gebruiker iets merkt.
+
+c. **Nette overflow-respons.** Als het ná de retries nog steeds 429 is:
+   geef NIET de generieke OCR-fout, maar een aparte marker
+   `OCR_RATE_LIMITED`. De upload-route mapt dit naar HTTP **503** met
+   body `{ error: "Het is nu erg druk — we konden je rekening even niet
+   uitlezen. Probeer over een halve minuut opnieuw.", retryable: true }`.
+
+d. **Client-kant** (`components/BillUpload.tsx`): bij 503 + `retryable`
+   toon een vriendelijke "even druk, we proberen het zo opnieuw"-melding
+   met een automatische retry-knop (en optioneel 1× auto-retry na 20s).
+   Geen rode harde foutmelding.
+
+e. **Concurrency-cap (lichte wachtrij).** Optioneel maar aanbevolen: een
+   simpele in-memory semafoor in `lib/ocr.ts` die het aantal gelijktijdige
+   Groq-calls per function-instance begrenst (bv max 2), zodat we Groq
+   niet zelf overspoelen. Houd het simpel — geen externe queue.
+
+f. Tests `tests/ocr-ratelimit.test.ts`: mock een 429-respons → assert
+   backoff-retry gebeurt, en na uitputting → `OCR_RATE_LIMITED` marker
+   (geen crash, geen generieke fout).
+
+g. Commit: `feat(ocr): graceful Groq 429 handling — backoff + 503 + retry UX`.
+
+---
+
+## DEEL 7 — Aggregate + rapport
 
 a. Run alles:
    ```bash
@@ -224,6 +265,7 @@ c. Commit: `docs(v18): launch readiness — money path + prices + country + pdf 
 - [ ] Non-NL facturen tonen eerlijke "indicatief"-banner, geen nep-bedrag
 - [ ] PDF: scan/corrupt/wachtwoord/leeg → nette meldingen, geen 500
 - [ ] Dubbel-submit, magic-link replay, claim-race allemaal idempotent + getest
+- [ ] Groq 429 → backoff-retry, dan 503 + vriendelijke retry-UX (geen harde fout)
 - [ ] `npm test` + `npx tsc --noEmit` + e2e groen
 - [ ] V18_REPORT.md met Stripe + Groq eigenaar-stappen
 
