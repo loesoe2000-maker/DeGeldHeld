@@ -43,6 +43,11 @@ model User {
   subscriptionStatus String?
   subscriptionPlan   String?
   subscriptionRenewsAt DateTime?
+  // v18: Stripe identifiers for the DeGeldHeld Plus subscription so
+  // the webhook can map customer.subscription.* + invoice.* events
+  // back to a user.
+  stripeCustomerId     String?  @unique
+  stripeSubscriptionId String?  @unique
 
   // app data
   accounts      Account[]
@@ -380,6 +385,8 @@ model Payment {
   negotiationId       String        @unique
   stripeSessionId     String?       @unique
   stripePaymentId     String?
+  // v18: audit-trail of the last Stripe event that mutated this row.
+  stripeEventId       String?
   amountCents         Int
   status              PaymentStatus @default(PENDING)
   refundedAt          DateTime?
@@ -391,6 +398,17 @@ model Payment {
 
   @@index([userId])
   @@index([status])
+}
+
+// v18: idempotency guard for the Stripe webhook. Stripe retries
+// events aggressively; recording each processed event id lets us
+// skip duplicates so we never double-charge / double-flip state.
+model ProcessedStripeEvent {
+  id          String   @id          // the Stripe event.id (evt_...)
+  type        String
+  processedAt DateTime @default(now())
+
+  @@index([processedAt])
 }
 
 model WaitlistEntry {

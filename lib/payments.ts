@@ -148,12 +148,19 @@ export async function createCheckoutSession(input: CheckoutInput): Promise<Check
 }
 
 export type WebhookEvent = {
+  /** Stripe event id (evt_...) — used for idempotency + audit. */
+  eventId: string;
   type: string;
   negotiationId: string | null;
   billId: string | null;
   kind: "paywall" | "success-fee" | null;
   paymentIntentId: string | null;
   sessionId: string | null;
+  // v18: subscription / customer identifiers for DeGeldHeld Plus.
+  customerId: string | null;
+  subscriptionId: string | null;
+  /** Stripe subscription.status (active/past_due/canceled/...). */
+  subscriptionStatus: string | null;
 };
 
 export function verifyAndParseWebhook(
@@ -167,9 +174,11 @@ export function verifyAndParseWebhook(
     const data = evt.data.object as unknown as Record<string, unknown>;
     const meta = (data.metadata as Record<string, string> | null) ?? null;
     const kindRaw = meta?.kind;
+    const str = (v: unknown): string | null => (typeof v === "string" ? v : null);
     return {
       ok: true,
       event: {
+        eventId: evt.id,
         type: evt.type,
         negotiationId: meta?.negotiationId ?? null,
         billId: meta?.billId ?? null,
@@ -182,9 +191,17 @@ export function verifyAndParseWebhook(
                 ? "success-fee"
                 : null,
         paymentIntentId:
-          (typeof data.payment_intent === "string" ? data.payment_intent : null) ??
-          (typeof data.id === "string" && evt.type.startsWith("payment_intent.") ? data.id : null),
-        sessionId: typeof data.id === "string" && evt.type.startsWith("checkout.") ? data.id : null,
+          str(data.payment_intent) ??
+          (str(data.id) && evt.type.startsWith("payment_intent.") ? str(data.id) : null),
+        sessionId: str(data.id) && evt.type.startsWith("checkout.") ? str(data.id) : null,
+        // For subscription.* the object IS the subscription; for invoice.*
+        // the customer/subscription live on the invoice object.
+        customerId: str(data.customer),
+        subscriptionId:
+          evt.type.startsWith("customer.subscription")
+            ? str(data.id)
+            : str(data.subscription),
+        subscriptionStatus: str(data.status),
       },
     };
   } catch (e) {
@@ -202,6 +219,33 @@ export function shouldMarkRefunded(eventType: string): boolean {
 
 export function shouldMarkFailed(eventType: string): boolean {
   return eventType === "payment_intent.payment_failed" || eventType === "checkout.session.expired";
+}
+
+/** v18: does this event concern the DeGeldHeld Plus subscription? */
+export function isSubscriptionEvent(eventType: string): boolean {
+  return (
+    eventType.startsWith("customer.subscription.") ||
+    eventType === "invoice.paid" ||
+    eventType === "invoice.payment_failed"
+  );
+}
+
+/**
+ * Map a Stripe subscription/invoice event to the User.subscriptionStatus
+ * we store. Returns null when the event shouldn't change status.
+ */
+export function subscriptionStatusFromEvent(
+  eventType: string,
+  stripeStatus: string | null,
+): string | null {
+  if (eventType === "customer.subscription.deleted") return "canceled";
+  if (eventType === "invoice.payment_failed") return "past_due";
+  if (eventType === "invoice.paid") return "active";
+  if (eventType.startsWith("customer.subscription.")) {
+    // created / updated carry the authoritative status.
+    return stripeStatus ?? null;
+  }
+  return null;
 }
 
 // ---------- DEEL 10 paywall ----------
