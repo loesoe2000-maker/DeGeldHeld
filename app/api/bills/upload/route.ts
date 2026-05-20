@@ -234,6 +234,21 @@ export async function POST(req: NextRequest) {
     stage = "ocr";
     const ocr = await extractBill(buf, file.type);
 
+    // v18: Groq capacity overflow — after backoff-retries the OCR was
+    // still rate-limited. Return 503 (retryable) with a friendly NL
+    // message instead of persisting an empty bill or showing a hard
+    // error. The client auto-retries.
+    if (ocr.rawText === "OCR_RATE_LIMITED") {
+      return NextResponse.json(
+        {
+          error:
+            "Het is nu erg druk — we konden je rekening even niet uitlezen. Probeer over een halve minuut opnieuw.",
+          retryable: true,
+        },
+        { status: 503 },
+      );
+    }
+
     stage = "db";
     // If a bill exists under this imageHash but belongs to someone else
     // (e.g. previously-anonymous bill claimed by the magic-link flow),

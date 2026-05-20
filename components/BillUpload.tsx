@@ -68,6 +68,9 @@ export default function BillUpload({ onUploaded }: { onUploaded?: (r: UploadResp
   // immediately, so the second call returns instantly.
   const busyRef = useRef(false);
   const [error, setError] = useState("");
+  // v18: holds the last file when OCR was rate-limited (503) so the
+  // user can retry with one click without re-picking the file.
+  const [retryFile, setRetryFile] = useState<File | null>(null);
   const [selectedName, setSelectedName] = useState("");
   const [progress, setProgress] = useState<"validating" | "uploading" | "analysing" | "">("");
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
@@ -117,6 +120,7 @@ export default function BillUpload({ onUploaded }: { onUploaded?: (r: UploadResp
       // v18: hard double-submit guard — bail if an upload is in flight.
       if (busyRef.current) return;
       setError("");
+      setRetryFile(null);
       setSelectedName(file.name);
       setProgress("validating");
       const v = validateClientFile(file);
@@ -139,6 +143,20 @@ export default function BillUpload({ onUploaded }: { onUploaded?: (r: UploadResp
         fd.append("file", file);
         if (turnstileToken) fd.append("turnstileToken", turnstileToken);
         let res = await fetch("/api/bills/upload", { method: "POST", body: fd });
+        // v18: a 503 with {retryable:true} is the Groq-capacity overflow.
+        // Don't blindly re-POST (that re-uploads); surface a friendly
+        // "even druk" message with a retry button instead.
+        if (res.status === 503) {
+          const peek = await res.clone().json().catch(() => null);
+          if (peek?.retryable) {
+            setRetryFile(file);
+            setError(
+              peek.error ??
+                "Het is nu erg druk — we konden je rekening even niet uitlezen. Probeer zo opnieuw.",
+            );
+            return;
+          }
+        }
         if (res.status >= 500 && res.status < 600) {
           await new Promise((r) => setTimeout(r, 800));
           setProgress("analysing");
@@ -271,7 +289,28 @@ export default function BillUpload({ onUploaded }: { onUploaded?: (r: UploadResp
           {progressLabel}
         </p>
       )}
-      {error && (
+      {error && retryFile && (
+        // v18: rate-limit overflow — friendly amber message + retry button.
+        <div
+          data-testid="ocr-busy-retry"
+          className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-center text-sm text-amber-900"
+        >
+          <p>{error}</p>
+          <button
+            type="button"
+            onClick={() => {
+              const f = retryFile;
+              setRetryFile(null);
+              setError("");
+              if (f) submit(f);
+            }}
+            className="mt-3 rounded-lg bg-amber-600 px-4 py-2 font-semibold text-white hover:bg-amber-700"
+          >
+            Probeer opnieuw
+          </button>
+        </div>
+      )}
+      {error && !retryFile && (
         <p role="alert" className="mt-4 text-center text-sm text-red-600">
           {error}
         </p>

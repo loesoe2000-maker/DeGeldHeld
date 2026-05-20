@@ -434,21 +434,69 @@ async function tryTextModel(
   }
 }
 
+// v18: sleep seam so the rate-limit backoff test runs instantly.
+let _ocrSleep: (ms: number) => Promise<void> = (ms) =>
+  new Promise((r) => setTimeout(r, ms));
+export function __setOcrSleep(fn: ((ms: number) => Promise<void>) | null): void {
+  _ocrSleep = fn ?? ((ms) => new Promise((r) => setTimeout(r, ms)));
+}
+
+/** v18: is this a Groq rate-limit (429) error? */
+export function isRateLimitError(e: unknown): boolean {
+  if (!e) return false;
+  const status = (e as { status?: number }).status;
+  if (status === 429) return true;
+  const msg = ((e as Error).message ?? "").toLowerCase();
+  return /\b429\b|rate.?limit|too many requests/.test(msg);
+}
+
+/** v18: read a retry-after (ms) from a Groq error, if present. */
+export function retryAfterMs(e: unknown): number | null {
+  const headers = (e as { headers?: Record<string, string> }).headers;
+  const raw = headers?.["retry-after"] ?? headers?.["Retry-After"];
+  if (raw) {
+    const secs = Number(raw);
+    if (Number.isFinite(secs) && secs > 0) return Math.min(secs * 1000, 10_000);
+  }
+  // Some SDKs put it on the error object directly.
+  const after = (e as { retryAfter?: number }).retryAfter;
+  if (typeof after === "number" && after > 0) return Math.min(after * 1000, 10_000);
+  return null;
+}
+
+/** v18: backoff schedule for Groq 429 — 1s → 2s → 4s, max 3 retries. */
+export const GROQ_BACKOFF_MS = [1000, 2000, 4000];
+
 /**
- * Try a model up to 2× with 1.5s exponential backoff on transient errors.
- * Returns first successful raw output, or last error.
+ * Try a model with graceful Groq 429 handling.
+ *  - non-rate-limit transient (5xx/network) → single 1.5s retry (legacy).
+ *  - rate-limit (429) → respect retry-after else exponential backoff
+ *    (1/2/4s, max 3 attempts). After exhaustion, returns rateLimited=true
+ *    so the caller can surface a 503 instead of a generic OCR failure.
  */
 async function tryModelWithRetry(
   model: string,
   dataUrl: string,
-): Promise<{ raw: string; err?: Error }> {
-  const first = await tryModel(model, dataUrl);
-  if (!first.err) return first;
-  // transient errors: 429, 5xx, network
-  const msg = first.err.message.toLowerCase();
-  const isTransient = /429|503|502|504|timeout|econn|enot/.test(msg);
-  if (!isTransient) return first;
-  await new Promise((r) => setTimeout(r, 1500));
+): Promise<{ raw: string; err?: Error; rateLimited?: boolean }> {
+  let last = await tryModel(model, dataUrl);
+  if (!last.err) return last;
+
+  if (isRateLimitError(last.err)) {
+    for (let attempt = 0; attempt < GROQ_BACKOFF_MS.length; attempt++) {
+      const wait = retryAfterMs(last.err) ?? GROQ_BACKOFF_MS[attempt];
+      await _ocrSleep(wait);
+      last = await tryModel(model, dataUrl);
+      if (!last.err) return last;
+      if (!isRateLimitError(last.err)) return last;
+    }
+    return { raw: "", err: last.err, rateLimited: true };
+  }
+
+  // non-rate-limit transient: 5xx / network → one 1.5s retry.
+  const msg = last.err.message.toLowerCase();
+  const isTransient = /503|502|504|timeout|econn|enot/.test(msg);
+  if (!isTransient) return last;
+  await _ocrSleep(1500);
   return tryModel(model, dataUrl);
 }
 
@@ -703,10 +751,12 @@ async function extractFromImage(
   let fallbackUsed = false;
   let activeDataUrl = dataUrl;
 
+  let rateLimited = false;
   for (let i = 0; i < models.length; i++) {
     const model = models[i];
     attempts += 1;
-    const { raw, err } = await tryModelWithRetry(model, activeDataUrl);
+    const { raw, err, rateLimited: rl } = await tryModelWithRetry(model, activeDataUrl);
+    if (rl) rateLimited = true;
     if (err) {
       lastErr = err;
       // First time we see "invalid image data": rebuild the payload as
@@ -741,6 +791,13 @@ async function extractFromImage(
     }
     // Low confidence — try next model.
     lastErr = undefined;
+  }
+
+  // v18: if every model attempt ended in a Groq rate-limit, surface a
+  // dedicated marker so the upload route can return 503 (retryable)
+  // instead of a generic failure.
+  if (rateLimited) {
+    return { ...empty, attempts, rawText: "OCR_RATE_LIMITED", needsManual: true };
   }
 
   return {
