@@ -96,6 +96,37 @@ keys nog nodig zijn voordat een flag op `true` kan.
   (signed via `x-twilio-signature`, HMAC-SHA1 over URL + sorted params)
 - 360dialog (alt) → same URL with `x-360dialog-secret` shared-secret header
 
+## E-mail deliverability (v20)
+
+Magic-links in spam = silent signup loss. All outgoing mail uses ONE
+from-address (`lib/email-from.ts` → `EMAIL_FROM`, default
+`DeGeldHeld <hallo@degeldheld.com>`) on the verified domain. Never ship a
+`*.resend.dev` sender to production — `/api/health` flags it
+(`services.email.testSender: true` + `email.ok: false`).
+
+### Required DNS records (Cloudflare → degeldheld.com)
+Resend generates the exact values when you verify the domain; add all of
+them and wait for the green check in the Resend dashboard:
+
+| Type  | Host (name)                  | Value                                  | Purpose |
+|-------|------------------------------|----------------------------------------|---------|
+| TXT   | `send.degeldheld.com`        | `v=spf1 include:amazonses.com ~all`    | SPF (authorizes Resend/SES to send) |
+| CNAME | `resend._domainkey...`       | `<resend-provided>.dkim.amazonses.com` | DKIM (signs mail; Resend gives 1–3 CNAMEs) |
+| TXT   | `_dmarc.degeldheld.com`      | `v=DMARC1; p=none; rua=mailto:dmarc@degeldheld.com` | DMARC (start at p=none, tighten to quarantine later) |
+| MX    | `send.degeldheld.com`        | `feedback-smtp.<region>.amazonses.com` (prio 10) | bounce/feedback (Resend-provided) |
+
+Use the literal records Resend shows — the table is the shape, not the
+verbatim values (DKIM selector + SES region differ per account).
+
+### Test deliverability
+1. Confirm the domain is green in Resend → Domains.
+2. `curl -s https://www.degeldheld.com/api/health | jq .services.email`
+   → expect `{ apiKeySet: true, fromDomain: "degeldheld.com",
+   testSender: false, ok: true }`.
+3. Send a real magic-link to a fresh address at https://www.mail-tester.com
+   → aim for 9–10/10 (SPF + DKIM + DMARC all pass, not on a blocklist).
+4. Send to a Gmail + Outlook account; verify it lands in inbox, not spam.
+
 ## v8 incident response
 
 ### Tink token expiry

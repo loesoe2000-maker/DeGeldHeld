@@ -38,4 +38,17 @@ describe("GET /api/health", () => {
       expect(typeof s.ms).toBe("number");
     }
   });
+
+  it("v20: includes an email deliverability section without leaking secrets", async () => {
+    const res = await GET();
+    const body = await res.json();
+    const email = body.services.email;
+    expect(email).toBeDefined();
+    expect(typeof email.apiKeySet).toBe("boolean");
+    expect(typeof email.fromDomain).toBe("string");
+    expect(typeof email.testSender).toBe("boolean");
+    expect(typeof email.ok).toBe("boolean");
+    // never echo the key itself
+    expect(JSON.stringify(email)).not.toMatch(/re_/);
+  });
 });

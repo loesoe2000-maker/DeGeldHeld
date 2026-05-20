@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { envHealth } from "@/lib/env";
 import { prisma } from "@/lib/db";
+import { fromDomain, isTestSender } from "@/lib/email-from";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -83,16 +84,33 @@ async function checkStripe(): Promise<ServiceCheck> {
   }
 }
 
+// Deliverability snapshot: is the API key wired, which verified domain are
+// we sending from, and are we accidentally on the resend.dev test sender
+// (which lands magic-links in spam). No secrets are exposed — just booleans
+// and the public from-domain.
+function emailHealth() {
+  const apiKeySet = !!process.env.RESEND_API_KEY;
+  const domain = fromDomain();
+  const testSender = isTestSender();
+  return {
+    apiKeySet,
+    fromDomain: domain,
+    testSender,
+    ok: apiKeySet && !testSender,
+  };
+}
+
 export async function GET() {
   const env = envHealth();
+  const email = emailHealth();
   const [db, groq, resend, stripe] = await Promise.all([
     checkDb(),
     cached("groq", checkGroq),
     cached("resend", checkResend),
     cached("stripe", checkStripe),
   ]);
-  const services = { db, groq, resend, stripe };
-  const allOk = env.ok && db.ok && groq.ok && resend.ok && stripe.ok;
+  const services = { db, groq, resend, stripe, email };
+  const allOk = env.ok && db.ok && groq.ok && resend.ok && stripe.ok && email.ok;
   const body = {
     status: allOk ? "ok" : "degraded",
     service: "degeldheld",

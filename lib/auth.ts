@@ -2,6 +2,7 @@ import NextAuth, { type NextAuthConfig, type Session } from "next-auth";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import Resend from "next-auth/providers/resend";
 import { prisma } from "@/lib/db";
+import { EMAIL_FROM } from "@/lib/email-from";
 import {
   jwtCallback,
   sessionCallback,
@@ -12,7 +13,7 @@ import {
 export { PROTECTED_PATHS };
 
 const apiKey = process.env.RESEND_API_KEY ?? "";
-const from = process.env.EMAIL_FROM ?? "DeGeldHeld <hallo@degeldheld.com>";
+const from = EMAIL_FROM;
 
 export const authConfig: NextAuthConfig = {
   adapter: PrismaAdapter(prisma),

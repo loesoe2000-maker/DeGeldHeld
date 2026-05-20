@@ -1,8 +1,9 @@
 import { Resend } from "resend";
 import { welcomeBrandedHtml } from "@/lib/email_templates";
+import { EMAIL_FROM } from "@/lib/email-from";
 
 const apiKey = process.env.RESEND_API_KEY ?? "";
-const from = process.env.EMAIL_FROM ?? "DeGeldHeld <hallo@degeldheld.com>";
+const from = EMAIL_FROM;
 
 let _resend: Resend | null = null;
 function client() {
