@@ -21,6 +21,9 @@ const ALL_JOBS = [
   "fraud-check",
   "cleanup-anonymous",
   "price-staleness",
+  "category-nudge",
+  "contract-radar",
+  "monthly-report",
 ] as const;
 
 export async function GET() {

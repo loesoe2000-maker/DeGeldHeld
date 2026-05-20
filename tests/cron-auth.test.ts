@@ -57,6 +57,9 @@ describe("v20 DEEL 5 — every cron route uses the shared gate", () => {
     "fraud-check",
     "cleanup-anonymous",
     "price-staleness",
+    "category-nudge",
+    "contract-radar",
+    "monthly-report",
   ];
   for (const job of CRONS) {
     it(`cron/${job} calls authorizeCron + returns 401`, () => {
