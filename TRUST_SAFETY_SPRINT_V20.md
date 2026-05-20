@@ -1,6 +1,10 @@
 # DeGeldHeld v20 — Trust & Safety Sprint
 
-**Draai dit ná v19.** Laatste serieuze hardening-ronde vóór launch:
+**Draai dit ná v18.** (v19 auto-fee mag later — die zit vast op live
+Stripe. v20 heeft geen blocker.) Wanneer v19 later draait, moeten z'n
+nieuwe payment-surfaces — de `/api/fee-setup` route + `User.feePaymentMethodId`
+— alsnog door de IDOR-audit (DEEL 3) en GDPR-deletion (DEEL 6) heen.
+Laatste serieuze hardening-ronde vóór launch:
 zichtbaarheid (Sentry), deliverability (e-mail), security (IDOR/XSS),
 betrouwbaarheid (crons), en privacy (GDPR). PSD2 valt **buiten scope**
 (eigenaar pakt dat later).
