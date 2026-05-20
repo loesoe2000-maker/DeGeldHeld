@@ -6,16 +6,24 @@ import { useRouter } from "next/navigation";
 function AccountControls({
   initialNotificationsEnabled,
   initialOcrTrainingOptIn,
+  initialMarketingOptOut,
 }: {
   initialNotificationsEnabled: boolean;
   initialOcrTrainingOptIn: boolean;
+  initialMarketingOptOut: boolean;
 }) {
   const [notif, setNotif] = useState(initialNotificationsEnabled);
   const [optIn, setOptIn] = useState(initialOcrTrainingOptIn);
+  // UI shows the positive "ontvang tips" — stored as the inverse opt-OUT.
+  const [tips, setTips] = useState(!initialMarketingOptOut);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
-  async function persist(next: { notificationsEnabled?: boolean; ocrTrainingOptIn?: boolean }) {
+  async function persist(next: {
+    notificationsEnabled?: boolean;
+    ocrTrainingOptIn?: boolean;
+    marketingOptOut?: boolean;
+  }) {
     setSaving(true);
     setSaved(false);
     try {
@@ -64,6 +72,24 @@ function AccountControls({
         <span className="text-sm text-slate-700">
           <strong>AI-verbetering</strong> — mag DeGeldHeld mijn <em>geanonimiseerde</em>
           facturen gebruiken om de OCR te verbeteren? (Geen namen / IBAN / adres opgeslagen.)
+        </span>
+      </label>
+      <label className="mt-3 flex items-start gap-3">
+        <input
+          type="checkbox"
+          data-testid="marketing-optin"
+          checked={tips}
+          onChange={(e) => {
+            setTips(e.target.checked);
+            // checked = wants tips → marketingOptOut is the inverse
+            void persist({ marketingOptOut: !e.target.checked });
+          }}
+          className="mt-1 h-4 w-4"
+        />
+        <span className="text-sm text-slate-700">
+          <strong>Bespaar-tips &amp; herinneringen</strong> — krijg een seintje als je
+          ergens kunt besparen (nieuwe categorie, aflopend contract) + een kort
+          maandoverzicht. Je belangrijke onderhandel-mails krijg je altijd.
         </span>
       </label>
       <div className="mt-2 h-4 text-xs text-emerald-700">

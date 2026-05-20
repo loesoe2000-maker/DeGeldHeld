@@ -84,6 +84,7 @@ const API_PROBES: ApiProbe[] = [
   { path: "/api/account/export", method: "GET", okStatuses: [200, 401] },
   { path: "/api/account/delete", method: "POST", body: {}, expectJson: true, okStatuses: [400, 401] },
   { path: "/api/account/prefs", method: "POST", body: {}, expectJson: true, okStatuses: [400, 401] },
+  { path: "/api/unsubscribe", method: "GET", okStatuses: [200, 400] },
   { path: "/api/psd2/connect", method: "POST", body: {}, expectJson: true, okStatuses: [401, 503] },
   { path: "/api/psd2/sync", method: "POST", body: {}, expectJson: true, okStatuses: [401, 503] },
   { path: "/api/whatsapp/activate", method: "POST", body: {}, expectJson: true, okStatuses: [400, 401] },

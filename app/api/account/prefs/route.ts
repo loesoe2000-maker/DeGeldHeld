@@ -9,6 +9,7 @@ export const dynamic = "force-dynamic";
 const Schema = z.object({
   notificationsEnabled: z.boolean().optional(),
   ocrTrainingOptIn: z.boolean().optional(),
+  marketingOptOut: z.boolean().optional(),
 });
 
 export async function POST(req: Request) {

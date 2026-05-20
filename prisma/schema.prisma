@@ -30,6 +30,14 @@ model User {
   deletedAt            DateTime?
   ocrTrainingOptIn     Boolean  @default(false)
 
+  // v21 retention engine — anti-spam foundation. Every retention mail
+  // respects marketingOptOut + carries an unsubscribe link (token), and
+  // the per-type timestamps make the crons idempotent (never mail twice).
+  marketingOptOut      Boolean   @default(false)
+  unsubscribeToken     String?   @unique
+  lastNudgeAt          DateTime?
+  lastMonthlyReportAt  DateTime?
+
   // v11 anti-fraud: account suspend door admin na review.
   // Suspended users kunnen inloggen maar geen nieuwe uploads doen.
   suspendedAt          DateTime?
@@ -224,6 +232,12 @@ model Bill {
   nextRecheckAt    DateTime?
   lastRecheckMailAt DateTime?
   deletedAt        DateTime?
+
+  // v21 contract-end radar. contractEndDate is detected from OCR or
+  // estimated (invoiceDate + 12mo); contractAlertSentAt makes the radar
+  // cron idempotent.
+  contractEndDate     DateTime?
+  contractAlertSentAt DateTime?
 
   user         User?        @relation(fields: [userId], references: [id], onDelete: Cascade)
   negotiation  Negotiation?

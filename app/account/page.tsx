@@ -20,6 +20,7 @@ export default async function AccountPage() {
       name: true,
       notificationsEnabled: true,
       ocrTrainingOptIn: true,
+      marketingOptOut: true,
       createdAt: true,
     },
   });
@@ -55,6 +56,7 @@ export default async function AccountPage() {
       <AccountControls
         initialNotificationsEnabled={user.notificationsEnabled}
         initialOcrTrainingOptIn={user.ocrTrainingOptIn}
+        initialMarketingOptOut={user.marketingOptOut}
       />
 
       <section
