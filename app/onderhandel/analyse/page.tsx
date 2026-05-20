@@ -12,6 +12,7 @@ import { requiresPayment } from "@/lib/payments";
 import { compareEnergy, type EnergyContractType } from "@/lib/categories/energie";
 import { compareInsurance, type InsuranceCoverageType } from "@/lib/categories/verzekering";
 import { compareMortgage } from "@/lib/categories/hypotheek";
+import { compareWater } from "@/lib/categories/water";
 import { ANON_COOKIE_NAME, isValidAnonSessionId } from "@/lib/anon-session";
 import AnonymousMailPrompt from "@/components/AnonymousMailPrompt";
 import Link from "next/link";
@@ -205,6 +206,34 @@ export default async function AnalysePage({
         primary={primaryFromLegacy(bill.category)}
         info={infoFor(primaryFromLegacy(bill.category))}
       />
+
+      {bill.category === "WATER" && (() => {
+        // v17: water is a regional monopoly — savings come from usage
+        // reduction, not switching. The m³-rate comes from OCR when
+        // available (energyM3RateCents doubles as the water m³ field).
+        const r = compareWater({
+          m3PriceCents: bill.energyM3RateCents,
+          jaarverbruikM3: null,
+          householdSize: null,
+        });
+        return (
+          <div data-testid="cat-water" className="mt-8 rounded-xl border border-cyan-200 bg-cyan-50 p-5 text-sm text-cyan-900">
+            <h2 className="text-base font-semibold">Water — verbruik & besparing</h2>
+            <span data-testid="water-monopoly-badge" className="mt-1 inline-block rounded bg-slate-200 px-2 py-0.5 text-xs text-slate-700">
+              regionaal monopolie — overstappen kan niet
+            </span>
+            <p className="mt-2">Markt-mediaan €{(r.marketM3Cents / 100).toFixed(2)}/m³ · geschat verbruik {r.avgHouseholdM3} m³/jaar · geschatte jaarkosten <strong>€{(r.estimatedAnnualCents / 100).toFixed(0)}</strong>.</p>
+            <h3 className="mt-3 font-semibold">Zo bespaar je op water</h3>
+            <ul className="mt-1 list-disc pl-5">
+              {r.reductionTips.map((t, i) => <li key={i}>{t}</li>)}
+            </ul>
+            {r.kwijtscheldingEligible && (
+              <p className="mt-2">Mogelijk kom je in aanmerking voor kwijtschelding bij laag inkomen — check je gemeente/waterschap.</p>
+            )}
+            {r.notes.map((n, i) => <p key={i} className="mt-1 opacity-80">{n}</p>)}
+          </div>
+        );
+      })()}
 
       {bill.category === "ENERGIE" && (() => {
         // v17: feed the REAL OCR-extracted kWh/m³ rates + contract type.
