@@ -3,6 +3,11 @@ const nextConfig = {
   reactStrictMode: true,
   experimental: {
     serverActions: { bodySizeLimit: "10mb" },
+    // Next.js 14: instrumentation.ts register() (which boots the Sentry
+    // server/edge SDK) only runs when this hook is enabled. Without it the
+    // server-side Sentry.init() never fires → captureException is a no-op
+    // → events silently dropped. Stable+default in Next 15.
+    instrumentationHook: true,
     // @napi-rs/canvas (gebruikt door lib/pdf_render.ts voor multi-page PDF
     // → PNG rendering) is een native .node binary. Webpack kan die niet
     // bundelen — markeer als external zodat 'm op de Vercel Node runtime
