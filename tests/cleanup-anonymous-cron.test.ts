@@ -14,8 +14,8 @@ const SRC = readFileSync(
 );
 
 describe("/api/cron/cleanup-anonymous — contract", () => {
-  it("requires CRON_SECRET bearer auth", () => {
-    expect(SRC).toMatch(/CRON_SECRET/);
+  it("requires CRON_SECRET bearer auth via the shared gate", () => {
+    expect(SRC).toMatch(/authorizeCron\(req\)/);
     expect(SRC).toMatch(/401/);
   });
 

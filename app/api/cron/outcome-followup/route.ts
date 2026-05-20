@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { authorizeCron } from "@/lib/cron-auth";
 import { prisma } from "@/lib/db";
 import { sendEmail } from "@/lib/email";
 import { followUpBrandedHtml, followUpBrandedSubject } from "@/lib/email_templates";
@@ -17,15 +18,8 @@ export const dynamic = "force-dynamic";
 const DAILY_CAP = 50;
 const APP_URL = process.env.APP_URL ?? "https://degeldheld.com";
 
-function isAuthorized(req: NextRequest): boolean {
-  const cronSecret = process.env.CRON_SECRET;
-  if (!cronSecret) return true; // dev mode
-  const auth = req.headers.get("authorization") ?? "";
-  return auth === `Bearer ${cronSecret}`;
-}
-
 export async function GET(req: NextRequest) {
-  if (!isAuthorized(req)) {
+  if (!authorizeCron(req)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

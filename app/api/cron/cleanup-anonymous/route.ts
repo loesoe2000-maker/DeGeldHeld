@@ -7,6 +7,7 @@
  * last-line garbage collector).
  */
 import { NextRequest, NextResponse } from "next/server";
+import { authorizeCron } from "@/lib/cron-auth";
 import { acquireCronLock, releaseCronLock } from "@/lib/cron-lock";
 import { deleteStaleAnonymousBills } from "@/lib/anon-claim";
 import * as Sentry from "@sentry/nextjs";
@@ -15,9 +16,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
-  const cronSecret = process.env.CRON_SECRET;
-  const auth = req.headers.get("authorization") ?? "";
-  if (cronSecret && auth !== `Bearer ${cronSecret}`) {
+  if (!authorizeCron(req)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

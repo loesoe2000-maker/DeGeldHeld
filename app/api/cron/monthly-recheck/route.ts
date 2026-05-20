@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { authorizeCron } from "@/lib/cron-auth";
 import { prisma } from "@/lib/db";
 import { sendEmail, escapeHtml } from "@/lib/email";
 import { buildComparison } from "@/lib/comparison";
@@ -17,9 +18,7 @@ const SIGNIFICANT_DELTA_CENTS = 60 * 100;                 // €60/yr min trigge
 const BATCH_LIMIT = 100;
 
 export async function GET(req: NextRequest) {
-  const cronSecret = process.env.CRON_SECRET;
-  const auth = req.headers.get("authorization") ?? "";
-  if (cronSecret && auth !== `Bearer ${cronSecret}`) {
+  if (!authorizeCron(req)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

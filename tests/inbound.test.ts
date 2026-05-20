@@ -50,6 +50,14 @@ vi.mock("../lib/ocr", async () => {
 
 vi.mock("../lib/email", () => ({
   sendEmail: vi.fn(async () => ({ id: "noop", skipped: true })),
+  // v20: inbound reply now escapes the provider name in the HTML body.
+  escapeHtml: (s: string) =>
+    s
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;"),
 }));
 
 import { POST } from "../app/api/inbound/route";

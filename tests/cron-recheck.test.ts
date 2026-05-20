@@ -25,6 +25,15 @@ vi.mock("../lib/db", () => ({
 
 vi.mock("../lib/email", () => ({
   sendEmail: (a: unknown) => sendEmail(a),
+  // v20: route now escapes the provider in the HTML body — keep a faithful
+  // escaper so the mail branch doesn't throw (which would swallow the send).
+  escapeHtml: (s: string) =>
+    s
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;"),
 }));
 
 // Pin comparison so we control yearlySavingsCents:

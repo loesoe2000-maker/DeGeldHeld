@@ -7,6 +7,7 @@
  * flags are not duplicated within the same cron run.
  */
 import { NextRequest, NextResponse } from "next/server";
+import { authorizeCron } from "@/lib/cron-auth";
 import { prisma } from "@/lib/db";
 import { acquireCronLock, releaseCronLock } from "@/lib/cron-lock";
 import {
@@ -22,9 +23,7 @@ export const dynamic = "force-dynamic";
 const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
 
 export async function GET(req: NextRequest) {
-  const cronSecret = process.env.CRON_SECRET;
-  const auth = req.headers.get("authorization") ?? "";
-  if (cronSecret && auth !== `Bearer ${cronSecret}`) {
+  if (!authorizeCron(req)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

@@ -5,6 +5,7 @@
  * days, email the owner a refresh checklist. CRON_SECRET-protected.
  */
 import { NextRequest, NextResponse } from "next/server";
+import { authorizeCron } from "@/lib/cron-auth";
 import { sendEmail } from "@/lib/email";
 import { priceAgeDays, pricesAreStale, pricesAsOfLabel, PRICES_AS_OF } from "@/lib/market-prices";
 import * as Sentry from "@sentry/nextjs";
@@ -16,9 +17,7 @@ const STALE_DAYS = 90;
 const OWNER_EMAIL = (process.env.ADMIN_EMAILS ?? "").split(",")[0]?.trim() || "hallo@degeldheld.com";
 
 export async function GET(req: NextRequest) {
-  const cronSecret = process.env.CRON_SECRET;
-  const auth = req.headers.get("authorization") ?? "";
-  if (cronSecret && auth !== `Bearer ${cronSecret}`) {
+  if (!authorizeCron(req)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
