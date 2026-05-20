@@ -567,6 +567,12 @@ async function extractFromPdf(imageBuf: Buffer, imageHash: string): Promise<OcrR
   const ex = await extractPdfText(imageBuf);
   const textPathOk = ex.ok && !ex.empty;
 
+  // v18: a password/permission-protected PDF can't be read at all —
+  // give the user a clear instruction instead of a generic failure.
+  if (ex.passwordProtected) {
+    return { ...empty, rawText: "PDF_PASSWORD_PROTECTED", needsManual: true };
+  }
+
   if (!apiKey || apiKey === "gsk_test_dummy") {
     return { ...empty, rawText: "PDF_OCR_SKIPPED_NO_API_KEY", needsManual: true };
   }
@@ -622,6 +628,11 @@ async function extractFromPdf(imageBuf: Buffer, imageHash: string): Promise<OcrR
 
   // Final fallback: surface what we got.
   if (!textPathOk) {
+    // v18: distinguish empty (0-page) PDFs from generic extract-fails
+    // and scan-PDFs so the user gets the right instruction.
+    if (ex.error === "PDF_EMPTY") {
+      return { ...empty, rawText: "PDF_EMPTY", needsManual: true };
+    }
     return {
       ...empty,
       rawText: ex.error ? `PDF_EXTRACT_FAIL: ${ex.error}` : "PDF_SCAN_NO_TEXT",
@@ -768,6 +779,12 @@ export function pdfFallbackMessage(rawText: string): string | null {
   }
   if (rawText.startsWith("PDF_OCR_SKIPPED_NO_API_KEY")) {
     return "AI-extractie is op deze omgeving uitgeschakeld. Vul de gegevens handmatig in.";
+  }
+  if (rawText.startsWith("PDF_PASSWORD_PROTECTED")) {
+    return "Deze PDF is beveiligd met een wachtwoord. Sla 'm op zonder wachtwoord en upload opnieuw, of upload een foto van de factuur.";
+  }
+  if (rawText.startsWith("PDF_EMPTY")) {
+    return "Deze PDF lijkt leeg te zijn (0 pagina's). Controleer het bestand en upload opnieuw.";
   }
   return null;
 }

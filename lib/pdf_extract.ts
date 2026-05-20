@@ -27,8 +27,18 @@ export type PdfText = {
   empty: boolean;
   /** True when the PDF had more pages than MAX_PDF_PAGES so we truncated. */
   truncated: boolean;
+  /** v18: true when the PDF is password/permission protected. */
+  passwordProtected?: boolean;
   error?: string;
 };
+
+/** pdfjs throws a PasswordException (name) when a PDF needs a password. */
+function isPasswordError(e: unknown): boolean {
+  if (!e) return false;
+  const name = (e as { name?: string }).name ?? "";
+  const msg = (e as Error).message ?? "";
+  return name === "PasswordException" || /password/i.test(msg);
+}
 
 export async function extractPdfText(buf: Buffer): Promise<PdfText> {
   let pdfjs: typeof import("pdfjs-dist/legacy/build/pdf.mjs");
@@ -56,6 +66,18 @@ export async function extractPdfText(buf: Buffer): Promise<PdfText> {
     } as unknown as Parameters<typeof pdfjs.getDocument>[0]).promise;
 
     const pageCount = doc.numPages;
+    if (pageCount <= 0) {
+      // v18: empty / 0-page PDF — bail with a clear marker.
+      return {
+        ok: false,
+        text: "",
+        pages: 0,
+        extractedPages: 0,
+        empty: true,
+        truncated: false,
+        error: "PDF_EMPTY",
+      };
+    }
     // v12: read up to MAX_PDF_PAGES — page 1 is always included (summary
     // is usually there); extra pages catch jaarafrekening specifications.
     const maxPages = Math.min(pageCount, MAX_PDF_PAGES);
@@ -99,6 +121,7 @@ export async function extractPdfText(buf: Buffer): Promise<PdfText> {
       extractedPages: 0,
       empty: true,
       truncated: false,
+      passwordProtected: isPasswordError(e),
       error: (e as Error).message,
     };
   }
