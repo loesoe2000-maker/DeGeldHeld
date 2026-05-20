@@ -9,7 +9,7 @@ import { primaryFromLegacy } from "@/lib/categories";
 import { infoFor } from "@/lib/category-info";
 import CategoryInfoSection from "@/components/CategoryInfoSection";
 import { requiresPayment } from "@/lib/payments";
-import { compareEnergy } from "@/lib/categories/energie";
+import { compareEnergy, type EnergyContractType } from "@/lib/categories/energie";
 import { compareInsurance, type InsuranceCoverageType } from "@/lib/categories/verzekering";
 import { compareMortgage } from "@/lib/categories/hypotheek";
 import { ANON_COOKIE_NAME, isValidAnonSessionId } from "@/lib/anon-session";
@@ -207,16 +207,24 @@ export default async function AnalysePage({
       />
 
       {bill.category === "ENERGIE" && (() => {
+        // v17: feed the REAL OCR-extracted kWh/m³ rates + contract type.
+        const detected =
+          bill.energyKwhRateCents != null || bill.energyM3RateCents != null;
         const r = compareEnergy({
-          kwhPriceCents: null,
-          m3PriceCents: null,
+          kwhPriceCents: bill.energyKwhRateCents,
+          m3PriceCents: bill.energyM3RateCents,
           vastrechtCents: null,
-          contractType: "variabel",
+          contractType: (bill.energyContractType as EnergyContractType) ?? "unknown",
         });
         return (
           <div data-testid="cat-energie" className="mt-8 rounded-xl border border-emerald-200 bg-emerald-50 p-5 text-sm text-emerald-900">
             <h2 className="text-base font-semibold">Energie-tarief vergelijking</h2>
-            <p className="mt-1">Markt-mediaan kWh (variabel): <strong>€{(r.marketKwhCents / 100).toFixed(2)}</strong>, gas m³: <strong>€{(r.marketM3Cents / 100).toFixed(2)}</strong>.</p>
+            {!detected && (
+              <span data-testid="energie-estimate-badge" className="mt-1 inline-block rounded bg-amber-100 px-2 py-0.5 text-xs text-amber-900">
+                tarief niet gedetecteerd — schatting op gemiddeld verbruik
+              </span>
+            )}
+            <p className="mt-1">Markt-mediaan kWh ({(bill.energyContractType ?? "variabel")}): <strong>€{(r.marketKwhCents / 100).toFixed(2)}</strong>, gas m³: <strong>€{(r.marketM3Cents / 100).toFixed(2)}</strong>.</p>
             <p className="mt-1">Geschatte jaarbesparing bij overstap naar markt-tarief: <strong>€{(r.annualSavingsCents / 100).toFixed(0)}</strong>.</p>
             {r.notes.map((n, i) => <p key={i} className="mt-1 opacity-80">{n}</p>)}
           </div>
@@ -224,14 +232,25 @@ export default async function AnalysePage({
       })()}
 
       {bill.category === "VERZEKERING" && (() => {
+        // v17: use the REAL coverage type + deductible from OCR.
+        const coverage = ((): InsuranceCoverageType => {
+          const c = (bill.insuranceCoverage ?? "").toUpperCase();
+          if (c === "WA" || c === "WA+" || c === "CASCO") return c as InsuranceCoverageType;
+          return "UNKNOWN";
+        })();
         const r = compareInsurance({
-          type: "UNKNOWN" as InsuranceCoverageType,
+          type: coverage,
           premiumMonthlyCents: bill.monthlyCents ?? bill.amountCents,
-          deductibleCents: null,
+          deductibleCents: bill.insuranceDeductibleCents,
         });
         return (
           <div data-testid="cat-verzekering" className="mt-8 rounded-xl border border-sky-200 bg-sky-50 p-5 text-sm text-sky-900">
             <h2 className="text-base font-semibold">Verzekering-vergelijking</h2>
+            {coverage === "UNKNOWN" && (
+              <span data-testid="verzekering-estimate-badge" className="mt-1 inline-block rounded bg-amber-100 px-2 py-0.5 text-xs text-amber-900">
+                dekking niet gedetecteerd — vergelijking op premie-percentiel
+              </span>
+            )}
             <p className="mt-1">Je premie zit in het <strong>{r.percentile === "high" ? "duurste kwartiel" : r.percentile === "low" ? "goedkoopste kwartiel" : "midden"}</strong> van de markt.</p>
             {r.alternatives.length > 0 ? (
               <ul className="mt-2 list-disc pl-5">
@@ -249,18 +268,37 @@ export default async function AnalysePage({
       })()}
 
       {bill.category === "HYPOTHEEK" && (() => {
-        // Conservative defaults — real OCR-detection lands in v8.
+        // v17: use REAL OCR rente + rentevaste-periode. Restschuld is
+        // rarely on a monthly invoice → estimate conservatively from
+        // the monthly payment and LABEL it as an estimate.
+        const maandlast = bill.monthlyCents ?? bill.amountCents;
+        const rateDetected = bill.mortgageInterestPct != null;
+        const termDetected = bill.mortgageTermYears != null;
+        // Rough restschuld estimate: monthly × 12 × remaining term.
+        // Conservative — clamped to a sane band so a tiny invoice
+        // doesn't produce a silly tiny mortgage.
+        const estTermYears = bill.mortgageTermYears ?? 20;
+        const estRestschuldCents = Math.max(
+          5_000_000, // €50k floor
+          Math.min(maandlast * 12 * estTermYears, 100_000_000), // €1M ceiling
+        );
         const r = compareMortgage({
-          restschuldCents: 25_000_000,
-          rentePercentage: 4.8,
-          rentevasteJaren: 10,
-          looptijdJaren: 25,
-          maandlastCents: bill.monthlyCents ?? bill.amountCents,
+          restschuldCents: estRestschuldCents,
+          rentePercentage: bill.mortgageInterestPct ?? 4.5,
+          rentevasteJaren: bill.mortgageTermYears ?? 10,
+          looptijdJaren: estTermYears,
+          maandlastCents: maandlast,
         });
+        const anyEstimate = !rateDetected || !termDetected;
         return (
           <div data-testid="cat-hypotheek" className="mt-8 rounded-xl border border-purple-200 bg-purple-50 p-5 text-sm text-purple-900">
             <h2 className="text-base font-semibold">Hypotheek oversluit-kalkulator</h2>
-            <p className="mt-1">Markt-rente {r.marketRatePct}% vs jouw geschatte {r.yourRatePct}% — verschil <strong>{r.rateDeltaPct}%</strong>.</p>
+            {anyEstimate && (
+              <span data-testid="hypotheek-estimate-badge" className="mt-1 inline-block rounded bg-amber-100 px-2 py-0.5 text-xs text-amber-900">
+                {!rateDetected ? "rente geschat" : "rente uit factuur"} · restschuld is altijd een schatting uit je maandlast
+              </span>
+            )}
+            <p className="mt-1">Markt-rente {r.marketRatePct}% vs jouw {rateDetected ? "" : "geschatte "}{r.yourRatePct}% — verschil <strong>{r.rateDeltaPct}%</strong>.</p>
             <p className="mt-1">Bruto jaarbesparing: €{(r.yearlySavingsGrossCents / 100).toFixed(0)} (na oversluitkosten: €{(r.yearlySavingsNetCents / 100).toFixed(0)}/jaar gemiddeld).</p>
             <p className="mt-1"><strong>{r.oversluitWorthIt ? "Oversluiten is rendabel" : "Oversluiten loont waarschijnlijk niet"}</strong> — terugverdientijd {r.paybackMonths >= 0 ? `${r.paybackMonths} maanden` : "n.v.t."}.</p>
             {r.notes.map((n, i) => <p key={i} className="mt-1 opacity-80">{n}</p>)}
