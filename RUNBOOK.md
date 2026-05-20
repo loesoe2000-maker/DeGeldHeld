@@ -127,40 +127,41 @@ verbatim values (DKIM selector + SES region differ per account).
    → aim for 9–10/10 (SPF + DKIM + DMARC all pass, not on a blocklist).
 4. Send to a Gmail + Outlook account; verify it lands in inbox, not spam.
 
-## Inbound e-mail path (v20)
+## Inbound e-mail path (v20 → corrected in INBOUND_FIX)
 
-Three Resend inbound webhooks, each HMAC-SHA256 signed (header
-`resend-signature`, hex of `HMAC(secret, raw-body)`). All three FAIL CLOSED:
-a missing secret or bad/missing signature → **401**, never processed.
+Resend delivers **all** inbound email for the domain to **one** webhook
+endpoint, signed with **Svix** (headers `svix-id` / `svix-timestamp` /
+`svix-signature`, secret `whsec_…`). The earlier hex `resend-signature`
+HMAC was wrong and rejected every webhook 401 — now fixed.
 
-| Endpoint | Subdomain (MX → Resend) | Secret env | Purpose |
-|----------|-------------------------|------------|---------|
-| `POST /api/inbound`        | `inbox@degeldheld.com`   | `RESEND_WEBHOOK_SECRET`        | user forwards a bill → OCR → new Bill + analysis reply |
-| `POST /api/inbound/proof`  | `bewijs@degeldheld.com`  | `RESEND_PROOF_WEBHOOK_SECRET`  | user forwards proof of new price → matches negotiation → records OutcomeProof (the fee-trigger) |
-| `POST /api/inbound/router` | `auto@degeldheld.com`    | `RESEND_INBOUND_SECRET`        | provider reply → auto-pingpong counter draft (never auto-sent) |
+**One endpoint, one secret:**
+- Canonical: `POST https://www.degeldheld.com/api/inbound`
+- Secret: `RESEND_WEBHOOK_SECRET` (the `whsec_…` from Resend) — fail-closed,
+  missing/invalid signature → **401**.
+- `/api/inbound/proof` + `/api/inbound/router` still exist but just delegate
+  to the canonical handler (legacy-URL safety).
+- The old `RESEND_PROOF_WEBHOOK_SECRET` + `RESEND_INBOUND_SECRET` are
+  **retired** — remove them from Vercel.
 
-Matching priority: `[PROOF-<id>]` / `[NEGOTIATION-<id>]` subject token →
-`In-Reply-To`/`References` thread-id (UUID@degeldheld.com) → from-address
-fallback. Unmatched / spam → **200 no-op** (so Resend doesn't retry; only
-signature failures 401, only Resend infra errors should retry).
+**Routing** (lib/inbound-handler.ts), by subject-token / thread / recipient:
+- `[PROOF-<id>]` or `bewijs@` → proof verification (sets
+  `Negotiation.proofVerifiedAt` = the fee-trigger)
+- `[NEGOTIATION-<id>]` or `In-Reply-To` thread or `auto@` → auto-pingpong
+  counter-draft (never auto-sent; gated behind AUTO_PINGPONG)
+- `inbox@` (or any mail with attachments) → bill OCR + analysis reply
+- anything else → **200 no-op** (never 500 → no Resend retry storm)
 
-The proof path is the fee-trigger: it sets `Negotiation.proofVerifiedAt`,
-which is what makes `actualSavingsCents` count toward /proof + invoicing.
-It does **not** work until the MX records below are live.
+**Body + attachments:** the webhook is metadata-only. The handler fetches
+the body/headers via `GET /emails/receiving/{id}` and attachment bytes via
+the per-attachment `download_url`, authenticated with `RESEND_API_KEY`
+(10 MB cap). So `RESEND_API_KEY` must be set for inbound to work at all.
 
 ### Required DNS for inbound (Cloudflare → degeldheld.com)
-Resend Inbound gives you the MX target when you add each inbound address;
-add an MX record per subdomain (priority 10) pointing at Resend's inbound
-host (e.g. `inbound-smtp.<region>.resend.com` — use the literal value Resend
-shows):
-
-| Host | Type | Value (Resend-provided) | Prio |
-|------|------|-------------------------|------|
-| `auto.degeldheld.com`   | MX | `<resend inbound host>` | 10 |
-| `bewijs.degeldheld.com` | MX | `<resend inbound host>` | 10 |
-
-Then in Resend → Inbound: point each address at its webhook URL above and
-copy each signing secret into the matching Vercel env var.
+Resend Inbound gives you the MX target when you enable inbound for the
+domain; add the MX record(s) it shows (priority 10) pointing at Resend's
+inbound host. Whether you use sub-addresses (`inbox@`, `bewijs@`, `auto@`)
+or the apex, all mail lands on the single endpoint above — routing is by
+recipient local-part + subject, done in code.
 
 ## v8 incident response
 
