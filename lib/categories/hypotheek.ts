@@ -8,11 +8,10 @@
  *  - 30 jaar vast: 4,30%
  *  - Variabel:     4,90%
  *
- * Oversluit-kosten (gemiddeld):
- *  - Boeterente   : indien rentevaste-periode loopt
- *  - Notaris+advies: ~€3000
- *  - NHG (optioneel): €260 + 0,4%
+ * v18: rates + oversluitkosten live in lib/market-prices.ts.
  */
+
+import { MORTGAGE_RATES, OVERSLUITKOSTEN_CENTS as _OVERSLUITKOSTEN_CENTS } from "@/lib/market-prices";
 
 export type MortgageBill = {
   restschuldCents: number;
@@ -22,14 +21,10 @@ export type MortgageBill = {
   maandlastCents?: number | null;
 };
 
-export const MARKET_RATES: Record<number, number> = {
-  10: 3.80,
-  15: 3.95,
-  20: 4.10,
-  30: 4.30,
-};
+/** @deprecated import from lib/market-prices.ts — re-exported for compat. */
+export const MARKET_RATES: Record<number, number> = MORTGAGE_RATES;
 
-export const OVERSLUITKOSTEN_CENTS = 300_000; // €3.000 default
+export const OVERSLUITKOSTEN_CENTS = _OVERSLUITKOSTEN_CENTS;
 
 export type MortgageComparison = {
   yourRatePct: number;

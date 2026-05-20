@@ -375,6 +375,26 @@ zeker weten dat PITR werkt vóór een echte uitval.
   pro (€19/mnd) when either crosses 70% — gate in
   `GO_LIVE_CHECKLIST.md`.
 
+## Markt-prijzen verversen (v18)
+
+Alle markt-medians leven in **één** bestand: `lib/market-prices.ts`,
+met `PRICES_AS_OF` als datumstempel. De category-modules importeren
+hieruit — één edit = overal correct.
+
+Maandelijks (cron `price-staleness` mailt je bij >90 dagen):
+1. `npx tsx scripts/update_prices.ts --check` → print leeftijd.
+2. Werk de getallen + `PRICES_AS_OF` bij in `lib/market-prices.ts`:
+   - **ENERGIE** (`ENERGY_MEDIANS`): ACM tariefoverzicht — kWh
+     vast/variabel, m³ gas vast/variabel, vastrecht.
+   - **HYPOTHEEK** (`MORTGAGE_RATES`): hypotheekrente-overzicht
+     (Van Bruggen / Hypotheker) — 10/15/20/30 jaar vast.
+   - **VERZEKERING** (`INSURANCE_PREMIUMS`): Independer/Pricewise
+     auto-premies — WA / WA+ / CASCO low/median/high.
+   - **WATER** (`WATER_MEDIANS`): drinkwaterbedrijven gemiddeld €/m³.
+3. `npm test -- --run tests/market-prices.test.ts` → groen.
+4. Commit + push. De analyse-pagina toont automatisch de nieuwe
+   "voor het laatst bijgewerkt op {datum}"-voetnoot.
+
 ## Performance budgets
 
 - TTFB: <600ms (Vercel EU edge)

@@ -1,6 +1,9 @@
 /**
- * lib/categories/verzekering.ts — autoverzekering-vergelijking (mei 2026).
+ * lib/categories/verzekering.ts — autoverzekering-vergelijking.
+ * v18: premie-ranges live in lib/market-prices.ts (single dated source).
  */
+
+import { INSURANCE_PREMIUMS } from "@/lib/market-prices";
 
 export type InsuranceCoverageType = "WA" | "WA+" | "CASCO" | "UNKNOWN";
 
@@ -18,12 +21,8 @@ export type InsuranceAlternative = {
   notes: string;
 };
 
-const MARKET_PREMIUM_BY_TYPE: Record<InsuranceCoverageType, { low: number; median: number; high: number }> = {
-  WA:    { low: 950,  median: 1450, high: 2200 },
-  "WA+": { low: 1700, median: 2350, high: 3100 },
-  CASCO: { low: 3200, median: 4250, high: 5800 },
-  UNKNOWN: { low: 1450, median: 2350, high: 4250 },
-};
+const MARKET_PREMIUM_BY_TYPE: Record<InsuranceCoverageType, { low: number; median: number; high: number }> =
+  INSURANCE_PREMIUMS;
 
 const MARKET_ALTERNATIVES: Record<InsuranceCoverageType, Array<{ name: string; cents: number; notes: string }>> = {
   WA: [

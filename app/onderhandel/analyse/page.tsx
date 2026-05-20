@@ -8,6 +8,7 @@ import type { Country } from "@/lib/providers";
 import { primaryFromLegacy } from "@/lib/categories";
 import { infoFor } from "@/lib/category-info";
 import CategoryInfoSection from "@/components/CategoryInfoSection";
+import { pricesAreStale, pricesAsOfLabel } from "@/lib/market-prices";
 import { requiresPayment } from "@/lib/payments";
 import { compareEnergy, type EnergyContractType } from "@/lib/categories/energie";
 import { compareInsurance, type InsuranceCoverageType } from "@/lib/categories/verzekering";
@@ -357,6 +358,12 @@ export default async function AnalysePage({
           </Link>
         </div>
       )}
+
+      <p data-testid="prices-asof" className="mt-8 text-xs text-slate-400">
+        {pricesAreStale()
+          ? `Let op: markt-prijzen zijn voor het laatst bijgewerkt op ${pricesAsOfLabel()} — mogelijk niet meer actueel.`
+          : `Markt-prijzen voor het laatst bijgewerkt op ${pricesAsOfLabel()}.`}
+      </p>
     </main>
   );
 }

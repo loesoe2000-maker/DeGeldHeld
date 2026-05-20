@@ -15,7 +15,8 @@ export type CronJobName =
   | "follow-up"
   | "recheck-savings"
   | "fraud-check"
-  | "cleanup-anonymous";
+  | "cleanup-anonymous"
+  | "price-staleness";
 
 function todayUtc(): string {
   return new Date().toISOString().slice(0, 10);

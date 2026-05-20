@@ -8,9 +8,10 @@
  *  - m³ gas (vast):        €1,32
  *  - m³ gas (variabel):    €1,48
  *
- * Source: ACM tariefoverzicht mei 2026 (placeholder — vervang door
- * scripts/update_prices.ts feed wanneer beschikbaar).
+ * v18: medians live in lib/market-prices.ts (single dated source).
  */
+
+import { ENERGY_MEDIANS as _ENERGY_MEDIANS } from "@/lib/market-prices";
 
 export type EnergyContractType = "vast" | "variabel" | "dynamisch" | "unknown";
 
@@ -23,15 +24,8 @@ export type EnergyBill = {
   contractType?: EnergyContractType;
 };
 
-export const ENERGY_MEDIANS = {
-  kwhVastCents: 28,
-  kwhVariabelCents: 31,
-  vastrechtCents: 600,
-  m3VastCents: 132,
-  m3VariabelCents: 148,
-  defaultJaarverbruikKwh: 2800,
-  defaultJaarverbruikM3: 1100,
-};
+/** @deprecated import from lib/market-prices.ts — re-exported for compat. */
+export const ENERGY_MEDIANS = _ENERGY_MEDIANS;
 
 export type EnergyComparison = {
   marketKwhCents: number;

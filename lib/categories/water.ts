@@ -12,7 +12,11 @@
  *   - drinkwater all-in:  ~€1,00–1,40 / m³ (incl. belasting op
  *     leidingwater + vastrecht versmeerd)
  *   - gemiddeld verbruik: ~45 m³ / persoon / jaar
+ *
+ * v18: medians live in lib/market-prices.ts (single dated source).
  */
+
+import { WATER_MEDIANS as _WATER_MEDIANS } from "@/lib/market-prices";
 
 export type WaterBill = {
   m3PriceCents?: number | null;       // detected €/m³ in cents
@@ -21,14 +25,8 @@ export type WaterBill = {
   householdSize?: number | null;      // aantal personen
 };
 
-export const WATER_MEDIANS = {
-  /** All-in mediaan €/m³ incl. belasting leidingwater (NL 2026). */
-  m3Cents: 140,
-  /** Gemiddeld verbruik per persoon per jaar in m³. */
-  avgPerPersonM3: 45,
-  /** Default huishoudgrootte als niet gedetecteerd. */
-  defaultHousehold: 2,
-};
+/** @deprecated import from lib/market-prices.ts — re-exported for compat. */
+export const WATER_MEDIANS = _WATER_MEDIANS;
 
 export type WaterComparison = {
   /** Markt-mediaan €/m³ in cents. */
