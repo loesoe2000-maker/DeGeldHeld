@@ -9,6 +9,7 @@ import { primaryFromLegacy } from "@/lib/categories";
 import { infoFor } from "@/lib/category-info";
 import CategoryInfoSection from "@/components/CategoryInfoSection";
 import { pricesAreStale, pricesAsOfLabel } from "@/lib/market-prices";
+import { hasMarketData, countryLabel } from "@/lib/market-coverage";
 import { requiresPayment } from "@/lib/payments";
 import { compareEnergy, type EnergyContractType } from "@/lib/categories/energie";
 import { compareInsurance, type InsuranceCoverageType } from "@/lib/categories/verzekering";
@@ -124,12 +125,17 @@ export default async function AnalysePage({
   // posten). bill.amountCents is al door upload-route op monthly gezet als die
   // beschikbaar is, maar oude records kunnen alleen totalCents/amountCents hebben.
   const comparisonAmount = bill.monthlyCents ?? bill.amountCents;
+  const billCountry = (bill.country as Country | null) ?? "NL";
   const comparison = buildComparison({
     provider: bill.provider,
     category: bill.category,
     amountCents: comparisonAmount,
-    country: (bill.country as Country | null) ?? "NL",
+    country: billCountry,
   });
+  // v18 honesty gate: for categories whose market data is NL-only,
+  // a non-NL invoice can't get an exact comparison. Show provider +
+  // amount, but replace the savings maths with an honest banner.
+  const marketDataCovered = hasMarketData(bill.category, billCountry);
 
   // Toon blauwe info-balk als factuur eenmalige posten bevat (>5% verschil
   // tussen total en monthly).
@@ -199,16 +205,40 @@ export default async function AnalysePage({
           </ul>
         </div>
       )}
-      <div className="mt-8">
-        <Comparison result={comparison} subType={bill.subType} />
-      </div>
+      {!marketDataCovered && (
+        <div
+          data-testid="country-coverage-banner"
+          className="mt-8 rounded-xl border border-amber-300 bg-amber-50 p-5 text-sm text-amber-900"
+        >
+          <h2 className="text-base font-semibold">
+            {countryLabel(billCountry)} markt nog niet volledig ondersteund
+          </h2>
+          <p className="mt-1">
+            We tonen je provider en bedrag, maar we hebben de{" "}
+            {countryLabel(billCountry)} markt voor deze categorie nog niet
+            volledig gevalideerd. Dit is een <strong>indicatie</strong>, geen
+            exacte vergelijking. Nederlandse facturen krijgen het
+            nauwkeurigste advies.
+          </p>
+          <p className="mt-2">
+            <strong>{bill.provider}</strong> ·{" "}
+            €{(comparisonAmount / 100).toFixed(2).replace(".", ",")}/maand
+          </p>
+        </div>
+      )}
+
+      {marketDataCovered && (
+        <div className="mt-8">
+          <Comparison result={comparison} subType={bill.subType} />
+        </div>
+      )}
 
       <CategoryInfoSection
         primary={primaryFromLegacy(bill.category)}
         info={infoFor(primaryFromLegacy(bill.category))}
       />
 
-      {bill.category === "WATER" && (() => {
+      {marketDataCovered && bill.category === "WATER" && (() => {
         // v17: water is a regional monopoly — savings come from usage
         // reduction, not switching. The m³-rate comes from OCR when
         // available (energyM3RateCents doubles as the water m³ field).
@@ -236,7 +266,7 @@ export default async function AnalysePage({
         );
       })()}
 
-      {bill.category === "ENERGIE" && (() => {
+      {marketDataCovered && bill.category === "ENERGIE" && (() => {
         // v17: feed the REAL OCR-extracted kWh/m³ rates + contract type.
         const detected =
           bill.energyKwhRateCents != null || bill.energyM3RateCents != null;
@@ -261,7 +291,7 @@ export default async function AnalysePage({
         );
       })()}
 
-      {bill.category === "VERZEKERING" && (() => {
+      {marketDataCovered && bill.category === "VERZEKERING" && (() => {
         // v17: use the REAL coverage type + deductible from OCR.
         const coverage = ((): InsuranceCoverageType => {
           const c = (bill.insuranceCoverage ?? "").toUpperCase();
@@ -297,7 +327,7 @@ export default async function AnalysePage({
         );
       })()}
 
-      {bill.category === "HYPOTHEEK" && (() => {
+      {marketDataCovered && bill.category === "HYPOTHEEK" && (() => {
         // v17: use REAL OCR rente + rentevaste-periode. Restschuld is
         // rarely on a monthly invoice → estimate conservatively from
         // the monthly payment and LABEL it as an estimate.
