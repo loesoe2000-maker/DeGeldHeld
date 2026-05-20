@@ -11,12 +11,16 @@
 import { parseInvoiceDate, type OcrResult } from "@/lib/ocr";
 import { currencyForCountry } from "@/lib/format";
 import { inferSubType } from "@/lib/categories";
+import { contractEndFromOcr } from "@/lib/contract-end";
 
 export function billDataFromOcr(ocr: OcrResult) {
   const subType =
     ocr.subType ??
     (ocr.category ? inferSubType(ocr.category, ocr.provider ?? "") : null) ??
     null;
+  const invoiceDate = parseInvoiceDate(ocr.period);
+  // v21 contract-end radar: detected end-date, else estimate (invoice+12mo).
+  const contractEnd = contractEndFromOcr({ rawText: ocr.rawText, invoiceDate });
   return {
     provider: ocr.provider ?? "Onbekend",
     category: ocr.category ?? "OVERIG",
@@ -26,7 +30,8 @@ export function billDataFromOcr(ocr: OcrResult) {
     totalCents: ocr.totalAmountCents,
     plan: ocr.plan,
     period: ocr.period,
-    invoiceDate: parseInvoiceDate(ocr.period),
+    invoiceDate,
+    contractEndDate: contractEnd.date,
     customerNumber: ocr.customerNumber,
     country: ocr.country ?? undefined,
     currency: currencyForCountry(ocr.country),
