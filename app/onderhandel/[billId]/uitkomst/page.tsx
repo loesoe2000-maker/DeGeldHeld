@@ -47,12 +47,18 @@ export default async function UitkomstPage({
 
   const monthlyCents = bill.monthlyCents ?? bill.amountCents;
 
-  if (bill.negotiation.closedAt) {
+  // Terminal once it's closed OR has reached a verified-savings / fee state.
+  const state = bill.negotiation.state;
+  const isTerminal =
+    bill.negotiation.closedAt != null ||
+    ["FEE_PAID", "BILLED_PENDING_PAYMENT", "SUCCESS", "BILLED"].includes(state);
+
+  if (isTerminal) {
     const yearly = bill.negotiation.actualSavingsCents ?? 0;
     const isSuccess = yearly > 0;
     const feeCents = bill.negotiation.feeAmountCents ?? 0;
-    const pendingFee =
-      bill.negotiation.state === "BILLED_PENDING_PAYMENT" && feeCents > 0;
+    const feePaid = state === "FEE_PAID";
+    const pendingFee = state === "BILLED_PENDING_PAYMENT" && feeCents > 0;
     let referralCode: string | undefined;
     if (isSuccess && session?.user) {
       try {
@@ -70,6 +76,21 @@ export default async function UitkomstPage({
             <> — €{(bill.negotiation.actualSavingsCents / 100).toFixed(0)}/jaar bespaard.</>
           )}
         </p>
+        {feePaid && (
+          <section
+            data-testid="fee-paid"
+            className="mt-8 rounded-xl border border-brand-200 bg-brand-50 p-5"
+          >
+            <h2 className="text-lg font-semibold text-brand-900">
+              Fee van €{(feeCents / 100).toFixed(2).replace(".", ",")} automatisch voldaan — bedankt!
+            </h2>
+            <p className="mt-1 text-sm text-brand-900">
+              We hebben de no-cure-no-pay fee (20% van de geverifieerde
+              besparing) automatisch van je gekoppelde kaart afgeschreven. Er is
+              niets meer wat je hoeft te doen.
+            </p>
+          </section>
+        )}
         {pendingFee && (
           <section
             data-testid="fee-cta"

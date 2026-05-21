@@ -56,17 +56,17 @@ test.describe("v16 journey-8 — outcome + proof + fee", () => {
     }
   });
 
-  test("feeForVerifiedSavings v13 bounds: 20% rate, €50 cap, €25 min", () => {
+  test("feeForVerifiedSavings v19 bounds: 20% rate, €500 cap, €25 min", () => {
     expect(NO_CURE_NO_PAY_FEE_PCT).toBe(0.20);
-    expect(NO_CURE_NO_PAY_FEE_CAP_CENTS).toBe(5000);
+    expect(NO_CURE_NO_PAY_FEE_CAP_CENTS).toBe(50000); // v19: €50 → €500
     expect(NO_CURE_NO_PAY_FEE_FLOOR_CENTS).toBe(200);
     expect(NO_CURE_NO_PAY_MIN_SAVINGS_CENTS).toBe(2500);
   });
 
-  test("feeForVerifiedSavings: sub-€25 → 0, €100 → €20, €300 → cap €50", () => {
+  test("feeForVerifiedSavings: sub-€25 → 0, €100 → €20, €3000 → cap €500", () => {
     expect(feeForVerifiedSavings(2400)).toBe(0); // €24/jaar → no fee
     expect(feeForVerifiedSavings(10000)).toBe(2000); // €100/jaar → €20
-    expect(feeForVerifiedSavings(30000)).toBe(5000); // €300/jaar → cap €50
+    expect(feeForVerifiedSavings(300000)).toBe(50000); // €3000/jaar → cap €500
   });
 
   test("POST /api/inbound/proof without HMAC → 401", async ({ request }) => {

@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import AccountControls, { DeleteForm } from "@/components/AccountControls";
+import FeeCardSettings from "@/components/FeeCardSettings";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -21,6 +22,7 @@ export default async function AccountPage() {
       notificationsEnabled: true,
       ocrTrainingOptIn: true,
       marketingOptOut: true,
+      feePaymentMethodId: true,
       createdAt: true,
     },
   });
@@ -58,6 +60,8 @@ export default async function AccountPage() {
         initialOcrTrainingOptIn={user.ocrTrainingOptIn}
         initialMarketingOptOut={user.marketingOptOut}
       />
+
+      <FeeCardSettings hasCard={!!user.feePaymentMethodId} />
 
       <section
         data-testid="auto-pingpong-toggle"

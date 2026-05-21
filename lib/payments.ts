@@ -419,6 +419,19 @@ export async function chargeFeeOffSession(opts: {
   }
 }
 
+/**
+ * v19 — detach the saved fee card at Stripe (best-effort). The DB nulling
+ * (mandate withdrawal) is done by the caller regardless of the Stripe result.
+ */
+export async function detachFeePaymentMethod(paymentMethodId: string): Promise<void> {
+  if (!apiKey || apiKey === "sk_test_dummy") return;
+  try {
+    await client().paymentMethods.detach(paymentMethodId);
+  } catch {
+    /* best-effort — the row is unlinked regardless */
+  }
+}
+
 // ---------- DEEL 10 paywall ----------
 
 /**

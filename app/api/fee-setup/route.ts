@@ -9,7 +9,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { createFeeSetupSession } from "@/lib/payments";
+import { createFeeSetupSession, detachFeePaymentMethod } from "@/lib/payments";
 import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
@@ -59,4 +59,29 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Could not create setup session" }, { status: 502 });
   }
   return NextResponse.json({ ok: true, url: setup.url, test: setup.test });
+}
+
+/**
+ * DELETE /api/fee-setup — withdraw the no-cure-no-pay mandate: detach the
+ * card at Stripe + clear the saved payment method + mandate (consumer right
+ * to revoke). Existing already-charged fees are unaffected.
+ */
+export async function DELETE() {
+  const session = await auth();
+  if (!session?.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const userId = (session.user as { id: string }).id;
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { feePaymentMethodId: true },
+  });
+  if (user?.feePaymentMethodId) {
+    await detachFeePaymentMethod(user.feePaymentMethodId);
+  }
+  await prisma.user.update({
+    where: { id: userId },
+    data: { feePaymentMethodId: null, feeMandateAcceptedAt: null },
+  });
+  return NextResponse.json({ ok: true });
 }
