@@ -167,10 +167,15 @@ export async function createFeeSetupSession(input: {
   appUrl: string;
   returnTo: string;
 }): Promise<FeeSetupSession> {
+  // returnTo may already carry a query string (e.g. /onderhandel/email?bill=…).
+  // Append our flag with the correct separator so we never emit a malformed
+  // double-"?" URL — that corrupted the `bill` param on return and bounced the
+  // user back to /onderhandel (upload), creating an endless re-analyse loop.
+  const sep = input.returnTo.includes("?") ? "&" : "?";
   if (!apiKey || apiKey === "sk_test_dummy") {
     return {
       id: `cs_setup_test_${input.userId}`,
-      url: `${input.appUrl}${input.returnTo}?card=ok`,
+      url: `${input.appUrl}${input.returnTo}${sep}card=ok`,
       test: true,
     };
   }
@@ -188,8 +193,8 @@ export async function createFeeSetupSession(input: {
       ? { customer: user.stripeCustomerId }
       : { customer_email: input.userEmail }),
     metadata: { userId: input.userId, purpose: "fee-mandate" },
-    success_url: `${input.appUrl}${input.returnTo}?card=ok`,
-    cancel_url: `${input.appUrl}${input.returnTo}?card=skip`,
+    success_url: `${input.appUrl}${input.returnTo}${sep}card=ok`,
+    cancel_url: `${input.appUrl}${input.returnTo}${sep}card=skip`,
   });
   return { id: session.id, url: session.url, test: false };
 }

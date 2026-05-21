@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   computeSuccessFeeCents,
   createCheckoutSession,
+  createFeeSetupSession,
   shouldMarkPaid,
   shouldMarkRefunded,
   shouldMarkFailed,
@@ -92,6 +93,32 @@ describe("payments/createCheckoutSession (test mode)", () => {
       appUrl: "https://example.com",
     });
     expect(r.amountCents).toBe(500);
+  });
+});
+
+describe("payments/createFeeSetupSession (test mode) — return-URL separator", () => {
+  it("uses '&' when returnTo already has a query string (no double-?)", async () => {
+    const s = await createFeeSetupSession({
+      userId: "u1",
+      userEmail: "u@nl",
+      appUrl: "https://example.com",
+      returnTo: "/onderhandel/email?bill=abc123",
+    });
+    // Regression guard: the old code produced "?bill=abc123?card=ok", which the
+    // browser parsed as bill="abc123?card=ok" → bill-not-found → redirect to
+    // /onderhandel (upload). That was the endless re-analyse loop.
+    expect(s.url).toBe("https://example.com/onderhandel/email?bill=abc123&card=ok");
+    expect(s.url).not.toContain("?bill=abc123?card=ok");
+  });
+
+  it("uses '?' when returnTo has no query string", async () => {
+    const s = await createFeeSetupSession({
+      userId: "u1",
+      userEmail: "u@nl",
+      appUrl: "https://example.com",
+      returnTo: "/account",
+    });
+    expect(s.url).toBe("https://example.com/account?card=ok");
   });
 });
 
