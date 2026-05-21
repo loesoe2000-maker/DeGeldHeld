@@ -6,7 +6,7 @@ import { buildComparison } from "@/lib/comparison";
 import { isSupportedCategory } from "@/lib/market-coverage";
 import { negotiatorCache, cacheKey } from "@/lib/llm_cache";
 import EmailDisplay from "@/components/EmailDisplay";
-import FeeMandatePrompt from "@/components/FeeMandatePrompt";
+import EmailPreviewLocked from "@/components/EmailPreviewLocked";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Onderhandel-email — DeGeldHeld" };
@@ -93,28 +93,44 @@ export default async function EmailPage({
     select: { id: true },
   });
 
+  // v22.1: gate the full copyable email behind the no-cure-no-pay card
+  // mandate. When no card is linked we send ONLY a short teaser to the
+  // browser (the full body never reaches the client/HTML source), so a
+  // visitor can't grab the email for free by scrolling past the prompt.
+  const teaser = result.body.slice(0, 220).trimEnd() + "…";
+
   return (
     <main className="mx-auto max-w-3xl px-6 py-12">
       <h1 className="text-3xl font-bold text-slate-900">Onderhandel-email</h1>
       <p className="mt-2 text-slate-600">
-        Kopieer de tekst hieronder en stuur via je eigen e-mailadres naar je provider.
+        {hasFeeCard
+          ? "Kopieer de tekst hieronder en stuur via je eigen e-mailadres naar je provider."
+          : "Je mail staat klaar. Koppel je kaart (€0 nu) om 'm volledig te zien en te kopiëren."}
       </p>
-      {!hasFeeCard && (
-        <FeeMandatePrompt returnTo={`/onderhandel/email?bill=${bill.id}`} />
-      )}
       <div className="mt-8">
-        <EmailDisplay
-          subject={result.subject}
-          body={result.body}
-          reasoning={result.reasoning}
-          expectedSavingsCents={result.expectedSavingsCents}
-          confidence={result.confidence}
-          strategy={result.strategy}
-          tonality={result.tonality}
-          language={result.language}
-          billId={bill.id}
-          negotiationId={negotiation.id}
-        />
+        {hasFeeCard ? (
+          <EmailDisplay
+            subject={result.subject}
+            body={result.body}
+            reasoning={result.reasoning}
+            expectedSavingsCents={result.expectedSavingsCents}
+            confidence={result.confidence}
+            strategy={result.strategy}
+            tonality={result.tonality}
+            language={result.language}
+            billId={bill.id}
+            negotiationId={negotiation.id}
+          />
+        ) : (
+          <EmailPreviewLocked
+            subject={result.subject}
+            teaser={teaser}
+            expectedSavingsCents={result.expectedSavingsCents}
+            confidence={result.confidence}
+            strategy={result.strategy}
+            returnTo={`/onderhandel/email?bill=${bill.id}`}
+          />
+        )}
       </div>
     </main>
   );
