@@ -42,6 +42,14 @@ c. Instrumenteer de funnel (deze events):
    - `outcome_marked` {result}, `proof_submitted`
 d. Anonieme bezoekers tracken; bij login `posthog.identify(userId)` (geen
    e-mail). Respecteer de bestaande anonieme flow.
+d2. **VERPLICHTE masking (autocapture + heatmaps staan aan):** maskeer élk
+   element dat factuur-/analyse-data toont — provider, bedragen, klantnummer,
+   de mail-body/teaser, de besparing — met PostHog-masking (`.ph-no-capture`
+   class op die elementen, en/of `<input>`-waarden blijven sowieso gemaskeerd).
+   Zet posthog-js zo op dat autocapture + heatmaps **geen persoonlijke
+   financiële data** vastleggen. Liever te veel maskeren dan te weinig.
+   Test: render een analyse-pagina → bevestig dat de gevoelige elementen de
+   no-capture-markering hebben.
 e. **EIGENAAR-stappen** (zet in V24_REPORT.md):
    1. posthog.com → account (kies **EU-hosting**, eu.i.posthog.com — AVG)
    2. Project "DeGeldHeld" → Project Settings → kopieer **Project API Key**
