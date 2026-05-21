@@ -19,23 +19,42 @@ export default function VoorwaardenPage() {
           })}
         </p>
 
+        {/* CONCEPT — laat door een jurist controleren vóór productie. Dit is
+            geen juridisch advies. */}
         <section className="prose mt-10 max-w-none space-y-6">
           <h2 className="text-2xl font-semibold text-slate-900">1. Wat we doen</h2>
           <p>
-            DeGeldHeld is een consumentendienst die met behulp van AI namens
-            jou een onderhandelings-e-mail opstelt voor je provider (telecom,
-            energie, verzekering, abonnement). Wij <em>versturen</em> de
-            e-mail niet automatisch — je verstuurt zelf vanuit je eigen
-            mailbox. Wij geven advies, geen juridisch of financieel advies.
+            DeGeldHeld is een consumentendienst die je helpt je{" "}
+            <strong>bestaande contracten</strong> te onderhandelen en
+            vergelijken (telecom, energie, water, abonnementen). We stellen met
+            behulp van AI namens jou een onderhandel-e-mail op; <em>jij</em>
+            verstuurt die zelf vanuit je eigen mailbox. Dit is{" "}
+            <strong>geen financieel advies</strong> in de zin van de Wft.{" "}
+            <strong>Hypotheek en verzekering bieden we niet aan</strong> — dat
+            zijn financiële producten waarvoor een AFM-vergunning nodig is.
           </p>
 
-          <h2 className="text-2xl font-semibold text-slate-900">2. No-cure-no-pay fee</h2>
+          <h2 className="text-2xl font-semibold text-slate-900">2. No-cure-no-pay fee &amp; mandaat</h2>
           <p>
-            De eerste onderhandeling is gratis. Voor elke volgende
-            onderhandeling betaal je een vast bedrag van € 4,99 per dossier.
-            Mocht je later geen besparing realiseren, dan vergoeden we het
-            bedrag <strong>niet</strong> — de kosten zitten in de AI-analyse
-            en de gegenereerde e-mail, niet in een succesbelofte.
+            Onze vergoeding werkt op basis van <strong>no-cure-no-pay</strong>:
+            je betaalt alleen wanneer een besparing is <strong>bewezen</strong>.
+          </p>
+          <ul className="list-disc pl-6">
+            <li>De fee is <strong>20% van de bewezen besparing op jaarbasis</strong>.</li>
+            <li>We brengen pas iets in rekening boven een drempel van{" "}
+              <strong>€ 25</strong> bewezen jaarbesparing.</li>
+            <li>De fee is <strong>minimaal € 2</strong> en{" "}
+              <strong>maximaal € 500</strong> per onderhandeling.</li>
+            <li>Geen besparing = <strong>geen fee</strong>.</li>
+          </ul>
+          <p>
+            <strong>Betaalmandaat (off-session).</strong> Door akkoord te gaan
+            machtig je DeGeldHeld om, via onze betaaldienstverlener (Stripe), de
+            verschuldigde fee automatisch af te schrijven van je gekozen
+            betaalmethode zodra een besparing is bevestigd. Je ontvangt vooraf
+            een bevestiging met het bedrag. Je kunt dit mandaat op elk moment
+            intrekken via je account of door een mail te sturen; intrekking laat
+            reeds verschuldigde fees onverlet.
           </p>
 
           <h2 className="text-2xl font-semibold text-slate-900">3. Jouw verantwoordelijkheden</h2>
@@ -54,11 +73,15 @@ export default function VoorwaardenPage() {
             indirecte schade (gemiste besparing, bedrijfsschade, gevolgschade).
           </p>
 
-          <h2 className="text-2xl font-semibold text-slate-900">5. Geen financieel advies</h2>
+          <h2 className="text-2xl font-semibold text-slate-900">5. Geen financieel advies, geen besparingsgarantie</h2>
           <p>
-            DeGeldHeld geeft geen financieel of juridisch advies in de zin van
-            de Wft. Onze suggesties zijn algemeen en moeten door jou
-            beoordeeld worden voor jouw persoonlijke situatie.
+            DeGeldHeld geeft <strong>geen financieel of juridisch advies</strong>{" "}
+            in de zin van de Wft. We helpen je je bestaande contracten te
+            onderhandelen/vergelijken; onze suggesties zijn algemeen en je
+            beoordeelt zelf wat past bij jouw situatie. We{" "}
+            <strong>garanderen geen besparing</strong> — of je provider akkoord
+            gaat, ligt buiten onze macht. Hypotheek- en verzekeringsadvies
+            (Wft-producten) bieden we niet aan.
           </p>
 
           <h2 className="text-2xl font-semibold text-slate-900">6. Opzegging en account verwijderen</h2>

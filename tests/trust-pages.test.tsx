@@ -17,7 +17,8 @@ describe("trust pages render", () => {
   it("/voorwaarden renders algemene voorwaarden", () => {
     render(<VoorwaardenPage />);
     expect(screen.getByRole("heading", { level: 1, name: /Algemene voorwaarden/i })).toBeTruthy();
-    expect(screen.getByText(/no-cure-no-pay/i)).toBeTruthy();
+    // v22: "no-cure-no-pay" now appears in both the heading and the body.
+    expect(screen.getAllByText(/no-cure-no-pay/i).length).toBeGreaterThanOrEqual(1);
   });
 
   it("/over-ons renders the founder story", () => {

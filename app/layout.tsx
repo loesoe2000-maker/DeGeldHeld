@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { ToastProvider } from "@/components/Toast";
 import CookieBanner from "@/components/CookieBanner";
+import LegalFooter from "@/components/LegalFooter";
 import { Analytics } from "@vercel/analytics/react";
 
 const APP_URL = process.env.APP_URL ?? "https://degeldheld.com";
@@ -42,6 +43,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-screen bg-white text-slate-900 antialiased">
         <ToastProvider>
           {children}
+          <LegalFooter />
           <CookieBanner />
         </ToastProvider>
         <Analytics />

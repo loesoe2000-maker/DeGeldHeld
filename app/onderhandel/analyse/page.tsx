@@ -205,6 +205,10 @@ export default async function AnalysePage({
       <p className="mt-2 text-slate-600">
         Op basis van je {bill.provider}-rekening hebben we de markt gecheckt.
       </p>
+      <p data-testid="advice-disclaimer" className="mt-1 text-xs text-slate-400">
+        DeGeldHeld helpt je je huidige contract te onderhandelen — dit is geen
+        financieel advies.
+      </p>
       {showStaleBanner && (
         <div
           role="alert"
