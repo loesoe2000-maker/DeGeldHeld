@@ -24,31 +24,15 @@ test.describe("v17 analyse — real OCR fields wired", () => {
     expect(SRC).not.toMatch(/contractType:\s*"variabel"/);
   });
 
-  test("VERZEKERING block uses bill.insuranceCoverage + deductible", () => {
-    expect(SRC).toMatch(/bill\.insuranceCoverage/);
-    expect(SRC).toMatch(/deductibleCents:\s*bill\.insuranceDeductibleCents/);
-    // The old hardcoded type:"UNKNOWN" literal in the compare-call is gone.
-    expect(SRC).not.toMatch(/type:\s*"UNKNOWN"\s*as\s*InsuranceCoverageType/);
+  // v22: VERZEKERING + HYPOTHEEK are gated (AFM licence). The render
+  // blocks are removed and the page early-returns a "not supported" state.
+  test("v22: hypotheek + verzekering are gated, not rendered", () => {
+    expect(SRC).toMatch(/isSupportedCategory\(bill\.category\)/);
+    expect(SRC).not.toMatch(/data-testid="cat-verzekering"/);
+    expect(SRC).not.toMatch(/data-testid="cat-hypotheek"/);
   });
 
-  test("HYPOTHEEK block uses bill.mortgageInterestPct + mortgageTermYears", () => {
-    expect(SRC).toMatch(/bill\.mortgageInterestPct/);
-    expect(SRC).toMatch(/bill\.mortgageTermYears/);
-    // The old hardcoded rentePercentage: 4.8 + restschuldCents:
-    // 25_000_000 literals are gone.
-    expect(SRC).not.toMatch(/rentePercentage:\s*4\.8/);
-    expect(SRC).not.toMatch(/restschuldCents:\s*25_000_000/);
-  });
-
-  test("each block shows an estimate badge when the field is null", () => {
+  test("energie estimate badge still present", () => {
     expect(SRC).toMatch(/energie-estimate-badge/);
-    expect(SRC).toMatch(/verzekering-estimate-badge/);
-    expect(SRC).toMatch(/hypotheek-estimate-badge/);
-  });
-
-  test("restschuld estimate is clamped to a sane band (no silly tiny mortgage)", () => {
-    expect(SRC).toMatch(/estRestschuldCents/);
-    expect(SRC).toMatch(/5_000_000/); // €50k floor
-    expect(SRC).toMatch(/100_000_000/); // €1M ceiling
   });
 });
