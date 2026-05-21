@@ -1,13 +1,15 @@
 /**
  * Stripe billing — two models:
- *   1. Success-fee (15% of yearly savings) on negotiation outcome — legacy.
+ *   1. Success-fee (20% of yearly savings) on negotiation outcome — legacy.
  *   2. Per-bill flat fee paywall after the first free bill — DEEL 10.
  */
 
 import Stripe from "stripe";
 import { prisma } from "./db";
 
-const SUCCESS_FEE_PCT = 0.15;
+// v22: reconciled to the no-cure-no-pay 20% rate (was 0.15). Both fee paths
+// now charge the same percentage; see NO_CURE_NO_PAY_FEE_PCT below.
+const SUCCESS_FEE_PCT = 0.20;
 const MIN_BILL_CENTS = 500; // €5,00 minimum
 /** Flat per-bill fee charged after the first free bill (DEEL 10). */
 export const PAYWALL_FEE_CENTS = 499; // €4,99
@@ -130,7 +132,7 @@ export async function createCheckoutSession(input: CheckoutInput): Promise<Check
           unit_amount: amountCents,
           product_data: {
             name: "DeGeldHeld success-fee",
-            description: `15% van jaarlijkse besparing (€${(input.yearlySavingsCents / 100).toFixed(2)})`,
+            description: `20% van jaarlijkse besparing (€${(input.yearlySavingsCents / 100).toFixed(2)})`,
           },
         },
       },

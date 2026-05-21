@@ -50,10 +50,10 @@ describe("Stripe webhook event classification", () => {
 });
 
 describe("Stripe legacy success-fee maths (computeSuccessFeeCents)", () => {
-  it("returns 15% of yearly with €5 minimum", () => {
+  it("returns 20% of yearly with €5 minimum", () => {
     expect(computeSuccessFeeCents(0)).toBe(0); // no savings → no fee
-    expect(computeSuccessFeeCents(1000)).toBe(500); // 15% of €10 = €1.50 → bumped to min €5
-    expect(computeSuccessFeeCents(10_000)).toBe(1500); // 15% of €100 = €15
+    expect(computeSuccessFeeCents(1000)).toBe(500); // 20% of €10 = €2 → bumped to min €5
+    expect(computeSuccessFeeCents(10_000)).toBe(2000); // 20% of €100 = €20
   });
 });
 

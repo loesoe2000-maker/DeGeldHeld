@@ -98,7 +98,7 @@ export default async function PayPage({
             <span className="font-medium">{formatEurCents(savings)}</span>
           </div>
           <div className="flex items-center justify-between border-b border-brand-200 py-2">
-            <span className="text-sm text-slate-600">DeGeldHeld fee (15%)</span>
+            <span className="text-sm text-slate-600">DeGeldHeld fee (20%)</span>
             <span className="font-medium">−{formatEurCents(fee)}</span>
           </div>
           <div className="flex items-center justify-between pt-2">
@@ -135,7 +135,7 @@ export default async function PayPage({
             <dd className="font-bold text-brand-700">{formatEurCents(savings)}</dd>
           </div>
           <div className="flex items-center justify-between">
-            <dt className="text-slate-600">DeGeldHeld success-fee (15%)</dt>
+            <dt className="text-slate-600">DeGeldHeld success-fee (20%)</dt>
             <dd className="font-medium">−{formatEurCents(fee)}</dd>
           </div>
           <div className="flex items-center justify-between border-t border-slate-200 pt-3 text-base">

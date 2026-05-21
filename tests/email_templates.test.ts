@@ -31,8 +31,8 @@ describe("email_templates/welcomeBrandedHtml", () => {
     expect(welcomeBrandedHtml("a@b.nl")).toMatch(/^<!doctype html>/i);
   });
 
-  it("includes 15% messaging", () => {
-    expect(welcomeBrandedHtml("a@b.nl")).toMatch(/15\s*%/);
+  it("includes 20% fee messaging", () => {
+    expect(welcomeBrandedHtml("a@b.nl")).toMatch(/20\s*%/);
   });
 
   it("includes copyright footer with current year", () => {

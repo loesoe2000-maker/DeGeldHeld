@@ -40,7 +40,7 @@ export default function Hero() {
         <p className="mx-auto mt-6 max-w-2xl text-lg text-slate-600 sm:text-xl">
           Upload je telefoon-, internet- of energierekening. DeGeldHeld
           onderhandelt automatisch met je provider en je betaalt alleen
-          <strong> 15% van wat we besparen</strong>.
+          <strong> 20% van wat we besparen</strong>.
         </p>
 
         <form onSubmit={submit} className="mx-auto mt-10 flex max-w-md flex-col gap-2 sm:flex-row">

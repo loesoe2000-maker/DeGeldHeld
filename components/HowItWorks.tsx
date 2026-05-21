@@ -18,7 +18,7 @@ export default function HowItWorks() {
     {
       nr: "4",
       titel: "Je krijgt het resultaat",
-      tekst: "Bespaar je? Top — je betaalt 15% van de jaarbesparing. Bespaar je niets? Geen kosten.",
+      tekst: "Bespaar je? Top — je betaalt 20% van de jaarbesparing. Bespaar je niets? Geen kosten.",
     },
   ];
   return (

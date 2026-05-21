@@ -17,16 +17,16 @@ describe("payments/computeSuccessFeeCents", () => {
     expect(computeSuccessFeeCents(-100)).toBe(0);
   });
 
-  it("15% of yearly savings", () => {
-    expect(computeSuccessFeeCents(20000)).toBe(3000); // 20000 * 0.15
+  it("20% of yearly savings", () => {
+    expect(computeSuccessFeeCents(20000)).toBe(4000); // 20000 * 0.20
   });
 
   it("rounds to nearest cent", () => {
-    expect(computeSuccessFeeCents(33333)).toBe(5000); // 4999.95 → 5000
+    expect(computeSuccessFeeCents(33333)).toBe(6667); // 6666.6 → 6667
   });
 
   it("enforces €5 minimum", () => {
-    expect(computeSuccessFeeCents(1000)).toBe(500); // 15% = 150, raised to 500
+    expect(computeSuccessFeeCents(1000)).toBe(500); // 20% = 200, raised to 500
   });
 
   it("respects minimum at 0 too — but returns 0 when nothing saved", () => {
@@ -34,7 +34,7 @@ describe("payments/computeSuccessFeeCents", () => {
   });
 
   it("scales for large savings", () => {
-    expect(computeSuccessFeeCents(100000)).toBe(15000);
+    expect(computeSuccessFeeCents(100000)).toBe(20000); // 100000 * 0.20
   });
 });
 
@@ -70,7 +70,7 @@ describe("payments/createCheckoutSession (test mode)", () => {
     });
     expect(r.test).toBe(true);
     expect(r.id).toContain("n1");
-    expect(r.amountCents).toBe(3000);
+    expect(r.amountCents).toBe(4000); // 20% of €200
     expect(r.url).toContain("/pay/n1");
   });
 
@@ -81,7 +81,7 @@ describe("payments/createCheckoutSession (test mode)", () => {
       yearlySavingsCents: 50000,
       appUrl: "https://example.com",
     });
-    expect(r.amountCents).toBe(7500);
+    expect(r.amountCents).toBe(10000); // 20% of €500
   });
 
   it("respects min fee for tiny savings", async () => {

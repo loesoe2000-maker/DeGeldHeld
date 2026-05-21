@@ -68,7 +68,7 @@ type Dict = Record<DictKey, string>;
 
 const NL: Dict = {
   hero_title: "Bespaar op je vaste lasten",
-  hero_subtitle: "Wij onderhandelen met je provider voor jou. Jij betaalt 15% van wat we besparen.",
+  hero_subtitle: "Wij onderhandelen met je provider voor jou. Jij betaalt 20% van wat we besparen.",
   hero_cta: "Upload je rekening",
   hero_secondary_cta: "Bekijk track record",
   fee_disclaimer: "Geen besparing = geen kosten",
@@ -111,7 +111,7 @@ const NL: Dict = {
 
 const EN: Dict = {
   hero_title: "Save on your monthly bills",
-  hero_subtitle: "We negotiate with your provider for you. You pay 15% of what we save.",
+  hero_subtitle: "We negotiate with your provider for you. You pay 20% of what we save.",
   hero_cta: "Upload your bill",
   hero_secondary_cta: "View track record",
   fee_disclaimer: "No savings = no fee",
@@ -154,7 +154,7 @@ const EN: Dict = {
 
 const DE: Dict = {
   hero_title: "Sparen Sie bei Ihren Fixkosten",
-  hero_subtitle: "Wir verhandeln mit Ihrem Anbieter für Sie. Sie zahlen 15% der Ersparnis.",
+  hero_subtitle: "Wir verhandeln mit Ihrem Anbieter für Sie. Sie zahlen 20% der Ersparnis.",
   hero_cta: "Rechnung hochladen",
   hero_secondary_cta: "Track Record ansehen",
   fee_disclaimer: "Keine Ersparnis = keine Gebühr",
@@ -197,7 +197,7 @@ const DE: Dict = {
 
 const FR: Dict = {
   hero_title: "Économisez sur vos charges fixes",
-  hero_subtitle: "Nous négocions avec votre fournisseur pour vous. Vous payez 15% de l'économie.",
+  hero_subtitle: "Nous négocions avec votre fournisseur pour vous. Vous payez 20% de l'économie.",
   hero_cta: "Téléchargez votre facture",
   hero_secondary_cta: "Voir le track record",
   fee_disclaimer: "Pas d'économie = pas de frais",

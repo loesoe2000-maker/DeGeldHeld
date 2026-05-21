@@ -14,7 +14,7 @@ export const metadata: Metadata = {
     template: "%s · DeGeldHeld",
   },
   description:
-    "Upload je rekening, wij onderhandelen voor je met je provider. Je betaalt alleen 15% van wat je bespaart.",
+    "Upload je rekening, wij onderhandelen voor je met je provider. Je betaalt alleen 20% van wat je bespaart.",
   keywords: ["onderhandelen", "besparen", "maandlasten", "energie", "internet", "Nederland"],
   authors: [{ name: "DeGeldHeld" }],
   openGraph: {
@@ -24,14 +24,14 @@ export const metadata: Metadata = {
     siteName: "DeGeldHeld",
     title: "DeGeldHeld — automatisch onderhandelen op je maandlasten",
     description:
-      "Upload je rekening, wij onderhandelen voor je met je provider. Je betaalt alleen 15% van wat je bespaart.",
+      "Upload je rekening, wij onderhandelen voor je met je provider. Je betaalt alleen 20% van wat je bespaart.",
     images: [{ url: "/api/og?title=DeGeldHeld", width: 1200, height: 630 }],
   },
   twitter: {
     card: "summary_large_image",
     title: "DeGeldHeld — automatisch onderhandelen op je maandlasten",
     description:
-      "Upload je rekening, wij onderhandelen voor je met je provider. Je betaalt alleen 15% van wat je bespaart.",
+      "Upload je rekening, wij onderhandelen voor je met je provider. Je betaalt alleen 20% van wat je bespaart.",
     images: ["/api/og?title=DeGeldHeld"],
   },
   robots: { index: true, follow: true },
