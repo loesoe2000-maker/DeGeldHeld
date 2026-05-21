@@ -193,7 +193,9 @@ export async function createFeeSetupSession(input: {
       ? { customer: user.stripeCustomerId }
       : { customer_email: input.userEmail }),
     metadata: { userId: input.userId, purpose: "fee-mandate" },
-    success_url: `${input.appUrl}${input.returnTo}${sep}card=ok`,
+    // session_id lets the return page reconcile the card directly with Stripe
+    // (webhook-independent unlock). Stripe substitutes {CHECKOUT_SESSION_ID}.
+    success_url: `${input.appUrl}${input.returnTo}${sep}card=ok&session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${input.appUrl}${input.returnTo}${sep}card=skip`,
   });
   return { id: session.id, url: session.url, test: false };
@@ -372,6 +374,43 @@ export async function persistFeeSetup(opts: {
     },
   });
   return { ok: true };
+}
+
+/**
+ * Webhook-independent reconciliation. On return from the setup-checkout the
+ * success_url carries the Checkout session id; verify it directly with Stripe
+ * and persist the card immediately, so the unlock never has to wait for the
+ * async webhook to land (or for it to be subscribed to checkout.session.completed
+ * at all). Owner-scoped (session.metadata.userId must match) + idempotent.
+ */
+export async function reconcileFeeSetupFromSession(
+  sessionId: string,
+  userId: string,
+): Promise<{ ok: boolean; reason?: string }> {
+  if (!apiKey || apiKey === "sk_test_dummy") {
+    return { ok: false, reason: "stripe not configured" };
+  }
+  if (!sessionId || !sessionId.startsWith("cs_")) {
+    return { ok: false, reason: "invalid session id" };
+  }
+  try {
+    const cs = await client().checkout.sessions.retrieve(sessionId);
+    if (cs.mode !== "setup") return { ok: false, reason: "not a setup session" };
+    // Anti-abuse: the session must belong to the authenticated user.
+    if ((cs.metadata?.userId ?? null) !== userId) {
+      return { ok: false, reason: "session does not belong to user" };
+    }
+    const setupIntentId =
+      typeof cs.setup_intent === "string" ? cs.setup_intent : cs.setup_intent?.id ?? null;
+    const customerId =
+      typeof cs.customer === "string" ? cs.customer : cs.customer?.id ?? null;
+    if (!setupIntentId) return { ok: false, reason: "no setup intent on session" };
+    const pm = await getSetupPaymentMethod(setupIntentId, customerId);
+    if (!pm) return { ok: false, reason: "no payment method" };
+    return await persistFeeSetup({ userId, customerId, paymentMethodId: pm });
+  } catch (e) {
+    return { ok: false, reason: (e as Error).message };
+  }
 }
 
 /**

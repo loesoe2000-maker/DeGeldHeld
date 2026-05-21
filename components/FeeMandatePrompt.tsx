@@ -72,8 +72,9 @@ export default function FeeMandatePrompt({ returnTo }: { returnTo: string }) {
         {busy ? "Even geduld…" : "Koppel kaart & start onderhandeling"}
       </button>
       <p className="mt-2 text-xs text-brand-700">
-        Liever niet nu? Je kunt gewoon doorgaan — we vragen de fee dan
-        handmatig achteraf, alleen bij bewezen besparing.
+        Zonder gekoppelde kaart blijft de volledige onderhandel-mail
+        vergrendeld. Je betaalt nog steeds <strong>€0</strong> nu — pas 20%
+        áls je écht bespaart, en je kunt je kaart altijd weer intrekken.
       </p>
     </section>
   );

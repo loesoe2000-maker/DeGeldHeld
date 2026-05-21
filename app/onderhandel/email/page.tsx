@@ -10,6 +10,7 @@ import { relayStatusLabel } from "@/lib/relay";
 import TrackEvent from "@/components/TrackEvent";
 import EmailDisplay from "@/components/EmailDisplay";
 import EmailPreviewLocked from "@/components/EmailPreviewLocked";
+import { reconcileFeeSetupFromSession } from "@/lib/payments";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Onderhandel-email — DeGeldHeld" };
@@ -17,7 +18,7 @@ export const metadata = { title: "Onderhandel-email — DeGeldHeld" };
 export default async function EmailPage({
   searchParams,
 }: {
-  searchParams: Promise<{ bill?: string; card?: string }>;
+  searchParams: Promise<{ bill?: string; card?: string; session_id?: string }>;
 }) {
   const session = await auth();
   if (!session?.user) redirect("/login");
@@ -29,6 +30,14 @@ export default async function EmailPage({
 
   const bill = await prisma.bill.findFirst({ where: { id: billId, userId } });
   if (!bill) redirect("/onderhandel");
+
+  // v25: returning from the card-link setup-checkout (card=ok&session_id=…).
+  // Reconcile the card directly with Stripe so the unlock is immediate and
+  // never has to wait for the async webhook (or for it to be subscribed).
+  // Owner-scoped + idempotent; a no-op in test-dummy mode.
+  if (params.card === "ok" && params.session_id) {
+    await reconcileFeeSetupFromSession(params.session_id, userId);
+  }
 
   // v19: has the user already linked a card for the no-cure-no-pay fee?
   const userRow = await prisma.user.findUnique({

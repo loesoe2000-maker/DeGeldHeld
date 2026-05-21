@@ -3,6 +3,7 @@ import {
   computeSuccessFeeCents,
   createCheckoutSession,
   createFeeSetupSession,
+  reconcileFeeSetupFromSession,
   shouldMarkPaid,
   shouldMarkRefunded,
   shouldMarkFailed,
@@ -119,6 +120,16 @@ describe("payments/createFeeSetupSession (test mode) — return-URL separator", 
       returnTo: "/account",
     });
     expect(s.url).toBe("https://example.com/account?card=ok");
+  });
+});
+
+describe("payments/reconcileFeeSetupFromSession (test mode)", () => {
+  it("no-ops safely without real Stripe (returns not-configured, never throws)", async () => {
+    // Guards the webhook-independent unlock path: it must degrade gracefully
+    // in dev/CI (sk_test_dummy) rather than blow up the email page render.
+    const r = await reconcileFeeSetupFromSession("cs_test_abc", "user_1");
+    expect(r.ok).toBe(false);
+    expect(r.reason).toMatch(/stripe not configured/);
   });
 });
 
