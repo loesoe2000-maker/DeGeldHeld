@@ -442,25 +442,25 @@ zeker weten dat PITR werkt vóór een echte uitval.
   pro (€19/mnd) when either crosses 70% — gate in
   `GO_LIVE_CHECKLIST.md`.
 
-## Markt-prijzen verversen (v18)
+## Markt-prijzen verversen (v18 → playbook v22)
 
-Alle markt-medians leven in **één** bestand: `lib/market-prices.ts`,
-met `PRICES_AS_OF` als datumstempel. De category-modules importeren
-hieruit — één edit = overal correct.
+Alle markt-prijzen leven in **één** bestand: `lib/market-prices.ts`
+(`SOURCED_MARKET_PLANS` met verplichte `source` + `verifiedAt` per plan,
+de tarief-medians + `MEDIAN_SOURCES`), met `PRICES_AS_OF` als datumstempel.
 
-Maandelijks (cron `price-staleness` mailt je bij >90 dagen):
-1. `npx tsx scripts/update_prices.ts --check` → print leeftijd.
-2. Werk de getallen + `PRICES_AS_OF` bij in `lib/market-prices.ts`:
-   - **ENERGIE** (`ENERGY_MEDIANS`): ACM tariefoverzicht — kWh
-     vast/variabel, m³ gas vast/variabel, vastrecht.
-   - **HYPOTHEEK** (`MORTGAGE_RATES`): hypotheekrente-overzicht
-     (Van Bruggen / Hypotheker) — 10/15/20/30 jaar vast.
-   - **VERZEKERING** (`INSURANCE_PREMIUMS`): Independer/Pricewise
-     auto-premies — WA / WA+ / CASCO low/median/high.
-   - **WATER** (`WATER_MEDIANS`): drinkwaterbedrijven gemiddeld €/m³.
-3. `npm test -- --run tests/market-prices.test.ts` → groen.
-4. Commit + push. De analyse-pagina toont automatisch de nieuwe
-   "voor het laatst bijgewerkt op {datum}"-voetnoot.
+**Gebruik het maandelijkse playbook:** **`PRICE_REFRESH_PLAYBOOK.md`** — een
+paste-bare, WebFetch-gebaseerde procedure die per prijs de `source`-URL
+ophaalt, vergelijkt, en bijwerkt (gewijzigd → update + `verifiedAt`;
+onveranderd → alleen `verifiedAt`; niet te verifiëren → `needsManualCheck`,
+**nooit gokken**). De `price-staleness` cron mailt de eigenaar wanneer
+`PRICES_AS_OF` te oud wordt — dán draai je het playbook.
+
+Hard gates na elke refresh: `npm test -- --run` + `npx tsc --noEmit` +
+`npm run build` (EXIT 0). De analyse-pagina toont automatisch de nieuwe
+"voor het laatst bijgewerkt op {datum}"-voetnoot.
+
+> Hypotheek + verzekering zijn sinds v22 **gated** (AFM) — hun medians
+> blijven herleidbaar (`MEDIAN_SOURCES`, INACTIVE) maar worden niet getoond.
 
 ## Performance budgets
 

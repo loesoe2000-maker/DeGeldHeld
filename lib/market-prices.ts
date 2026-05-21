@@ -14,7 +14,7 @@
 import type { Category } from "@/lib/providers";
 
 /** ISO date the medians below were last verified. Bump on every refresh. */
-export const PRICES_AS_OF = "2026-05-20";
+export const PRICES_AS_OF = "2026-05-21";
 
 /**
  * v22: a single market plan-price with a MANDATORY source. Because `source`
@@ -47,10 +47,10 @@ export type MarketPlan = {
  */
 export const SOURCED_MARKET_PLANS: MarketPlan[] = [
   // ===== STREAMING — geverifieerd 2026-05-20 (publieke prijspagina's) =====
-  { provider: "Spotify", category: "STREAMING", plan: "Premium Individual", priceCents: 1299, source: "https://www.spotify.com/nl/premium/", verifiedAt: "2026-05-20" },
-  { provider: "Spotify", category: "STREAMING", plan: "Premium Student", priceCents: 699, source: "https://www.spotify.com/nl/premium/", verifiedAt: "2026-05-20" },
-  { provider: "Spotify", category: "STREAMING", plan: "Premium Duo", priceCents: 1799, source: "https://www.spotify.com/nl/premium/", verifiedAt: "2026-05-20" },
-  { provider: "Spotify", category: "STREAMING", plan: "Premium Family", priceCents: 2199, source: "https://www.spotify.com/nl/premium/", verifiedAt: "2026-05-20" },
+  { provider: "Spotify", category: "STREAMING", plan: "Premium Individual", priceCents: 1299, source: "https://www.spotify.com/nl/premium/", verifiedAt: "2026-05-21" },
+  { provider: "Spotify", category: "STREAMING", plan: "Premium Student", priceCents: 699, source: "https://www.spotify.com/nl/premium/", verifiedAt: "2026-05-21" },
+  { provider: "Spotify", category: "STREAMING", plan: "Premium Duo", priceCents: 1799, source: "https://www.spotify.com/nl/premium/", verifiedAt: "2026-05-21" },
+  { provider: "Spotify", category: "STREAMING", plan: "Premium Family", priceCents: 2199, source: "https://www.spotify.com/nl/premium/", verifiedAt: "2026-05-21" },
   { provider: "Netflix", category: "STREAMING", plan: "Basis", priceCents: 999, source: "https://help.netflix.com/nl/node/24926", verifiedAt: "2026-05-20" },
   { provider: "Netflix", category: "STREAMING", plan: "Standaard", priceCents: 1599, source: "https://help.netflix.com/nl/node/24926", verifiedAt: "2026-05-20" },
   { provider: "Netflix", category: "STREAMING", plan: "Premium", priceCents: 2099, source: "https://help.netflix.com/nl/node/24926", verifiedAt: "2026-05-20" },
@@ -63,11 +63,11 @@ export const SOURCED_MARKET_PLANS: MarketPlan[] = [
   { provider: "Microsoft 365", category: "SOFTWARE", plan: "Family (maandelijks)", priceCents: 1300, source: "https://www.microsoft.com/nl-nl/microsoft-365/buy/compare-all-microsoft-365-products", verifiedAt: "2026-05-20" },
 
   // ===== OPSLAG (cloud) — geverifieerd 2026-05-20 =====
-  { provider: "iCloud+", category: "OPSLAG", plan: "50 GB", priceCents: 99, source: "https://support.apple.com/nl-nl/108047", verifiedAt: "2026-05-20" },
-  { provider: "iCloud+", category: "OPSLAG", plan: "200 GB", priceCents: 299, source: "https://support.apple.com/nl-nl/108047", verifiedAt: "2026-05-20" },
-  { provider: "iCloud+", category: "OPSLAG", plan: "2 TB", priceCents: 999, source: "https://support.apple.com/nl-nl/108047", verifiedAt: "2026-05-20" },
-  { provider: "iCloud+", category: "OPSLAG", plan: "6 TB", priceCents: 2999, source: "https://support.apple.com/nl-nl/108047", verifiedAt: "2026-05-20" },
-  { provider: "iCloud+", category: "OPSLAG", plan: "12 TB", priceCents: 5999, source: "https://support.apple.com/nl-nl/108047", verifiedAt: "2026-05-20" },
+  { provider: "iCloud+", category: "OPSLAG", plan: "50 GB", priceCents: 99, source: "https://support.apple.com/nl-nl/108047", verifiedAt: "2026-05-21" },
+  { provider: "iCloud+", category: "OPSLAG", plan: "200 GB", priceCents: 299, source: "https://support.apple.com/nl-nl/108047", verifiedAt: "2026-05-21" },
+  { provider: "iCloud+", category: "OPSLAG", plan: "2 TB", priceCents: 999, source: "https://support.apple.com/nl-nl/108047", verifiedAt: "2026-05-21" },
+  { provider: "iCloud+", category: "OPSLAG", plan: "6 TB", priceCents: 2999, source: "https://support.apple.com/nl-nl/108047", verifiedAt: "2026-05-21" },
+  { provider: "iCloud+", category: "OPSLAG", plan: "12 TB", priceCents: 5999, source: "https://support.apple.com/nl-nl/108047", verifiedAt: "2026-05-21" },
   { provider: "Google One", category: "OPSLAG", plan: "Basic 100 GB", priceCents: 199, source: "https://one.google.com/about/plans", verifiedAt: "2026-05-20" },
   { provider: "Google One", category: "OPSLAG", plan: "AI Plus 2 TB", priceCents: 999, source: "https://one.google.com/about/plans", verifiedAt: "2026-05-20" },
   { provider: "Google One", category: "OPSLAG", plan: "AI Pro 5 TB", priceCents: 2199, source: "https://one.google.com/about/plans", verifiedAt: "2026-05-20" },
@@ -110,6 +110,49 @@ export const WATER_MEDIANS = {
   avgPerPersonM3: 45,
   defaultHousehold: 2,
 } as const;
+
+/**
+ * v22.1 — traceability for the tarief-medians above. Every median group
+ * carries the institution to verify it against + when it was last actually
+ * verified. `needsManualCheck: true` means an automated WebFetch refresh
+ * could NOT confirm the value this cycle (page unreachable / value not on a
+ * cleanly-parseable page) — the owner must check the source by hand. We
+ * never silently overwrite a median we couldn't verify.
+ */
+export type MedianSource = {
+  source: string; // institution / page to verify the value against
+  verifiedAt: string; // ISO date the value was last actually confirmed
+  needsManualCheck: boolean;
+  note?: string;
+};
+
+export const MEDIAN_SOURCES: Record<string, MedianSource> = {
+  ENERGY_MEDIANS: {
+    source: "https://www.acm.nl/nl/onderwerpen/energie",
+    verifiedAt: "2026-05-01",
+    needsManualCheck: true,
+    note: "ACM tariefoverzicht; kWh ~€0,23–0,30 / m³ gas ~€1,28–1,58 incl. btw. Auto-fetch 2026-05-21 faalde (404) — handmatig checken.",
+  },
+  WATER_MEDIANS: {
+    source: "https://www.vewin.nl/kennisbank/drinkwatertarieven",
+    verifiedAt: "2026-05-01",
+    needsManualCheck: true,
+    note: "Vewin/regionale drinkwaterbedrijven. Regionaal monopolie — m³-tarief verschilt per gebied. Handmatig checken.",
+  },
+  // Gated categorieën (v22 AFM): niet in de UI, maar wel herleidbaar gehouden.
+  MORTGAGE_RATES: {
+    source: "https://www.hypotheekrentes.nl",
+    verifiedAt: "2026-05-01",
+    needsManualCheck: true,
+    note: "INACTIVE — hypotheek gated (AFM). Niet getoond; alleen historisch herleidbaar.",
+  },
+  INSURANCE_PREMIUMS: {
+    source: "https://www.independer.nl",
+    verifiedAt: "2026-05-01",
+    needsManualCheck: true,
+    note: "INACTIVE — verzekering gated (AFM). Niet getoond; alleen historisch herleidbaar.",
+  },
+};
 
 /** Days since the prices were last verified. */
 export function priceAgeDays(now: Date = new Date()): number {
