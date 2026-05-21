@@ -105,6 +105,12 @@ describe("components/NegotiationList", () => {
     feeAmountCents: null,
     feePaidAt: null,
     feePaymentIntentId: null,
+    relayAuthorizedAt: null,
+    relayAuthText: null,
+    relayToken: null,
+    relayState: null,
+    relayAutoRounds: 0,
+    providerEmail: null,
     bill: { provider: "T-Mobile", amountCents: 4250, category: "TELECOM" as const },
   };
 

@@ -1,0 +1,66 @@
+/**
+ * POST /api/negotiations/[id]/relay-authorize
+ *
+ * GUARDRAIL 1 (consent-first): the customer authorizes DeGeldHeld to
+ * negotiate on their behalf. Records the exact accepted text + a timestamp +
+ * a crypto-random relay token, and flips relayState → RELAY_ACTIVE. Nothing
+ * is ever relayed without this. Only the bill owner can authorize (anti-abuse).
+ *
+ * Body (optional): { providerEmail?: string }
+ */
+import { NextResponse } from "next/server";
+import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/db";
+import { generateRelayToken, relayMandateText } from "@/lib/relay";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+function cleanEmail(v: unknown): string | null {
+  if (typeof v !== "string") return null;
+  const t = v.trim().toLowerCase();
+  return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(t) ? t : null;
+}
+
+export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {
+  const session = await auth();
+  if (!session?.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const userId = (session.user as { id: string }).id;
+  const { id } = await ctx.params;
+
+  // Anti-abuse: only the owner of this negotiation can authorize a relay.
+  const negotiation = await prisma.negotiation.findFirst({
+    where: { id, userId },
+    include: { bill: { select: { provider: true } } },
+  });
+  if (!negotiation) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  let providerEmail: string | null = null;
+  try {
+    const body = (await req.json()) as { providerEmail?: unknown };
+    providerEmail = cleanEmail(body.providerEmail);
+  } catch {
+    /* no body → defaults */
+  }
+
+  // Idempotent: keep an existing token (so the reply-to stays stable).
+  const token = negotiation.relayToken ?? generateRelayToken();
+  const authText = relayMandateText(negotiation.bill.provider);
+
+  await prisma.negotiation.update({
+    where: { id: negotiation.id },
+    data: {
+      relayAuthorizedAt: new Date(),
+      relayAuthText: authText,
+      relayToken: token,
+      relayState: "RELAY_ACTIVE",
+      ...(providerEmail ? { providerEmail } : {}),
+    },
+  });
+
+  return NextResponse.json({ ok: true, relayState: "RELAY_ACTIVE" });
+}

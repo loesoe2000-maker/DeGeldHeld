@@ -296,6 +296,21 @@ model Negotiation {
   feePaidAt          DateTime?
   feePaymentIntentId String?
 
+  // v23 relay (negotiate-on-behalf). NO relay mail is ever sent without
+  // relayAuthorizedAt (consent-first). relayToken routes provider replies
+  // back via reply-to onderhandel+<token>@. relayState ∈
+  // RELAY_ACTIVE | AWAITING_APPROVAL | PAUSED | DONE.
+  relayAuthorizedAt DateTime?
+  relayAuthText     String?   @db.Text
+  relayToken        String?   @unique
+  relayState        String?
+  // Loop-guard: how many auto-counters the relay has sent (max enforced
+  // in lib/relay.ts). Reset is never needed — terminal states stop sends.
+  relayAutoRounds   Int       @default(0)
+  // Provider contact address the relay sends to (learned from the inbound
+  // reply, or supplied at authorization). Null → relay can't send yet.
+  providerEmail     String?
+
   user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   bill    Bill     @relation(fields: [billId], references: [id], onDelete: Cascade)
   payment Payment?

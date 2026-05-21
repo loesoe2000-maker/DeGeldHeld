@@ -5,6 +5,8 @@ import { generateEmail } from "@/lib/negotiator";
 import { buildComparison } from "@/lib/comparison";
 import { isSupportedCategory } from "@/lib/market-coverage";
 import { negotiatorCache, cacheKey } from "@/lib/llm_cache";
+import RelayConsentPrompt from "@/components/RelayConsentPrompt";
+import { relayStatusLabel } from "@/lib/relay";
 import EmailDisplay from "@/components/EmailDisplay";
 import EmailPreviewLocked from "@/components/EmailPreviewLocked";
 
@@ -90,8 +92,9 @@ export default async function EmailPage({
       confidence: result.confidence,
       reasoning: result.reasoning,
     },
-    select: { id: true },
+    select: { id: true, relayAuthorizedAt: true, relayState: true },
   });
+  const relayAuthorized = !!negotiation.relayAuthorizedAt;
 
   // v22.1: gate the full copyable email behind the no-cure-no-pay card
   // mandate. When no card is linked we send ONLY a short teaser to the
@@ -132,6 +135,26 @@ export default async function EmailPage({
           />
         )}
       </div>
+
+      {relayAuthorized ? (
+        <section
+          data-testid="relay-active"
+          className="mt-8 rounded-xl border border-brand-200 bg-brand-50 p-5"
+        >
+          <h2 className="text-lg font-semibold text-brand-900">
+            {relayStatusLabel(negotiation.relayState)}
+          </h2>
+          <p className="mt-1 text-sm text-brand-900">
+            DeGeldHeld onderhandelt namens jou met {bill.provider}. Je keurt elke
+            deal zelf goed.{" "}
+            <a href={`/onderhandel/${bill.id}/relay`} className="underline">
+              Bekijk de status &amp; gesprekken →
+            </a>
+          </p>
+        </section>
+      ) : (
+        <RelayConsentPrompt negotiationId={negotiation.id} provider={bill.provider} />
+      )}
     </main>
   );
 }
