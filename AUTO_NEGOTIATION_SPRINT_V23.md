@@ -30,6 +30,36 @@ Lees /Users/bdb/alpharadar-pro/degeldheld/AUTO_NEGOTIATION_SPRINT_V23.md en voer
 
 ---
 
+## DEEL 0 — Juridische basis (volmacht + consument + AVG)
+
+Bouw de machtiging op de juiste juridische grondslag — niet placeholder.
+Bronnen: Burgerlijk Wetboek Boek 3 (volmacht) + AVG. Markeer alles als
+"concept — jurist laten checken", maar zet de juiste structuur neer.
+
+a. **Volmacht (art. 3:60 BW):** de klant (volmachtgever) machtigt DeGeldHeld
+   (gevolmachtigde) om **in zijn naam** rechtshandelingen te verrichten —
+   specifiek: namens hem onderhandelen over zijn **bestaande contract** bij
+   de genoemde provider. De machtiging-tekst moet dit expliciet zo formuleren.
+b. **Scope strikt beperken — KERN:** onder art. 3:66 BW binden de handelingen
+   van de gevolmachtigde de volmachtgever. Daarom mag de volmacht **NIET** het
+   accepteren/aangaan van een nieuw contract omvatten. De volmacht dekt alleen
+   **onderhandelen + corresponderen**; het **accepteren van een deal blijft een
+   eigen handeling van de klant** (de goedkeuring-gate in DEEL 4). Leg dit
+   expliciet vast in de tekst zodat de klant nooit ongewild gebonden wordt.
+c. **Herroepbaar (art. 3:72 BW):** de machtiging eindigt bij herroeping. De
+   klant kan 'm **altijd intrekken** (= de pauzeer/stop-knop, DEEL 5). Tekst
+   moet dit benoemen.
+d. **Consumentenrecht:** duidelijke dienst-voorwaarden, herroepingsrecht op de
+   DeGeldHeld-dienst, geen oneerlijke handelspraktijk. Link naar /voorwaarden.
+e. **AVG:** grondslag voor het verwerken/relayen van de klantdata =
+   uitvoering van de overeenkomst + expliciete toestemming voor de relay.
+   Neem op in de privacyverklaring (welke data, waarom, naar wie = provider).
+f. Maak `docs/MACHTIGING.md` met de concept-tekst + de BW-artikel-verwijzingen,
+   zodat de jurist het snel kan toetsen.
+g. Commit: `feat(legal): volmacht-based machtiging foundation (3:60/3:66/3:72 BW)`.
+
+---
+
 ## DEEL 1 — Machtiging (toestemming om namens te onderhandelen)
 
 a. Schema (`model Negotiation`, migratie):
@@ -99,9 +129,12 @@ b. Alleen op **[Accepteer deal]** → stuur de acceptatie-mail namens de klant
    [Stop] → `relayState = PAUSED`, geen mails meer.
 c. **Nooit** een besparing als "behaald/geverifieerd" vastleggen zonder deze
    goedkeuring + het bestaande bewijs. (De fee blijft op bewezen besparing.)
-d. Tests: concreet bod → AWAITING_APPROVAL + notificatie, géén auto-accept;
-   alleen [Accepteer] verstuurt + legt vast.
-e. Commit: `feat(relay): human approval gate on deal/definitive email`.
+d. **Timeout op goedkeuring:** reageert de klant niet binnen X dagen op een
+   AWAITING_APPROVAL → NIET auto-accepteren; stuur een reminder en laat 't
+   in AWAITING_APPROVAL staan (de deal verloopt liever dan ongewild geaccepteerd).
+e. Tests: concreet bod → AWAITING_APPROVAL + notificatie, géén auto-accept;
+   alleen [Accepteer] verstuurt + legt vast; timeout → reminder, geen accept.
+f. Commit: `feat(relay): human approval gate on deal/definitive email`.
 
 ---
 
@@ -127,7 +160,13 @@ b. Bevestig SPF/DKIM dekt de relay-afzender (anders deliverability-issue) —
    documenteer DNS-restpunt voor de eigenaar.
 c. Rate-limit/loop-guard: max N auto-rondes per negotiation (bv 5) → daarna
    altijd naar de klant. Voorkomt eindeloze AI-pingpong.
-d. Commit: `feat(relay): handle provider account-holder checks + loop guard`.
+d. **Inbound-idempotency:** dedupe op message-id → verwerk hetzelfde
+   provider-antwoord nooit twee keer (geen dubbele counter).
+e. **Anti-abuse:** alleen de eigenaar van de bill kan de relay machtigen;
+   `relayToken` moet onraadbaar zijn (crypto-random); een token routeert
+   alleen naar zíjn negotiation. Je onderhandelt per definitie alleen over
+   de eigen factuur van de klant.
+f. Commit: `feat(relay): handle provider account-holder checks + loop guard + idempotency`.
 
 ---
 
