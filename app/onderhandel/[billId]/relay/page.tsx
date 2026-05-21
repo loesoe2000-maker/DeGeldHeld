@@ -33,6 +33,16 @@ export default async function RelayPage({ params }: { params: Promise<{ billId: 
   const authorized = !!negotiation.relayAuthorizedAt;
   const badge = relayStatusLabel(negotiation.relayState);
 
+  const fmtTs = (d: Date | null | undefined): string =>
+    d
+      ? new Intl.DateTimeFormat("nl-NL", {
+          day: "numeric",
+          month: "short",
+          hour: "2-digit",
+          minute: "2-digit",
+        }).format(new Date(d))
+      : "";
+
   return (
     <main className="mx-auto max-w-3xl px-6 py-12">
       <h1 className="text-3xl font-bold text-slate-900">
@@ -97,6 +107,11 @@ export default async function RelayPage({ params }: { params: Promise<{ billId: 
                   <div className="rounded-xl border border-slate-200 bg-white p-4">
                     <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                       {negotiation.bill.provider} antwoordde · ronde {r.roundNumber}
+                      {fmtTs(r.createdAt) && (
+                        <span className="ml-2 font-normal normal-case text-slate-400">
+                          {fmtTs(r.createdAt)}
+                        </span>
+                      )}
                     </div>
                     <pre className="mt-2 whitespace-pre-wrap font-sans text-sm text-slate-800">
                       {r.providerResponse}
@@ -107,6 +122,11 @@ export default async function RelayPage({ params }: { params: Promise<{ billId: 
                   <div className="rounded-xl border border-brand-200 bg-brand-50 p-4">
                     <div className="text-xs font-semibold uppercase tracking-wide text-brand-700">
                       {r.confirmedSentAt ? "Namens jou verstuurd" : "Klaargezet"} · counter ronde {r.roundNumber}
+                      {fmtTs(r.confirmedSentAt ?? r.createdAt) && (
+                        <span className="ml-2 font-normal normal-case text-brand-400">
+                          {fmtTs(r.confirmedSentAt ?? r.createdAt)}
+                        </span>
+                      )}
                     </div>
                     <pre className="mt-2 whitespace-pre-wrap font-sans text-sm text-slate-800">
                       {r.counterBody}

@@ -57,4 +57,20 @@ describe("v23 anti-abuse — source-level invariants", () => {
     // The only "accept" handling routes to needs_approval, never auto-act.
     expect(src).toMatch(/"accept"[\s\S]*?needs_approval/);
   });
+
+  it("the relay status page is flag-gated + owner-scoped + shows the full thread", () => {
+    const src = read("app/onderhandel/[billId]/relay/page.tsx");
+    expect(src).toMatch(/isEnabled\(["']RELAY_ENABLED["']\)/);
+    expect(src).toMatch(/notFound\(\)/);
+    expect(src).toMatch(/findFirst\(\{\s*[\s\S]*?userId\b/); // owner-scoped
+    expect(src).toMatch(/RelayControls/); // accept/continue/stop + pause
+    expect(src).toMatch(/rounds\.map/); // every round rendered
+    expect(src).toMatch(/fmtTs/); // timestamps in the thread
+  });
+
+  it("relay-approve accept NEVER marks a saving verified (proof-path only)", () => {
+    const src = read("app/api/negotiations/[id]/relay-approve/route.ts");
+    expect(src).not.toMatch(/actualSavingsCents/);
+    expect(src).not.toMatch(/proofVerifiedAt/);
+  });
 });
