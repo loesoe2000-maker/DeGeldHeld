@@ -15,6 +15,7 @@ import { cumulativeByMonth, milestoneCopy } from "@/lib/savings-timeline";
 import { pickNudgeCategory } from "@/lib/category-gap";
 import { ensureReferralCode, buildShareUrl } from "@/lib/referral";
 import ReferralBlock from "@/components/ReferralBlock";
+import AnalyticsIdentify from "@/components/AnalyticsIdentify";
 
 export const metadata = { title: "Dashboard — DeGeldHeld" };
 export const dynamic = "force-dynamic";
@@ -76,6 +77,7 @@ export default async function DashboardPage() {
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-12">
+      <AnalyticsIdentify userId={userId} />
       <header className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-slate-900">Dashboard</h1>

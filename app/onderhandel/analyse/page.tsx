@@ -15,6 +15,7 @@ import { compareEnergy, type EnergyContractType } from "@/lib/categories/energie
 import { compareWater } from "@/lib/categories/water";
 import { ANON_COOKIE_NAME, isValidAnonSessionId } from "@/lib/anon-session";
 import AnonymousMailPrompt from "@/components/AnonymousMailPrompt";
+import TrackEvent from "@/components/TrackEvent";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -200,7 +201,17 @@ export default async function AnalysePage({
   const ageMonths = invoiceAgeDays != null ? Math.floor(invoiceAgeDays / 30) : 0;
 
   return (
-    <main className="mx-auto max-w-3xl px-6 py-12">
+    // ph-no-capture: this page shows provider, amounts, customer-specific
+    // savings — keep PostHog autocapture/heatmaps away from all of it.
+    <main className="mx-auto max-w-3xl px-6 py-12 ph-no-capture">
+      <TrackEvent
+        event="analyse_viewed"
+        props={{
+          category: bill.category,
+          supported: true,
+          expectedSavingsCents: comparison.bestSavingsCents,
+        }}
+      />
       <h1 className="text-3xl font-bold text-slate-900">Analyse</h1>
       <p className="mt-2 text-slate-600">
         Op basis van je {bill.provider}-rekening hebben we de markt gecheckt.

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { track } from "@/lib/analytics";
 
 /**
  * v23 — consent UI for negotiate-on-behalf (DEEL 1). Soft, opt-in: without
@@ -35,6 +36,7 @@ export default function RelayConsentPrompt({
         setBusy(false);
         return;
       }
+      track("relay_authorized");
       router.refresh();
     } catch {
       setError("Netwerkfout — probeer het opnieuw.");

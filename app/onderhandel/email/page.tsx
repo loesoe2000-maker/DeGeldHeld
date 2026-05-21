@@ -7,6 +7,7 @@ import { isSupportedCategory } from "@/lib/market-coverage";
 import { negotiatorCache, cacheKey } from "@/lib/llm_cache";
 import RelayConsentPrompt from "@/components/RelayConsentPrompt";
 import { relayStatusLabel } from "@/lib/relay";
+import TrackEvent from "@/components/TrackEvent";
 import EmailDisplay from "@/components/EmailDisplay";
 import EmailPreviewLocked from "@/components/EmailPreviewLocked";
 
@@ -16,7 +17,7 @@ export const metadata = { title: "Onderhandel-email — DeGeldHeld" };
 export default async function EmailPage({
   searchParams,
 }: {
-  searchParams: Promise<{ bill?: string }>;
+  searchParams: Promise<{ bill?: string; card?: string }>;
 }) {
   const session = await auth();
   if (!session?.user) redirect("/login");
@@ -104,13 +105,17 @@ export default async function EmailPage({
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-12">
+      <TrackEvent event="email_generated" props={{ category: bill.category }} />
+      {params.card === "ok" && <TrackEvent event="fee_card_linked" />}
       <h1 className="text-3xl font-bold text-slate-900">Onderhandel-email</h1>
       <p className="mt-2 text-slate-600">
         {hasFeeCard
           ? "Kopieer de tekst hieronder en stuur via je eigen e-mailadres naar je provider."
           : "Je mail staat klaar. Koppel je kaart (€0 nu) om 'm volledig te zien en te kopiëren."}
       </p>
-      <div className="mt-8">
+      {/* ph-no-capture: the email body/teaser contains the customer's name +
+          negotiation content — never let autocapture/heatmaps grab it. */}
+      <div className="mt-8 ph-no-capture">
         {hasFeeCard ? (
           <EmailDisplay
             subject={result.subject}

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Script from "next/script";
+import { track } from "@/lib/analytics";
 
 type UploadResp = {
   ok: boolean;
@@ -138,6 +139,7 @@ export default function BillUpload({ onUploaded }: { onUploaded?: (r: UploadResp
       busyRef.current = true;
       setBusy(true);
       setProgress("uploading");
+      track("upload_started");
       try {
         const fd = new FormData();
         fd.append("file", file);
@@ -189,6 +191,7 @@ export default function BillUpload({ onUploaded }: { onUploaded?: (r: UploadResp
 
         const data: UploadResp = JSON.parse(bodyText);
         if (!res.ok) {
+          track("upload_failed", { reason: `http_${res.status}` });
           setError(data.error ?? "Upload mislukt — probeer opnieuw");
           // Bot-controle gefaald → reset Turnstile-widget voor nieuwe poging
           if (data.error?.includes("Bot-controle") && widgetIdRef.current && window.turnstile) {
@@ -196,9 +199,15 @@ export default function BillUpload({ onUploaded }: { onUploaded?: (r: UploadResp
             setTurnstileToken(null);
           }
         } else {
+          track("upload_succeeded", {
+            category: data.extracted?.category ?? null,
+            provider: data.extracted?.provider ?? null,
+            hasAmount: !!data.extracted?.amountCents,
+          });
           onUploaded?.(data);
         }
       } catch (e) {
+        track("upload_failed", { reason: "network" });
         const msg = e instanceof Error ? e.message : "";
         setError(
           msg.includes("Failed to fetch") || msg.includes("NetworkError")

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { track } from "@/lib/analytics";
 
 type Choice = "SUCCESS_SAVED" | "STILL_WAITING" | "FAILED_NO_DEAL";
 type ProofStep = "ask" | "upload" | "skipped" | "verified" | "rejected";
@@ -46,6 +47,7 @@ export default function OutcomeForm({
         setPending(false);
         return;
       }
+      track("outcome_marked", { result: c });
       // SUCCESS_SAVED: ask for proof before treating it as done.
       if (c === "SUCCESS_SAVED") {
         setProofStep("ask");
@@ -80,6 +82,7 @@ export default function OutcomeForm({
         setPending(false);
         return;
       }
+      track("proof_submitted", { verdict: data.verdict?.verdict ?? "unknown" });
       if (data.verdict?.verdict === "verified") {
         setProofStep("verified");
         setProofResult("Bewijs geverifieerd — je besparing telt nu mee voor /proof.");

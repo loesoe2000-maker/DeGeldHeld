@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { formatEurCents, formatPercent } from "@/lib/format";
 import { buildWhatsAppShareUrl } from "@/lib/negotiator";
+import { track } from "@/lib/analytics";
 
 export default function EmailDisplay({
   subject,
@@ -38,7 +39,9 @@ export default function EmailDisplay({
     } catch {
       // fallback handled by browser select-text
     }
+    track("email_copied");
     if (billId) {
+      track("email_sent");
       // Fire-and-forget: mark emailSentAt so the outcome-followup cron picks it up.
       void fetch("/api/negotiations/sent", {
         method: "POST",

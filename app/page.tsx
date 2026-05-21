@@ -5,6 +5,7 @@ import Examples from "@/components/Examples";
 import FAQ from "@/components/FAQ";
 import Footer from "@/components/Footer";
 import ActivityFeed from "@/components/ActivityFeed";
+import TrackEvent from "@/components/TrackEvent";
 
 const APP_URL = process.env.APP_URL ?? "https://degeldheld.com";
 
@@ -43,6 +44,7 @@ export default function HomePage() {
         // eslint-disable-next-line react/no-danger
         dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteLd) }}
       />
+      <TrackEvent event="landing_view" />
       <Hero />
       <Problem />
       <HowItWorks />

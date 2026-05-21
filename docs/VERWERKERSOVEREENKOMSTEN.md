@@ -19,6 +19,7 @@ Laatst gecontroleerd (DPA-URLs via WebFetch): **2026-05-21**.
 | **Cloudflare** | DNS, CDN, bot-bescherming (Turnstile) | EU / VS edge | https://www.cloudflare.com/cloudflare-customer-dpa/ ✅ (pagina resolve't) | **Eigenaar bevestigt/vraagt aan** — incorporatie-tekst niet schoon uitleesbaar; eigenaar controleert acceptatie. ☐ |
 | **Neon** (nu Databricks) | Database: account, facturen, onderhandelingen, betalingen | EU (Frankfurt) | https://neon.com/dpa ✅ (redirect van neon.tech/dpa) | **Te verifiëren door eigenaar** — Neon is overgenomen door Databricks; `neon.com/dpa` is nu een "Product Specific Schedule" onder de Databricks MCSA. Controleer de feitelijke DPA op de Databricks legal-site. ☐ |
 | **Groq** | AI/OCR-analyse van geüploade facturen | VS (SCC's) | *geen vaste DPA-URL bevestigd* (groq.com/data-processing-addendum → 404) | **Eigenaar vraagt aan** — DPA opvragen via Groq legal/support; URL niet te verifiëren deze run (niet verzonnen). ☐ |
+| **PostHog** (v24) | Anonieme funnel-analytics (geen factuurdata; financiële elementen gemaskeerd, cookieloos) | EU (eu.i.posthog.com) | https://posthog.com/dpa | **Eigenaar accepteren** — kies EU-cloud bij signup + accepteer de DPA in PostHog. ☐ |
 
 ### Los van de app (alleen indien gebruikt)
 | Verwerker | Wat | DPA | Status |
@@ -28,6 +29,7 @@ Laatst gecontroleerd (DPA-URLs via WebFetch): **2026-05-21**.
 
 ## Eigenaar-actielijst (open punten)
 - **Sentry** — DPA expliciet accepteren via hun proces.
+- **PostHog** — kies EU-cloud (eu.i.posthog.com) bij signup + accepteer de DPA (posthog.com/dpa).
 - **Cloudflare** — bevestig acceptatie/incorporatie van de customer-DPA.
 - **Neon/Databricks** — verifieer welke DPA na de overname geldt (Databricks
   legal) en dat 'ie van toepassing is op het Neon-account.

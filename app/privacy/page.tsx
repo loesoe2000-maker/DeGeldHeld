@@ -118,6 +118,7 @@ export default function PrivacyPage() {
               <tr><td className="py-1 pr-3"><strong>Stripe</strong></td><td className="py-1 pr-3">Betalingen</td><td className="py-1">EU / VS</td></tr>
               <tr><td className="py-1 pr-3"><strong>Cloudflare</strong></td><td className="py-1 pr-3">DNS, CDN, bot-bescherming (Turnstile)</td><td className="py-1">EU / VS (edge)</td></tr>
               <tr><td className="py-1 pr-3"><strong>Sentry</strong></td><td className="py-1 pr-3">Foutmonitoring (PII gestript)</td><td className="py-1">EU / VS</td></tr>
+              <tr><td className="py-1 pr-3"><strong>PostHog</strong></td><td className="py-1 pr-3">Anonieme funnel-analytics (geen factuurdata; financiële elementen gemaskeerd, cookieloos)</td><td className="py-1">EU (eu.i.posthog.com)</td></tr>
             </tbody>
           </table>
           <p>
