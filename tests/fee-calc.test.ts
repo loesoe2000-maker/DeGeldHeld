@@ -12,9 +12,9 @@ describe("feeForVerifiedSavings — rate is exactly 20% (v13 bounds)", () => {
     expect(NO_CURE_NO_PAY_FEE_PCT).toBe(0.20);
   });
 
-  it("v13 bounds: floor €2, cap €50, min savings €25/year", () => {
+  it("v19 bounds: floor €2, cap €500, min savings €25/year", () => {
     expect(NO_CURE_NO_PAY_FEE_FLOOR_CENTS).toBe(200);
-    expect(NO_CURE_NO_PAY_FEE_CAP_CENTS).toBe(5000);
+    expect(NO_CURE_NO_PAY_FEE_CAP_CENTS).toBe(50000); // v19: €50 → €500
     expect(NO_CURE_NO_PAY_MIN_SAVINGS_CENTS).toBe(2500);
   });
 
@@ -32,12 +32,16 @@ describe("feeForVerifiedSavings — rate is exactly 20% (v13 bounds)", () => {
     expect(feeForVerifiedSavings(10000)).toBe(2000);
   });
 
-  it("€250/year saving: 20% = €50 → exactly at cap", () => {
+  it("€250/year saving: 20% = €50 (under the €500 cap)", () => {
     expect(feeForVerifiedSavings(25000)).toBe(5000);
   });
 
-  it("€600/year saving: 20% = €120 → capped at €50", () => {
-    expect(feeForVerifiedSavings(60000)).toBe(5000);
+  it("€600/year saving: 20% = €120 (under the €500 cap)", () => {
+    expect(feeForVerifiedSavings(60000)).toBe(12000);
+  });
+
+  it("€3000/year saving: 20% = €600 → capped at €500 (v19)", () => {
+    expect(feeForVerifiedSavings(300000)).toBe(50000);
   });
 
   it("clamps to cap for large savings", () => {

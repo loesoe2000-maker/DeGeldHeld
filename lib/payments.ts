@@ -15,13 +15,14 @@ const MIN_BILL_CENTS = 500; // €5,00 minimum
 export const PAYWALL_FEE_CENTS = 499; // €4,99
 
 // ─────────────────────────────────────────────────────────────
-// v11 / v13 — no-cure-no-pay pricing (FEATURE_NO_CURE_NO_PAY)
+// v11 / v13 / v19 — no-cure-no-pay pricing (FEATURE_NO_CURE_NO_PAY)
 // User-pinned 20% rate (top of the industry no-cure-no-pay range).
-// v13 widened the bounds: cap €50, floor €2, charging threshold
-// drops to €25/year so smaller wins still trigger a (capped) fee.
+// v13 widened the bounds: floor €2, charging threshold €25/year so
+// smaller wins still trigger a (capped) fee.
+// v19 raised the cap €50 → €500 so big wins (energie/hypotheek) pay off.
 // ─────────────────────────────────────────────────────────────
 export const NO_CURE_NO_PAY_FEE_PCT = 0.20;
-export const NO_CURE_NO_PAY_FEE_CAP_CENTS = 5000; // €50,00 (v13: was €25)
+export const NO_CURE_NO_PAY_FEE_CAP_CENTS = 50000; // €500,00 (v19: was €50)
 export const NO_CURE_NO_PAY_FEE_FLOOR_CENTS = 200; // €2,00
 /** Yearly savings below this threshold (€25, v13) never trigger a fee. */
 export const NO_CURE_NO_PAY_MIN_SAVINGS_CENTS = 2500;

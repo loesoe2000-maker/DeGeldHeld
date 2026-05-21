@@ -81,7 +81,7 @@ export default async function UitkomstPage({
             </h2>
             <p className="mt-1 text-sm text-brand-900">
               No-cure-no-pay: 20% van de geverifieerde besparing, met een
-              maximum van €25,00. Betaal binnen 14 dagen om je onderhandeling
+              maximum van €500,00. Betaal binnen 14 dagen om je onderhandeling
               officieel af te ronden.
             </p>
             <form action={`/api/checkout/${bill.negotiation.id}`} method="post" className="mt-4">

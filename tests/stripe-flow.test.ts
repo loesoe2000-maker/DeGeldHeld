@@ -62,7 +62,12 @@ describe("Stripe v13 verified-savings fee path", () => {
     expect(feeForVerifiedSavings(10_000)).toBe(2000);
   });
 
-  it("€300/year savings → cap at €50", () => {
-    expect(feeForVerifiedSavings(30_000)).toBe(5000);
+  it("€300/year savings → €60 (20%, under the €500 cap)", () => {
+    expect(feeForVerifiedSavings(30_000)).toBe(6000);
+  });
+
+  it("€3000/year savings → capped at €500 (v19 cap)", () => {
+    // 20% of €3000 = €600 → clamped to the €500 cap.
+    expect(feeForVerifiedSavings(300_000)).toBe(50000);
   });
 });

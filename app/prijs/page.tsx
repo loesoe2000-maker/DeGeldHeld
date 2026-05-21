@@ -7,7 +7,7 @@ export const metadata = {
     "20% no-cure-no-pay op geverifieerde besparing. Eerste 3 onderhandelingen gratis. Geen abonnement, geen verborgen kosten — je betaalt alleen als je écht hebt bespaard.",
   openGraph: {
     title: "DeGeldHeld — eerlijk geprijsd, geen besparing geen rekening",
-    description: "20% van geverifieerde besparing, gecapped op €50. Eerste 3 gratis.",
+    description: "20% van geverifieerde besparing, gecapped op €500. Eerste 3 gratis.",
   },
 };
 
@@ -38,7 +38,7 @@ export default function PrijsPage() {
           <ul className="mt-6 space-y-2 text-brand-50">
             <li>✓ Eerste 3 onderhandelingen helemaal gratis</li>
             <li>✓ Alleen factuur bij bewezen besparing &gt; €25/jaar</li>
-            <li>✓ Maximale fee €50 per onderhandeling — bij grote besparing zit jij in de winst</li>
+            <li>✓ Maximale fee €500 per onderhandeling — bij grote besparing zit jij in de winst</li>
             <li>✓ Geen abonnement, niets om op te zeggen</li>
             <li>✓ Bewijs via forwarded provider-mail of nieuwe factuur — wij verifiëren automatisch</li>
           </ul>
@@ -98,7 +98,7 @@ export default function PrijsPage() {
               </thead>
               <tbody className="divide-y divide-slate-200">
                 <Row label="Fee" trim="33% recurring elk jaar" us="20% éénmalig" />
-                <Row label="Cap op fee" trim="Geen" us="€50 per onderhandeling" />
+                <Row label="Cap op fee" trim="Geen" us="€500 per onderhandeling" />
                 <Row label="Bank-login verplicht" trim="Ja" us="Nee — geen bank-koppeling" />
                 <Row label="EU/AVG-compliant" trim="Nee" us="Ja, EU-eerste" />
                 <Row label="Multi-round counter" trim="1 ronde" us="Tot 3 rondes met AI-counter" />
