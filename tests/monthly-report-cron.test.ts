@@ -27,7 +27,8 @@ vi.mock("@/lib/notify", () => ({
   }),
 }));
 
-import { GET, sameMonth } from "@/app/api/cron/monthly-report/route";
+import { GET } from "@/app/api/cron/monthly-report/route";
+import { sameMonth } from "@/lib/date-utils";
 import { NextRequest } from "next/server";
 
 function req(authorized = true) {

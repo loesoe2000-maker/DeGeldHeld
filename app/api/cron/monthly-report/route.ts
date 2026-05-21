@@ -13,6 +13,7 @@ import { prisma } from "@/lib/db";
 import { computeSavingsStats } from "@/lib/savings";
 import { pickNudgeCategory, categoryLabel } from "@/lib/category-gap";
 import { sendRetentionEmail } from "@/lib/notify";
+import { sameMonth } from "@/lib/date-utils";
 import * as Sentry from "@sentry/nextjs";
 
 export const runtime = "nodejs";
@@ -20,11 +21,6 @@ export const dynamic = "force-dynamic";
 
 const APP_URL = process.env.APP_URL ?? "https://www.degeldheld.com";
 const BATCH_LIMIT = 500;
-
-/** True when two dates fall in the same calendar month (UTC). */
-export function sameMonth(a: Date, b: Date): boolean {
-  return a.getUTCFullYear() === b.getUTCFullYear() && a.getUTCMonth() === b.getUTCMonth();
-}
 
 export async function GET(req: NextRequest) {
   if (!authorizeCron(req)) {
