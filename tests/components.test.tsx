@@ -8,58 +8,24 @@ import FAQ from "../components/FAQ";
 import Footer from "../components/Footer";
 
 describe("components/Hero", () => {
-  beforeEach(() => {
-    vi.stubGlobal("fetch", vi.fn());
-  });
-
-  it("renders headline and CTA", () => {
+  // v-signup: the hero no longer hosts a waitlist email form; it drives
+  // straight into the product (anonymous upload) + login/account.
+  it("renders headline and CTAs", () => {
     render(<Hero />);
     expect(screen.getByText(/Houd je geld in/i)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Word lid/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: /Upload je rekening/i }),
+    ).toHaveAttribute("href", "/onderhandel");
+    expect(
+      screen.getByRole("link", { name: /Inloggen/i }),
+    ).toHaveAttribute("href", "/login");
   });
 
-  it("renders accessible email input", () => {
+  it("links to the demo", () => {
     render(<Hero />);
-    const inp = screen.getByLabelText(/E-mailadres/i);
-    expect(inp).toHaveAttribute("type", "email");
-    expect(inp).toBeRequired();
-  });
-
-  it("submits email and shows success state", async () => {
-    (fetch as unknown as { mockResolvedValue: (v: unknown) => void }).mockResolvedValue({
-      ok: true,
-      json: async () => ({ ok: true }),
-    });
-    render(<Hero />);
-    fireEvent.change(screen.getByLabelText(/E-mailadres/i), {
-      target: { value: "test@example.nl" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: /Word lid/i }));
-    await waitFor(() => expect(screen.getByRole("status")).toBeInTheDocument());
-    expect(screen.getByRole("status").textContent).toMatch(/lijst/i);
-  });
-
-  it("shows error state on failed submit", async () => {
-    (fetch as unknown as { mockResolvedValue: (v: unknown) => void }).mockResolvedValue({
-      ok: false,
-      json: async () => ({ error: "Ongeldig" }),
-    });
-    render(<Hero />);
-    fireEvent.change(screen.getByLabelText(/E-mailadres/i), {
-      target: { value: "x@y.nl" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: /Word lid/i }));
-    await waitFor(() => expect(screen.getByRole("alert")).toBeInTheDocument());
-  });
-
-  it("shows network error on fetch reject", async () => {
-    (fetch as unknown as { mockRejectedValue: (v: unknown) => void }).mockRejectedValue(
-      new Error("network"),
-    );
-    render(<Hero />);
-    fireEvent.change(screen.getByLabelText(/E-mailadres/i), { target: { value: "x@y.nl" } });
-    fireEvent.click(screen.getByRole("button", { name: /Word lid/i }));
-    await waitFor(() => expect(screen.getByRole("alert")).toBeInTheDocument());
+    expect(
+      screen.getByRole("link", { name: /hoe het werkt/i }),
+    ).toHaveAttribute("href", "/demo");
   });
 });
 
@@ -108,10 +74,10 @@ describe("components/Examples", () => {
 });
 
 describe("components/FAQ", () => {
-  it("renders all 6 questions", () => {
+  it("renders key questions", () => {
     render(<FAQ />);
     expect(screen.getByText(/Wat kost het/i)).toBeInTheDocument();
-    expect(screen.getByText(/AFM/i)).toBeInTheDocument();
+    expect(screen.getByText(/Is dit financieel advies/i)).toBeInTheDocument();
   });
 
   it("first item is open by default", () => {
@@ -122,7 +88,7 @@ describe("components/FAQ", () => {
 
   it("toggles open state on click", () => {
     render(<FAQ />);
-    const second = screen.getByRole("button", { name: /Welke providers/i });
+    const second = screen.getByRole("button", { name: /Welke landen/i });
     expect(second).toHaveAttribute("aria-expanded", "false");
     fireEvent.click(second);
     expect(second).toHaveAttribute("aria-expanded", "true");

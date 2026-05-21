@@ -51,10 +51,11 @@ describe("DEEL 7 — accessibility static guarantees", () => {
     expect(src).toMatch(/id="login-email"/);
   });
 
-  it("hero email input has a label (sr-only or visible)", () => {
+  it("hero CTAs are accessible links with discernible text", () => {
+    // The hero no longer has an email input; it uses labelled link CTAs.
     const src = read("components/Hero.tsx");
-    expect(src).toMatch(/htmlFor="email"/);
-    expect(src).toMatch(/id="email"/);
+    expect(src).toMatch(/Upload je rekening/);
+    expect(src).toMatch(/href="\/onderhandel"/);
   });
 
   it("brand-600 on white passes WCAG AA (≥4.5:1)", () => {
