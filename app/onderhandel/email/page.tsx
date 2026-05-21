@@ -6,7 +6,8 @@ import { buildComparison } from "@/lib/comparison";
 import { isSupportedCategory } from "@/lib/market-coverage";
 import { negotiatorCache, cacheKey } from "@/lib/llm_cache";
 import RelayConsentPrompt from "@/components/RelayConsentPrompt";
-import { relayStatusLabel } from "@/lib/relay";
+import { relayStatusLabel, relayMandateText } from "@/lib/relay";
+import { relayProviderEmail } from "@/lib/relay-providers";
 import { isEnabled } from "@/lib/feature-flags";
 import TrackEvent from "@/components/TrackEvent";
 import EmailDisplay from "@/components/EmailDisplay";
@@ -171,7 +172,14 @@ export default async function EmailPage({
             </p>
           </section>
         ) : (
-          <RelayConsentPrompt negotiationId={negotiation.id} provider={bill.provider} />
+          <RelayConsentPrompt
+            negotiationId={negotiation.id}
+            provider={bill.provider}
+            hasFeeCard={hasFeeCard}
+            resolvedProviderEmail={relayProviderEmail(bill.provider)}
+            mandateText={relayMandateText(bill.provider)}
+            returnTo={`/onderhandel/email?bill=${bill.id}`}
+          />
         ))}
     </main>
   );
