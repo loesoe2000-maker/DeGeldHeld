@@ -6,6 +6,7 @@ import { buildComparison } from "@/lib/comparison";
 import { isSupportedCategory } from "@/lib/market-coverage";
 import { negotiatorCache, cacheKey } from "@/lib/llm_cache";
 import EmailDisplay from "@/components/EmailDisplay";
+import FeeMandatePrompt from "@/components/FeeMandatePrompt";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Onderhandel-email — DeGeldHeld" };
@@ -25,6 +26,13 @@ export default async function EmailPage({
 
   const bill = await prisma.bill.findFirst({ where: { id: billId, userId } });
   if (!bill) redirect("/onderhandel");
+
+  // v19: has the user already linked a card for the no-cure-no-pay fee?
+  const userRow = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { feePaymentMethodId: true },
+  });
+  const hasFeeCard = !!userRow?.feePaymentMethodId;
 
   // v22 AFM gate: never generate a negotiation for hypotheek/verzekering —
   // route back to the analyse page which shows the "not supported" state.
@@ -91,6 +99,9 @@ export default async function EmailPage({
       <p className="mt-2 text-slate-600">
         Kopieer de tekst hieronder en stuur via je eigen e-mailadres naar je provider.
       </p>
+      {!hasFeeCard && (
+        <FeeMandatePrompt returnTo={`/onderhandel/email?bill=${bill.id}`} />
+      )}
       <div className="mt-8">
         <EmailDisplay
           subject={result.subject}

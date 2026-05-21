@@ -150,6 +150,50 @@ export async function createCheckoutSession(input: CheckoutInput): Promise<Check
   };
 }
 
+export type FeeSetupSession = { id: string; url: string | null; test: boolean };
+
+/**
+ * v19 — hosted Stripe Checkout in `mode: "setup"`: the user attaches a card
+ * (Stripe handles the form + SCA/3DS + storage) at €0. On completion the
+ * webhook (DEEL 3) reads the SetupIntent's payment_method + saves it as the
+ * user's fee-charge method. Card-only: iDEAL can't authorise an off-session
+ * mandate.
+ *
+ * Test-mode dummy key → fake success URL so e2e runs without real Stripe.
+ */
+export async function createFeeSetupSession(input: {
+  userId: string;
+  userEmail: string;
+  appUrl: string;
+  returnTo: string;
+}): Promise<FeeSetupSession> {
+  if (!apiKey || apiKey === "sk_test_dummy") {
+    return {
+      id: `cs_setup_test_${input.userId}`,
+      url: `${input.appUrl}${input.returnTo}?card=ok`,
+      test: true,
+    };
+  }
+  const user = await prisma.user.findUnique({
+    where: { id: input.userId },
+    select: { stripeCustomerId: true },
+  });
+  const session = await client().checkout.sessions.create({
+    mode: "setup",
+    // Card only — iDEAL/SEPA can't authorise an off-session mandate here.
+    payment_method_types: ["card"],
+    // Reuse the existing customer when we have one; otherwise Stripe creates
+    // one in setup mode and the webhook persists its id.
+    ...(user?.stripeCustomerId
+      ? { customer: user.stripeCustomerId }
+      : { customer_email: input.userEmail }),
+    metadata: { userId: input.userId, purpose: "fee-mandate" },
+    success_url: `${input.appUrl}${input.returnTo}?card=ok`,
+    cancel_url: `${input.appUrl}${input.returnTo}?card=skip`,
+  });
+  return { id: session.id, url: session.url, test: false };
+}
+
 export type WebhookEvent = {
   /** Stripe event id (evt_...) — used for idempotency + audit. */
   eventId: string;
