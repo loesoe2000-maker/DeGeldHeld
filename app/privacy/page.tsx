@@ -85,8 +85,20 @@ export default function PrivacyPage() {
                 <td className="py-1 pr-3">Je wijzen op nieuwe besparingen</td>
                 <td className="py-1">Gerechtvaardigd belang — met opt-out in elke mail</td>
               </tr>
+              <tr>
+                <td className="py-1 pr-3"><strong>Onderhandelen namens jou</strong> (naam, klantnummer, factuurcontext → je provider)</td>
+                <td className="py-1 pr-3">Namens jou onderhandelen — alleen na expliciete machtiging</td>
+                <td className="py-1">Uitvoering overeenkomst + toestemming (machtiging)</td>
+              </tr>
             </tbody>
           </table>
+          <p className="text-sm text-slate-600">
+            Als je DeGeldHeld machtigt om namens jou te onderhandelen (volmacht,
+            zie de voorwaarden), sturen we onderhandel-e-mails met je naam +
+            klantnummer naar de betreffende <strong>provider</strong>. Dat
+            gebeurt alleen voor de provider waarvoor je de machtiging geeft, en
+            je kunt 'm altijd intrekken.
+          </p>
 
           <h2 className="text-2xl font-semibold text-slate-900">3. Met wie we delen (sub-verwerkers)</h2>
           <p>Om de dienst te leveren schakelen we deze verwerkers in. Met elk sluiten we een verwerkersovereenkomst (DPA).</p>

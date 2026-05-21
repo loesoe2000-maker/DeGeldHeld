@@ -57,6 +57,22 @@ export default function VoorwaardenPage() {
             reeds verschuldigde fees onverlet.
           </p>
 
+          <h2 className="text-2xl font-semibold text-slate-900">2b. Onderhandelen namens jou (volmacht)</h2>
+          <p>
+            Optioneel kun je DeGeldHeld <strong>machtigen</strong> om{" "}
+            <strong>namens jou</strong> met je provider te onderhandelen
+            (volmacht, art. 3:60 BW). Deze machtiging is{" "}
+            <strong>strikt beperkt tot onderhandelen en corresponderen</strong>:
+            DeGeldHeld mag <strong>geen</strong> nieuw of gewijzigd contract
+            namens jou accepteren of afsluiten — <strong>elk concreet aanbod of
+            definitieve stap keur jij zelf goed</strong>. Je kunt de machtiging{" "}
+            <strong>altijd intrekken</strong> (pauzeren/stoppen, art. 3:72 BW);
+            daarna sturen we geen e-mails meer namens jou. Zonder machtiging
+            blijft de gewone handmatige flow (jij verstuurt zelf) gelden. De
+            volledige tekst staat in <em>docs/MACHTIGING.md</em> (concept — wordt
+            juridisch getoetst).
+          </p>
+
           <h2 className="text-2xl font-semibold text-slate-900">3. Jouw verantwoordelijkheden</h2>
           <ul className="list-disc pl-6">
             <li>Je uploadt rekeningen die op jouw naam staan.</li>
