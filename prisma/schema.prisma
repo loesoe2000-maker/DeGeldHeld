@@ -57,6 +57,12 @@ model User {
   stripeCustomerId     String?  @unique
   stripeSubscriptionId String?  @unique
 
+  // v19 auto no-cure-no-pay: saved card + recorded mandate consent so the
+  // 20% fee can be charged off-session once savings are verified.
+  feePaymentMethodId   String?    // Stripe PaymentMethod (pm_...) for fee charge
+  feeMandateAcceptedAt DateTime?  // when the no-cure-no-pay mandate was accepted
+  feeMandateText       String?    // exact text the user accepted (audit)
+
   // app data
   accounts      Account[]
   sessions      Session[]
