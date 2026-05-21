@@ -1,8 +1,30 @@
 import { MARKET_PLANS, planCountry, type SeedPlan } from "@/lib/market_db";
 import type { Category, Country } from "@/lib/providers";
 import { ruleFor, type ComparisonUnit } from "@/lib/categories";
+import { SOURCED_MARKET_PLANS, type MarketPlan } from "@/lib/market-prices";
+import { isSupportedCategory } from "@/lib/market-coverage";
 
 export type { ComparisonUnit };
+
+/**
+ * v22: the candidate pool = the indicative seed plans (market_db) PLUS the
+ * v22 SOURCED plans (real, dated, URL-sourced — lib/market-prices.ts). The
+ * sourced plans are NL-only and tagged with their exact category, so a
+ * STREAMING/SOFTWARE/OPSLAG bill picks up the real prices while everything
+ * else keeps the existing seed data.
+ */
+function sourcedAsSeed(m: MarketPlan): SeedPlan {
+  return {
+    provider: m.provider,
+    category: m.category,
+    name: m.plan,
+    priceCents: m.priceCents,
+    features: `bron: ${m.source}`,
+    country: "NL",
+  };
+}
+
+const ALL_PLANS: SeedPlan[] = [...MARKET_PLANS, ...SOURCED_MARKET_PLANS.map(sourcedAsSeed)];
 
 /**
  * Regio-monopolie categorieën: hier heeft de consument géén keuze in
@@ -74,7 +96,9 @@ export function getCheaperAlternatives(
   topN = 3,
   country: Country = "NL",
 ): Alternative[] {
-  const candidates = MARKET_PLANS.filter((p) => {
+  // v22: gated categories (hypotheek/verzekering) get no comparison.
+  if (!isSupportedCategory(category)) return [];
+  const candidates = ALL_PLANS.filter((p) => {
     if (p.category !== category) return false;
     if (p.priceCents >= currentAmountCents) return false;
     const c = planCountry(p);
@@ -131,11 +155,12 @@ export function getMarketRange(
   userAmountCents: number,
   country: Country = "NL",
 ): MarketRange {
-  const prices = MARKET_PLANS.filter((p) => {
-    if (p.category !== category) return false;
-    const c = planCountry(p);
-    return c === country || c === "INT";
-  })
+  const prices = (isSupportedCategory(category) ? ALL_PLANS : [])
+    .filter((p) => {
+      if (p.category !== category) return false;
+      const c = planCountry(p);
+      return c === country || c === "INT";
+    })
     .map((p) => p.priceCents)
     .sort((a, b) => a - b);
 
