@@ -149,7 +149,7 @@ export default function AnonymousMailPrompt({
       </form>
       {error && <p className="mt-2 text-sm text-red-700">{error}</p>}
       <p className="mt-3 text-xs text-brand-900/70">
-        Geen wachtwoord, geen spam. Eerste 3 onderhandelingen gratis.
+        Geen wachtwoord, geen spam. Je betaalt alleen als je écht bespaart.
       </p>
     </section>
   );

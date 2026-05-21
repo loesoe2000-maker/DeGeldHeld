@@ -6,7 +6,7 @@ const items: { q: string; a: string; category?: string }[] = [
   {
     category: "Prijzen",
     q: "Wat kost het?",
-    a: "Niks vooraf. De eerste 3 onderhandelingen zijn 100% gratis. Daarna rekenen we 20% van de geverifieerde jaarbesparing — alleen als de provider écht akkoord ging. Geen besparing = geen rekening.",
+    a: "Niks vooraf. Je betaalt alleen 20% van de geverifieerde jaarbesparing — en alleen als de provider écht akkoord ging. Geen besparing = geen rekening.",
   },
   {
     category: "Prijzen",
@@ -23,18 +23,8 @@ const items: { q: string; a: string; category?: string }[] = [
     q: "Moet ik bewijzen dat ik écht heb bespaard?",
     a: "Ja, één keer per onderhandeling. Forward de bevestigingsmail van je provider naar bewijs@degeldheld.com, of upload je nieuwe factuur na 1 maand. Geen bewijs = succes telt niet mee en geen fee.",
   },
-  {
-    category: "Prijzen",
-    q: "Is er een maximum aan de fee?",
-    a: "Ja. De fee is gecapped op €50 per onderhandeling, ongeacht hoeveel je bespaart. Minimaal €5 boven €25/jaar besparing.",
-  },
 
   // HOE HET WERKT
-  {
-    category: "Hoe het werkt",
-    q: "Hoe werkt het concreet?",
-    a: "1) Upload een foto of PDF van je factuur. 2) Onze AI leest provider, bedrag en pakket. 3) We vergelijken met de markt. 4) Je krijgt een onderhandel-mail die je zelf verstuurt. 5) Provider antwoordt → wij analyseren → counter-mail tot deal of breekpunt.",
-  },
   {
     category: "Hoe het werkt",
     q: "Hoe lang duurt een onderhandeling?",
@@ -43,12 +33,12 @@ const items: { q: string; a: string; category?: string }[] = [
   {
     category: "Hoe het werkt",
     q: "Voor welke vaste lasten werkt het?",
-    a: "Telecom (mobiel, internet, tv), energie (stroom, gas, warmte), verzekeringen (zorg, auto, woon), bankpakketten, streaming, gym, software-abonnementen. Hypotheken via een aparte flow. Water en gemeente-belasting kunnen we niet onderhandelen — die zijn monopolie.",
+    a: "Telecom (mobiel, internet, tv), energie (stroom, gas), bankpakketten, streaming, gym, software- en opslag-abonnementen. Hypotheek en verzekering bieden we (nog) niet aan — dat zijn financiële producten waarvoor een AFM-vergunning nodig is. Water kun je niet onderhandelen (monopolie), maar we tonen wel verbruiks-bespaartips.",
   },
   {
     category: "Hoe het werkt",
     q: "Welke landen ondersteunen jullie?",
-    a: "Volledig: Nederland en België. Beta: Duitsland, Frankrijk, UK. Andere landen werken vaak ook maar zonder geverifieerde provider-database.",
+    a: "We focussen volledig op Nederland — daar is onze geverifieerde prijsvergelijking op gebaseerd. Buitenlandse facturen herkennen we wel, maar de vergelijking is voorlopig NL-only. Andere landen volgen later.",
   },
   {
     category: "Hoe het werkt",
@@ -65,7 +55,7 @@ const items: { q: string; a: string; category?: string }[] = [
   {
     category: "Privacy & data",
     q: "Wordt mijn data gedeeld?",
-    a: "Nee. We delen geen data met providers, adverteerders of derden. Sub-processors (Vercel hosting, Neon database, Resend mail, Groq AI) verwerken alleen wat nodig is en zitten allemaal in EU.",
+    a: "Nee. We delen geen data met providers, adverteerders of derden. Sub-processors (Vercel, Neon, Resend, Groq, Stripe, Cloudflare, Sentry) verwerken alleen wat nodig is, onder een verwerkersovereenkomst. Niet-EU-partijen (zoals Groq en Stripe) doen dat met EU-standaardclausules (SCC's).",
   },
   {
     category: "Privacy & data",
