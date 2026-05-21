@@ -20,9 +20,26 @@ function LoginForm() {
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
       <div className="max-w-md w-full">
-        <h1 className="text-3xl font-bold mb-4">Inloggen</h1>
+        <h1 className="text-3xl font-bold text-slate-900 mb-2">
+          Inloggen of gratis account maken
+        </h1>
+        <p className="mb-6 text-slate-600">
+          Vul je e-mail in — bestaand of nieuw. We sturen je een inloglink en
+          maken automatisch een <strong>gratis account</strong> aan als je nieuw
+          bent. Geen wachtwoord nodig.
+        </p>
         {checkEmail ? (
-          <p className="text-green-600">Check je email voor de login link.</p>
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+            <p className="font-medium text-emerald-800">Check je inbox 📬</p>
+            <p className="mt-1 text-sm text-emerald-700">
+              We hebben je een inloglink gestuurd. Kijk ook even in je spam.
+            </p>
+            <p className="mt-3 text-sm text-slate-600">
+              Geen mail binnen 2 minuten? <strong>School- of werkmail blokkeert
+              de link vaak</strong> — gebruik dan een persoonlijk adres
+              (Gmail, iCloud, Outlook).
+            </p>
+          </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
             <label htmlFor="login-email" className="block text-sm font-medium text-slate-700">
@@ -43,8 +60,12 @@ function LoginForm() {
               disabled={loading}
               className="min-h-[44px] w-full rounded bg-brand-700 p-3 font-semibold text-white disabled:opacity-50"
             >
-              {loading ? "Versturen..." : "Stuur magic link"}
+              {loading ? "Versturen..." : "Stuur me een inloglink"}
             </button>
+            <p className="text-xs text-slate-500">
+              Tip: gebruik een persoonlijk e-mailadres — school- en werkmail
+              blokkeren onze inloglink soms.
+            </p>
           </form>
         )}
       </div>

@@ -1,36 +1,6 @@
-"use client";
-
-import { useState } from "react";
+import Link from "next/link";
 
 export default function Hero() {
-  const [email, setEmail] = useState("");
-  const [status, setStatus] = useState<"idle" | "loading" | "ok" | "error">("idle");
-  const [message, setMessage] = useState("");
-
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
-    setStatus("loading");
-    try {
-      const res = await fetch("/api/waitlist", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ email, source: "hero" }),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setStatus("ok");
-        setMessage("Bedankt — je staat op de lijst.");
-        setEmail("");
-      } else {
-        setStatus("error");
-        setMessage(data.error ?? "Er ging iets mis.");
-      }
-    } catch {
-      setStatus("error");
-      setMessage("Netwerkfout — probeer opnieuw.");
-    }
-  }
-
   return (
     <section className="bg-gradient-to-b from-brand-50 to-white px-6 py-20 sm:py-28">
       <div className="mx-auto max-w-4xl text-center">
@@ -43,44 +13,32 @@ export default function Hero() {
           <strong> 20% van wat we besparen</strong>.
         </p>
 
-        <form onSubmit={submit} className="mx-auto mt-10 flex max-w-md flex-col gap-2 sm:flex-row">
-          <label htmlFor="email" className="sr-only">E-mailadres</label>
-          <input
-            id="email"
-            type="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="jouw@email.nl"
-            className="w-full flex-1 rounded-lg border border-slate-300 px-4 py-3 text-base focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
-            aria-label="E-mailadres voor wachtlijst"
-          />
-          <button
-            type="submit"
-            disabled={status === "loading"}
-            className="rounded-lg bg-brand-600 px-6 py-3 font-semibold text-white shadow-sm hover:bg-brand-700 disabled:opacity-60"
+        <div className="mx-auto mt-10 flex max-w-md flex-col items-center gap-3 sm:flex-row sm:justify-center">
+          <Link
+            href="/onderhandel"
+            className="w-full rounded-lg bg-brand-600 px-8 py-3 text-center font-semibold text-white shadow-sm hover:bg-brand-700 sm:w-auto"
           >
-            {status === "loading" ? "Even geduld…" : "Word lid"}
-          </button>
-        </form>
-
-        {status === "ok" && (
-          <p role="status" className="mt-4 text-brand-700">{message}</p>
-        )}
-        {status === "error" && (
-          <p role="alert" className="mt-4 text-red-600">{message}</p>
-        )}
+            Upload je rekening — gratis
+          </Link>
+          <Link
+            href="/login"
+            className="w-full rounded-lg border border-slate-300 bg-white px-8 py-3 text-center font-semibold text-slate-700 hover:bg-slate-50 sm:w-auto"
+          >
+            Inloggen / account maken
+          </Link>
+        </div>
 
         <p className="mt-6 text-sm text-slate-500">
-          Geen kosten vooraf · Niet bespaard? Niets te betalen · NL providers ondersteund
+          Geen account of betaling nodig om te proberen · Niet bespaard? Niets te
+          betalen · NL providers ondersteund
         </p>
         <p className="mt-4">
-          <a
+          <Link
             href="/demo"
             className="text-sm font-medium text-brand-700 underline decoration-dotted underline-offset-4 hover:text-brand-800"
           >
             Bekijk hoe het werkt (30 sec) →
-          </a>
+          </Link>
         </p>
       </div>
     </section>
