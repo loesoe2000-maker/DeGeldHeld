@@ -7,6 +7,9 @@ import {
   shouldMarkFailed,
   isSubscriptionEvent,
   subscriptionStatusFromEvent,
+  isFeeSetupCompleted,
+  getSetupPaymentMethod,
+  persistFeeSetup,
   type WebhookEvent,
 } from "@/lib/payments";
 import * as Sentry from "@sentry/nextjs";
@@ -73,6 +76,19 @@ export async function POST(req: NextRequest) {
 
 async function handleEvent(event: WebhookEvent): Promise<void> {
   const { type, negotiationId, billId, kind, sessionId, paymentIntentId, eventId } = event;
+
+  // --- v19 fee-mandate: card linked via setup-checkout ---
+  if (isFeeSetupCompleted(event) && event.setupIntentId) {
+    const pm = await getSetupPaymentMethod(event.setupIntentId, event.customerId);
+    if (pm) {
+      await persistFeeSetup({
+        userId: event.userId,
+        customerId: event.customerId,
+        paymentMethodId: pm,
+      });
+    }
+    return;
+  }
 
   // --- Subscription (DeGeldHeld Plus) ---
   if (isSubscriptionEvent(type)) {

@@ -208,6 +208,11 @@ export type WebhookEvent = {
   subscriptionId: string | null;
   /** Stripe subscription.status (active/past_due/canceled/...). */
   subscriptionStatus: string | null;
+  // v19: setup-checkout (fee-mandate) fields.
+  mode: string | null; // checkout session mode ("setup" | "payment" | ...)
+  userId: string | null; // metadata.userId (fee-mandate setup)
+  purpose: string | null; // metadata.purpose ("fee-mandate")
+  setupIntentId: string | null; // SetupIntent id on a completed setup session
 };
 
 export function verifyAndParseWebhook(
@@ -249,6 +254,10 @@ export function verifyAndParseWebhook(
             ? str(data.id)
             : str(data.subscription),
         subscriptionStatus: str(data.status),
+        mode: str(data.mode),
+        userId: meta?.userId ?? null,
+        purpose: meta?.purpose ?? null,
+        setupIntentId: str(data.setup_intent),
       },
     };
   } catch (e) {
@@ -293,6 +302,71 @@ export function subscriptionStatusFromEvent(
     return stripeStatus ?? null;
   }
   return null;
+}
+
+// ---------- v19 fee-mandate (setup-checkout completion) ----------
+
+/** True when this event is a completed fee-mandate setup-checkout. */
+export function isFeeSetupCompleted(event: WebhookEvent): boolean {
+  return (
+    event.type === "checkout.session.completed" &&
+    event.mode === "setup" &&
+    event.purpose === "fee-mandate"
+  );
+}
+
+/**
+ * Retrieve the SetupIntent's payment_method and set it as the customer's
+ * default (so off-session charges use it). Returns the pm id, or null when
+ * it can't be resolved. Real Stripe only — in test-dummy mode there's no
+ * SetupIntent so callers mock this.
+ */
+export async function getSetupPaymentMethod(
+  setupIntentId: string,
+  customerId: string | null,
+): Promise<string | null> {
+  if (!apiKey || apiKey === "sk_test_dummy") return null;
+  const si = await client().setupIntents.retrieve(setupIntentId);
+  const pm = typeof si.payment_method === "string" ? si.payment_method : si.payment_method?.id ?? null;
+  if (pm && customerId) {
+    try {
+      await client().customers.update(customerId, {
+        invoice_settings: { default_payment_method: pm },
+      });
+    } catch {
+      /* default-PM is best-effort; off-session still passes the pm explicitly */
+    }
+  }
+  return pm;
+}
+
+/**
+ * Persist the linked card + mandate on the user. Resolves the user by
+ * metadata.userId (preferred) or by stripeCustomerId. Idempotent at the
+ * row level — re-running just re-writes the same fields.
+ */
+export async function persistFeeSetup(opts: {
+  userId: string | null;
+  customerId: string | null;
+  paymentMethodId: string;
+}): Promise<{ ok: boolean; reason?: string }> {
+  const where = opts.userId
+    ? { id: opts.userId }
+    : opts.customerId
+      ? { stripeCustomerId: opts.customerId }
+      : null;
+  if (!where) return { ok: false, reason: "no user reference" };
+  const user = await prisma.user.findFirst({ where });
+  if (!user) return { ok: false, reason: "user not found" };
+  await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      feePaymentMethodId: opts.paymentMethodId,
+      feeMandateAcceptedAt: new Date(),
+      ...(opts.customerId ? { stripeCustomerId: opts.customerId } : {}),
+    },
+  });
+  return { ok: true };
 }
 
 // ---------- DEEL 10 paywall ----------
