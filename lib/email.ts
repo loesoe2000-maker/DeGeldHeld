@@ -17,6 +17,8 @@ export async function sendEmail(opts: {
   html: string;
   text?: string;
   headers?: Record<string, string>;
+  /** v23 relay: reply-to routing so provider replies come back to us. */
+  replyTo?: string;
 }) {
   if (!apiKey || apiKey === "re_test_dummy") {
     return { id: "test-noop", skipped: true };
@@ -28,6 +30,7 @@ export async function sendEmail(opts: {
     html: opts.html,
     text: opts.text,
     headers: opts.headers,
+    ...(opts.replyTo ? { replyTo: opts.replyTo } : {}),
   });
   return { id: result.data?.id ?? "unknown", skipped: false };
 }

@@ -12,6 +12,8 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { generateRelayToken, relayMandateText } from "@/lib/relay";
+import { sendFirstRelayMail } from "@/lib/relay-send";
+import * as Sentry from "@sentry/nextjs";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -62,5 +64,21 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     },
   });
 
-  return NextResponse.json({ ok: true, relayState: "RELAY_ACTIVE" });
+  // DEEL 2: if we have a provider address, send the first mail on behalf
+  // right away (consent-gated inside sendFirstRelayMail). Best-effort — the
+  // relay stays authorized even if the provider address isn't known yet.
+  let firstSend: string | null = null;
+  if (providerEmail) {
+    try {
+      const r = await sendFirstRelayMail(negotiation.id);
+      firstSend = r.ok ? "sent" : r.reason;
+    } catch (e) {
+      Sentry.captureException(e, { tags: { module: "relay-authorize" } });
+      firstSend = "error";
+    }
+  } else {
+    firstSend = "no-provider-address";
+  }
+
+  return NextResponse.json({ ok: true, relayState: "RELAY_ACTIVE", firstSend });
 }
