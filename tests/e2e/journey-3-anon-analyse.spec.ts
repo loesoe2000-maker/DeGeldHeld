@@ -62,15 +62,17 @@ test.describe("v16 journey-3 — anonymous analyse contract", () => {
     await ctx.close();
   });
 
-  test("analyse page source mounts AnonymousMailPrompt + stale-banner contract", async () => {
+  test("analyse page source mounts the next-step CTA + stale-banner contract", async () => {
     // Component-level contract — guards the renderer against a
     // refactor that drops the CTAs the journey-test expects to see
-    // with a real bill in scope.
+    // with a real bill in scope. The anonymous inline email-capture block
+    // was replaced by a 'verder' button routed via /login?callbackUrl=….
     const src = readFileSync(
       resolve(ROOT, "app/onderhandel/analyse/page.tsx"),
       "utf8",
     );
-    expect(src).toMatch(/AnonymousMailPrompt/);
+    expect(src).toMatch(/analyse-next-cta/);
+    expect(src).toMatch(/login\?callbackUrl=/);
     expect(src).toMatch(/stale-banner|STALE_DAYS|invoiceAge/);
     expect(src).toMatch(/onetime-banner|showOneTimeBanner|oneTime/);
     expect(src).toMatch(/isAnonymous/);

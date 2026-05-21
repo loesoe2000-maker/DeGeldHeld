@@ -14,7 +14,6 @@ import { requiresPayment } from "@/lib/payments";
 import { compareEnergy, type EnergyContractType } from "@/lib/categories/energie";
 import { compareWater } from "@/lib/categories/water";
 import { ANON_COOKIE_NAME, isValidAnonSessionId } from "@/lib/anon-session";
-import AnonymousMailPrompt from "@/components/AnonymousMailPrompt";
 import TrackEvent from "@/components/TrackEvent";
 import OcrCorrectionForm from "@/components/OcrCorrectionForm";
 import { listProvidersByCountry } from "@/lib/providers";
@@ -369,28 +368,43 @@ export default async function AnalysePage({
           categories are gated out above (AFM licence). The compare libs
           stay in lib/categories/ but are no longer surfaced here. */}
 
-      {isAnonymous ? (
-        <AnonymousMailPrompt
-          billId={bill.id}
-          provider={bill.provider}
-          yearlySavingsCents={comparison.bestSavingsCents}
-        />
-      ) : (
-        <div className="mt-10 flex gap-3">
-          <Link
-            href={`/onderhandel/email?bill=${bill.id}`}
-            className="rounded-lg bg-brand-600 px-6 py-3 font-semibold text-white hover:bg-brand-700"
-          >
-            Genereer onderhandel-email
-          </Link>
-          <Link
-            href="/dashboard"
-            className="rounded-lg border border-slate-300 px-6 py-3 font-medium text-slate-700 hover:bg-slate-50"
-          >
-            Annuleren
-          </Link>
-        </div>
-      )}
+      {/* Next step. Anonymous visitors get the SAME clear CTA, but routed via
+          /login?callbackUrl=… — they make a free (passwordless) account and
+          land straight back here on the onderhandel-mail. Their bill is
+          claimed to the new account on login (lib/auth → claimAnonymousBills),
+          so nothing is lost. (Replaces the old inline email-capture block.) */}
+      {(() => {
+        const emailHref = `/onderhandel/email?bill=${bill.id}`;
+        const ctaHref = isAnonymous
+          ? `/login?callbackUrl=${encodeURIComponent(emailHref)}`
+          : emailHref;
+        return (
+          <div className="mt-10">
+            <div className="flex flex-wrap gap-3">
+              <Link
+                href={ctaHref}
+                data-testid="analyse-next-cta"
+                className="rounded-lg bg-brand-600 px-6 py-3 font-semibold text-white hover:bg-brand-700"
+              >
+                Genereer onderhandel-email →
+              </Link>
+              <Link
+                href={isAnonymous ? "/onderhandel" : "/dashboard"}
+                className="rounded-lg border border-slate-300 px-6 py-3 font-medium text-slate-700 hover:bg-slate-50"
+              >
+                {isAnonymous ? "Andere rekening" : "Annuleren"}
+              </Link>
+            </div>
+            {isAnonymous && (
+              <p className="mt-3 text-sm text-slate-500">
+                Je maakt gratis een account aan (geen wachtwoord) zodat we je
+                onderhandel-mail kunnen klaarzetten. Je betaalt alleen als je
+                écht bespaart.
+              </p>
+            )}
+          </div>
+        );
+      })()}
 
       <p data-testid="prices-asof" className="mt-8 text-xs text-slate-400">
         {pricesAreStale()

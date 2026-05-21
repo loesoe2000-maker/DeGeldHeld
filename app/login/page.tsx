@@ -7,13 +7,21 @@ import { signIn } from "next-auth/react";
 function LoginForm() {
   const params = useSearchParams();
   const checkEmail = params?.get("check") === "email";
+  // Honor a same-site callbackUrl (e.g. an anonymous visitor continuing to
+  // their bill's onderhandel-mail after signup). Only accept a single-slash
+  // relative path to avoid an open redirect; default to the dashboard.
+  const rawCallback = params?.get("callbackUrl") ?? "";
+  const callbackUrl =
+    rawCallback.startsWith("/") && !rawCallback.startsWith("//")
+      ? rawCallback
+      : "/dashboard";
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
-    await signIn("resend", { email, callbackUrl: "/dashboard" });
+    await signIn("resend", { email, callbackUrl });
     setLoading(false);
   }
 
