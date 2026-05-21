@@ -156,14 +156,33 @@ export async function POST(req: NextRequest) {
       if (anonSessionId !== existing) setCookieAfter = true;
     }
 
-    const rl = isAnonymous
-      ? rateLimit({
-          key: `upload-anon:${ipFromRequest(req)}`,
-          max: 3,
-          windowSec: 3600,
-        })
-      : rateLimit({ key: `upload:${userId}`, max: 5, windowSec: 3600 });
-    if (!rl.ok) return rateLimitResponse(rl);
+    if (isAnonymous) {
+      // Primary limit per anonymous SESSION (cookie), not per IP — so visitors
+      // behind a shared IP (mobile carrier NAT, school/office wifi) don't block
+      // each other during a traffic spike (e.g. a viral TikTok). A real visitor
+      // tries a couple of bills before the login gate. Bots are already stopped
+      // by the Turnstile CAPTCHA below, so this is a UX rail, not the anti-bot.
+      const perSession = rateLimit({
+        key: `upload-anon-sess:${anonSessionId}`,
+        max: 6,
+        windowSec: 3600,
+      });
+      if (!perSession.ok) return rateLimitResponse(perSession);
+      // Loose per-IP backstop: only catches a single IP hammering (cookie-
+      // cycling cost-abuse). The real cost ceiling is the Groq/Vercel spend cap.
+      const perIp = rateLimit({
+        key: `upload-anon-ip:${ipFromRequest(req)}`,
+        max: 120,
+        windowSec: 3600,
+      });
+      if (!perIp.ok) return rateLimitResponse(perIp);
+    } else {
+      // Logged-in: per-user. Bumped 5→12 so a user can upload all their
+      // household bills (telecom, mobiel, internet, energie, water, gym,
+      // streaming…) in one session without hitting the rail.
+      const rl = rateLimit({ key: `upload:${userId}`, max: 12, windowSec: 3600 });
+      if (!rl.ok) return rateLimitResponse(rl);
+    }
 
     stage = "form";
     let form: FormData;

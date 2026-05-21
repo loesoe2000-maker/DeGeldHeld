@@ -53,12 +53,14 @@ describe("anon upload route — source-level contract", () => {
     expect(src).toMatch(/verifyTurnstileToken/);
   });
 
-  it("anonymous IP rate-limit is 3/hour (per sprint)", () => {
+  it("anonymous upload limit is per-session (shared-IP safe) + per-IP backstop", () => {
     const src = require("node:fs").readFileSync(
       require("node:path").resolve(__dirname, "../app/api/bills/upload/route.ts"),
       "utf8",
     );
-    expect(src).toMatch(/upload-anon:/);
-    expect(src).toMatch(/max:\s*3/);
+    // Per-anonymous-session primary limit so shared IPs (mobile NAT, school
+    // wifi) don't make visitors block each other, plus a loose per-IP backstop.
+    expect(src).toMatch(/upload-anon-sess:/);
+    expect(src).toMatch(/upload-anon-ip:/);
   });
 });
