@@ -34,6 +34,12 @@ const FLAG_DEFAULTS = {
   // real verified-savings flows confirmed end-to-end. Without this,
   // legacy paywall stays in place.
   NO_CURE_NO_PAY: false,
+  // Off by default — v25 negotiate-on-behalf RELAY. Gates EVERY relay
+  // entrypoint (consent-prompt visibility, relay-authorize, the status
+  // page, relay-approve, relay-pause). MUST stay off until a lawyer has
+  // reviewed the volmacht + voorwaarden + privacy (docs/MACHTIGING.md).
+  // Off → only the existing manual copy-to-send flow, zero relay UI.
+  RELAY_ENABLED: false,
 } as const;
 
 export type FeatureFlag = keyof typeof FLAG_DEFAULTS;

@@ -10,11 +10,16 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { isEnabled } from "@/lib/feature-flags";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {
+  // GUARDRAIL 7 — relay gated behind the flag.
+  if (!isEnabled("RELAY_ENABLED")) {
+    return NextResponse.json({ error: "Not found", reason: "disabled" }, { status: 404 });
+  }
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const userId = (session.user as { id: string }).id;

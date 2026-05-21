@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import Link from "next/link";
 import RelayControls from "@/components/RelayControls";
 import { relayStatusLabel } from "@/lib/relay";
+import { isEnabled } from "@/lib/feature-flags";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Automatisch onderhandelen — DeGeldHeld" };
@@ -15,6 +16,10 @@ export const metadata = { title: "Automatisch onderhandelen — DeGeldHeld" };
  */
 export default async function RelayPage({ params }: { params: Promise<{ billId: string }> }) {
   const { billId } = await params;
+  // GUARDRAIL 7 — relay gated behind the flag. Off → the page doesn't exist
+  // (the manual copy-to-send flow stays; no relay UI is reachable).
+  if (!isEnabled("RELAY_ENABLED")) notFound();
+
   const session = await auth();
   if (!session?.user) redirect(`/login?from=/onderhandel/${billId}/relay`);
   const userId = (session.user as { id: string }).id;

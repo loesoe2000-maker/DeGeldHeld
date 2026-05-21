@@ -17,6 +17,7 @@ import { prisma } from "@/lib/db";
 import { sendRelayMail } from "@/lib/relay-send";
 import { generateEmail } from "@/lib/negotiator";
 import { buildComparison } from "@/lib/comparison";
+import { isEnabled } from "@/lib/feature-flags";
 import type { Category, Country } from "@/lib/providers";
 import type { BillCategory } from "@prisma/client";
 
@@ -26,6 +27,10 @@ export const dynamic = "force-dynamic";
 type Action = "accept" | "continue" | "stop";
 
 export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {
+  // GUARDRAIL 7 — relay gated behind the flag.
+  if (!isEnabled("RELAY_ENABLED")) {
+    return NextResponse.json({ error: "Not found", reason: "disabled" }, { status: 404 });
+  }
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const userId = (session.user as { id: string }).id;

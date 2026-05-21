@@ -12,6 +12,9 @@ const h = vi.hoisted(() => ({
   relaySendCalls: 0,
 }));
 
+// Relay is flag-gated (v25); these tests exercise the enabled path.
+vi.mock("@/lib/feature-flags", () => ({ isEnabled: () => true }));
+
 vi.mock("@/lib/auth", () => ({ auth: vi.fn(async () => (h.userId ? { user: { id: h.userId } } : null)) }));
 
 vi.mock("@/lib/db", () => ({

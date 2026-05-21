@@ -13,6 +13,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { generateRelayToken, relayMandateText } from "@/lib/relay";
 import { sendFirstRelayMail } from "@/lib/relay-send";
+import { isEnabled } from "@/lib/feature-flags";
 import * as Sentry from "@sentry/nextjs";
 
 export const runtime = "nodejs";
@@ -25,6 +26,11 @@ function cleanEmail(v: unknown): string | null {
 }
 
 export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {
+  // GUARDRAIL 7 — relay is OWNER/lawyer-gated. Off → relay does not exist.
+  if (!isEnabled("RELAY_ENABLED")) {
+    return NextResponse.json({ error: "Not found", reason: "disabled" }, { status: 404 });
+  }
+
   const session = await auth();
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -39,6 +45,17 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   });
   if (!negotiation) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  // GUARDRAIL 4 — KAART VERPLICHT. "Wij doen het werk" → a proven saving must
+  // be chargeable. No linked fee-card + accepted mandate → no relay. Send the
+  // customer to the card-link step (the consent UI shows the FeeMandatePrompt).
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { feePaymentMethodId: true, feeMandateAcceptedAt: true },
+  });
+  if (!user?.feePaymentMethodId || !user.feeMandateAcceptedAt) {
+    return NextResponse.json({ error: "card required", reason: "card-required" }, { status: 409 });
   }
 
   let providerEmail: string | null = null;

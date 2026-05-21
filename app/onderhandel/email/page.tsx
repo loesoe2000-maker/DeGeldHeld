@@ -7,6 +7,7 @@ import { isSupportedCategory } from "@/lib/market-coverage";
 import { negotiatorCache, cacheKey } from "@/lib/llm_cache";
 import RelayConsentPrompt from "@/components/RelayConsentPrompt";
 import { relayStatusLabel } from "@/lib/relay";
+import { isEnabled } from "@/lib/feature-flags";
 import TrackEvent from "@/components/TrackEvent";
 import EmailDisplay from "@/components/EmailDisplay";
 import EmailPreviewLocked from "@/components/EmailPreviewLocked";
@@ -150,25 +151,28 @@ export default async function EmailPage({
         )}
       </div>
 
-      {relayAuthorized ? (
-        <section
-          data-testid="relay-active"
-          className="mt-8 rounded-xl border border-brand-200 bg-brand-50 p-5"
-        >
-          <h2 className="text-lg font-semibold text-brand-900">
-            {relayStatusLabel(negotiation.relayState)}
-          </h2>
-          <p className="mt-1 text-sm text-brand-900">
-            DeGeldHeld onderhandelt namens jou met {bill.provider}. Je keurt elke
-            deal zelf goed.{" "}
-            <a href={`/onderhandel/${bill.id}/relay`} className="underline">
-              Bekijk de status &amp; gesprekken →
-            </a>
-          </p>
-        </section>
-      ) : (
-        <RelayConsentPrompt negotiationId={negotiation.id} provider={bill.provider} />
-      )}
+      {/* GUARDRAIL 7 — relay UI only exists behind the flag. Off → the manual
+          copy-to-send flow above is the entire experience, no relay UI. */}
+      {isEnabled("RELAY_ENABLED") &&
+        (relayAuthorized ? (
+          <section
+            data-testid="relay-active"
+            className="mt-8 rounded-xl border border-brand-200 bg-brand-50 p-5"
+          >
+            <h2 className="text-lg font-semibold text-brand-900">
+              {relayStatusLabel(negotiation.relayState)}
+            </h2>
+            <p className="mt-1 text-sm text-brand-900">
+              DeGeldHeld onderhandelt namens jou met {bill.provider}. Je keurt elke
+              deal zelf goed.{" "}
+              <a href={`/onderhandel/${bill.id}/relay`} className="underline">
+                Bekijk de status &amp; gesprekken →
+              </a>
+            </p>
+          </section>
+        ) : (
+          <RelayConsentPrompt negotiationId={negotiation.id} provider={bill.provider} />
+        ))}
     </main>
   );
 }
