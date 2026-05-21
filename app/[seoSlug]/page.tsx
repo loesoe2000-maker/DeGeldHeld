@@ -17,7 +17,7 @@ import {
   findCategorySlug,
   findProviderSlug,
 } from "@/lib/seo-data";
-import { primaryFromLegacy } from "@/lib/categories";
+import { primaryFromLegacy, ruleFor } from "@/lib/categories";
 import { infoFor } from "@/lib/category-info";
 import CategoryInfoSection from "@/components/CategoryInfoSection";
 
@@ -96,6 +96,7 @@ function ProviderPage({ record: p }: { record: NonNullable<ReturnType<typeof fin
     publisher: { "@type": "Organization", name: "DeGeldHeld" },
   };
   const others = SEO_PROVIDERS.filter((x) => x.category === p.category && x.slug !== p.slug).slice(0, 3);
+  const rule = ruleFor(p.category);
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-12">
@@ -133,11 +134,57 @@ function ProviderPage({ record: p }: { record: NonNullable<ReturnType<typeof fin
         </ol>
       </section>
 
+      <section className="mt-8 rounded-xl border border-amber-200 bg-amber-50 p-5">
+        <h2 className="text-lg font-semibold text-amber-900">Bespaartip voor {p.name}</h2>
+        <p className="mt-2 text-amber-900">
+          De hoek die hier doorgaans werkt: <strong>{p.retentionAngle}</strong>. Klanten die zo
+          onderhandelen halen meestal <strong>{rule.typicalSavingPct.low}-{rule.typicalSavingPct.high}%</strong> van
+          hun maandbedrag eraf — zonder over te stappen.
+        </p>
+      </section>
+
+      <section className="mt-8">
+        <h2 className="text-2xl font-bold text-slate-900">Veelgestelde vragen over {p.name}</h2>
+        <div className="mt-4 space-y-4">
+          <details className="rounded-xl border border-slate-200 bg-white p-4">
+            <summary className="cursor-pointer font-semibold text-slate-900">
+              Kan ik bij {p.name} korting krijgen zonder over te stappen?
+            </summary>
+            <p className="mt-2 text-slate-700">
+              Ja. De retentie-afdeling mag bestaande klanten een korting of beter pakket aanbieden om
+              je te behouden. Je hoeft niet daadwerkelijk op te zeggen — een geloofwaardig alternatief
+              en een concrete deadline zijn meestal genoeg.
+            </p>
+          </details>
+          <details className="rounded-xl border border-slate-200 bg-white p-4">
+            <summary className="cursor-pointer font-semibold text-slate-900">
+              Hoeveel kan ik gemiddeld besparen bij {p.name}?
+            </summary>
+            <p className="mt-2 text-slate-700">
+              Reken op een richtbedrag van <strong>€{p.averageOverpayEurMonth}/maand</strong> boven de
+              markt-mediaan, oftewel zo'n <strong>€{p.averageOverpayEurMonth * 12}/jaar</strong>. Je
+              exacte ruimte hangt af van je pakket en hoe lang je al klant bent.
+            </p>
+          </details>
+          <details className="rounded-xl border border-slate-200 bg-white p-4">
+            <summary className="cursor-pointer font-semibold text-slate-900">
+              Schrijft DeGeldHeld de mail voor me?
+            </summary>
+            <p className="mt-2 text-slate-700">
+              Ja. Je uploadt je {p.name}-rekening en wij genereren een retentie-mail die je zelf
+              verstuurt. De eerste drie onderhandelingen zijn gratis; daarna betaal je alleen 20% van
+              je bewezen besparing (no cure, no pay).
+            </p>
+          </details>
+        </div>
+      </section>
+
       <section className="mt-8 rounded-xl border border-brand-200 bg-brand-50 p-5">
         <h2 className="text-lg font-semibold text-brand-900">DeGeldHeld doet dit voor je</h2>
         <p className="mt-2 text-brand-900">
           Upload je {p.name}-rekening, en wij genereren een retentie-mail met {p.retentionAngle}.
-          Eerste onderhandeling gratis, daarna €4,99 per bill.
+          Eerste drie onderhandelingen gratis — daarna alleen 20% van je bewezen besparing (no cure,
+          no pay).
         </p>
         <Link href="/onderhandel" className="mt-4 inline-block rounded-lg bg-brand-600 px-5 py-3 font-semibold text-white hover:bg-brand-700">
           Start gratis →
@@ -168,8 +215,8 @@ function ProviderPage({ record: p }: { record: NonNullable<ReturnType<typeof fin
 const intros: Record<string, string> = {
   telecom: `Telecom is in Nederland een verzadigde markt. KPN, Vodafone, Odido en Ziggo bezitten samen ~85% van de aansluitingen, maar er zijn tientallen MVNO's die op hetzelfde netwerk dezelfde kwaliteit leveren voor 30-50% minder. Het probleem: klanten verlengen vaak automatisch en de retentie-korting wordt alleen actief uitgereikt aan wie er om vraagt. Een gemiddeld huishouden betaalt €25-40/mnd voor één telefoon-abonnement, terwijl een MVNO op KPN-netwerk hetzelfde voor €12-18 levert. Met een goed-geformuleerde retentie-mail haal je vrijwel altijd een korting van 15-25% binnen.`,
   energie: `De Nederlandse energiemarkt veranderde fundamenteel na 2022. Variabele contracten kunnen elk kwartaal omhoog, vaste contracten zijn weer terug maar dragen vaak verborgen vastrecht-componenten. Eneco, Vattenfall en Essent dekken samen ~70% van NL, maar Vandebron, Frank Energie, Pure Energie en Greenchoice bieden vaak €30-50/maand lager. Het venster om over te stappen is meestal 1-2 maanden voor het einde van je termijn. Wie de moeite neemt te onderhandelen of over te stappen bespaart €400-600 per jaar.`,
-  verzekering: `Autoverzekeringen, inboedel, aansprakelijkheid: de Nederlandse markt heeft ~30 actieve aanbieders maar slechts ~10 prijsbepalers (Achmea, ASR, NN, Allianz). De rest is wit-label of regionaal. Het slimme onderhandelen begint bij je dekking: heb je écht casco nodig op een 12-jaar oude auto? Een eigen risico van €150 vs €500 scheelt vaak 20% premie. Voor de meeste huishoudens ligt €150-200 per jaar op tafel.`,
-  hypotheek: `Hypotheekrentes daalden tot 2023, stegen tot ~4,5% in 2024, en zakken nu langzaam terug. Veel klanten hebben tussen 2020-2022 vast gezet op 4-5% en kunnen nu oversluiten naar 3,8-4,1%. Vergeet niet: oversluitkosten zijn meestal €2.500-4.000 (advies, taxatie, notaris, eventueel boeterente). Het loont pas als je rente-delta >0,8% is én je nog >5 jaar te gaan hebt. Voor de gemiddelde NL-huis met €250k-€350k restschuld levert oversluiten €80-120 per maand op.`,
+  streaming: `Streamingdiensten zijn de sluipende kostenpost van het Nederlandse huishouden: Netflix, Spotify, Disney+, Videoland, Viaplay en Amazon Prime stapelen al snel op tot €40-60/maand. Retentie-korting is hier zeldzaam, maar er zijn twee betrouwbare hefbomen. Eén: stap een tier omlaag — een ad-supported of 'standaard' abonnement scheelt vaak €4-7/maand zonder dat je merkbaar inlevert. Twee: schakel over van maand- naar jaarbetaling; veel diensten geven daar 15-20% korting op. En kijk kritisch: een dienst die je drie maanden niet opende, kun je pauzeren of opzeggen en later weer oppakken.`,
+  sportschool: `Sportabonnementen lopen vaak jaren door terwijl het bezoek terugzakt. Basic-Fit, SportCity, Fit For Free en Anytime Fitness werken met meerdere abonnement-types, en het duurste 'all-in' tarief is lang niet altijd nodig. De twee hoeken die werken: vraag om een jaarbetaling-korting (10-20% direct voordeel) of een lager lidmaatschap-type dat past bij hoe vaak je écht komt. Kom je een periode niet? Veel ketens hebben een pauze-functie die je maandbedrag tijdelijk stopzet — maar die moet je zelf aanvragen.`,
 };
 
 function CategoryPage({ record: c }: { record: NonNullable<ReturnType<typeof findCategorySlug>> }) {
@@ -226,6 +273,41 @@ function CategoryPage({ record: c }: { record: NonNullable<ReturnType<typeof fin
         primary={primaryFromLegacy(c.category)}
         info={infoFor(primaryFromLegacy(c.category))}
       />
+
+      <section className="mt-10">
+        <h2 className="text-2xl font-bold text-slate-900">Veelgestelde vragen over {c.label} besparen</h2>
+        <div className="mt-4 space-y-4">
+          <details className="rounded-xl border border-slate-200 bg-white p-4">
+            <summary className="cursor-pointer font-semibold text-slate-900">
+              Hoeveel kan ik op {c.label} besparen?
+            </summary>
+            <p className="mt-2 text-slate-700">
+              Gemiddeld zo'n <strong>€{c.averageYearlySaving} per jaar</strong>, op basis van geslaagde
+              onderhandelingen via DeGeldHeld. Per huishouden verschilt dit: je pakket, je tarief en hoe
+              lang je al klant bent bepalen je werkelijke ruimte.
+            </p>
+          </details>
+          <details className="rounded-xl border border-slate-200 bg-white p-4">
+            <summary className="cursor-pointer font-semibold text-slate-900">
+              Moet ik overstappen om te besparen op {c.label}?
+            </summary>
+            <p className="mt-2 text-slate-700">
+              Meestal niet. De meeste {c.label}-aanbieders houden bestaande klanten liever vast met een
+              korting dan dat ze je laten vertrekken. Een geloofwaardig alternatief plus een deadline is
+              vaak genoeg om een beter tarief los te krijgen.
+            </p>
+          </details>
+          <details className="rounded-xl border border-slate-200 bg-white p-4">
+            <summary className="cursor-pointer font-semibold text-slate-900">
+              Wat kost DeGeldHeld?
+            </summary>
+            <p className="mt-2 text-slate-700">
+              De eerste drie onderhandelingen zijn gratis. Daarna betaal je alleen 20% van je bewezen
+              besparing (no cure, no pay) — dus nooit kosten zonder resultaat.
+            </p>
+          </details>
+        </div>
+      </section>
 
       <section className="mt-10 rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 p-6 text-white">
         <h2 className="text-xl font-bold">Doe 't met DeGeldHeld</h2>

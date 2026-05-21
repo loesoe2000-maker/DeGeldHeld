@@ -24,8 +24,8 @@ export default function Footer() {
           <ul className="mt-2 space-y-1 text-sm">
             <li><Link href="/telecom-besparen" className="hover:text-brand-300">Telecom besparen</Link></li>
             <li><Link href="/energie-besparen" className="hover:text-brand-300">Energie besparen</Link></li>
-            <li><Link href="/verzekering-besparen" className="hover:text-brand-300">Verzekering besparen</Link></li>
-            <li><Link href="/hypotheek-besparen" className="hover:text-brand-300">Hypotheek besparen</Link></li>
+            <li><Link href="/streaming-besparen" className="hover:text-brand-300">Streaming besparen</Link></li>
+            <li><Link href="/sportschool-besparen" className="hover:text-brand-300">Sportschool besparen</Link></li>
             <li><Link href="/onderhandelen-met-kpn" className="hover:text-brand-300">Onderhandelen met KPN</Link></li>
           </ul>
         </div>

@@ -6,11 +6,20 @@ describe("seo-data: registry shape", () => {
     expect(SEO_PROVIDERS.length).toBeGreaterThanOrEqual(30);
   });
 
-  it("has 4 category slugs (telecom/energie/verzekering/hypotheek)", () => {
+  it("has 4 supported category slugs (telecom/energie/streaming/sportschool — geen AFM-gegate)", () => {
     expect(SEO_CATEGORIES.length).toBe(4);
     expect(SEO_CATEGORIES.map((c) => c.slug).sort()).toEqual([
-      "energie", "hypotheek", "telecom", "verzekering",
+      "energie", "sportschool", "streaming", "telecom",
     ]);
+  });
+
+  it("contains NO hypotheek/verzekering SEO pages (Wft / AFM-gegate)", () => {
+    const catSlugs = SEO_CATEGORIES.map((c) => c.slug);
+    expect(catSlugs).not.toContain("hypotheek");
+    expect(catSlugs).not.toContain("verzekering");
+    for (const p of SEO_PROVIDERS) {
+      expect(p.category === "TELECOM" || p.category === "ENERGIE" || p.category === "STREAMING" || p.category === "GYM").toBe(true);
+    }
   });
 
   it("provider slugs are unique", () => {
