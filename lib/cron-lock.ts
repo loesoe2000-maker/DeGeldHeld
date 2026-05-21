@@ -19,7 +19,8 @@ export type CronJobName =
   | "price-staleness"
   | "category-nudge"
   | "contract-radar"
-  | "monthly-report";
+  | "monthly-report"
+  | "relay-reminders";
 
 function todayUtc(): string {
   return new Date().toISOString().slice(0, 10);

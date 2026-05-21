@@ -30,7 +30,7 @@ export async function sendRelayMail(opts: {
   negotiationId: string;
   subject: string;
   body: string;
-  kind: "first" | "counter";
+  kind: "first" | "counter" | "accept";
 }): Promise<RelaySendResult> {
   const neg = await prisma.negotiation.findUnique({
     where: { id: opts.negotiationId },

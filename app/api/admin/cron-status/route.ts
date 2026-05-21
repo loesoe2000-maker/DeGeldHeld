@@ -24,6 +24,7 @@ const ALL_JOBS = [
   "category-nudge",
   "contract-radar",
   "monthly-report",
+  "relay-reminders",
 ] as const;
 
 export async function GET() {
