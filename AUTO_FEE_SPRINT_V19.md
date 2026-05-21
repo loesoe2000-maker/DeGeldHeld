@@ -23,7 +23,7 @@ hergebruiken de bestaande handmatige betaalknop als vangnet.
 ## START
 
 ```
-Lees /Users/bdb/alpharadar-pro/degeldheld/AUTO_FEE_SPRINT_V19.md en voer alle deeltaken uit in volgorde. Per deeltaak: implementeer, run tests (npm test + npx tsc --noEmit), bij fail fix tot groen, commit + push. Migraties: datum-prefix + `npx prisma migrate deploy` + `npx prisma generate`. Vermeld in elke commit "Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>". Geen --no-verify, geen --force push. Raak GEEN echte/live Stripe-keys aan; test alles met sk_test_. Bij blocker na 25 min: TODO-commit en door. Eindig met V19_REPORT.md.
+Lees /Users/bdb/alpharadar-pro/degeldheld/AUTO_FEE_SPRINT_V19.md en voer alle deeltaken uit in volgorde. Per deeltaak: implementeer, run tests (npm test + npx tsc --noEmit + **npm run build**), bij fail fix tot groen, commit + push. LET OP: `npm run build` is verplicht vóór elke commit — `tsc` + tests vangen NIET het Next.js route-export-contract (een helper exporteren uit een route.ts breekt de Vercel-build terwijl tsc groen blijft). Migraties: datum-prefix + `npx prisma migrate deploy` + `npx prisma generate`. Vermeld in elke commit "Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>". Geen --no-verify, geen --force push. Raak GEEN echte/live Stripe-keys aan; test alles met sk_test_. Bij blocker na 25 min: TODO-commit en door. Eindig met V19_REPORT.md.
 ```
 
 ---
@@ -182,8 +182,8 @@ c. **/account:** laat zien of er een kaart gekoppeld is + knop "kaart
    wijzigen/verwijderen" (verwijderen = `feePaymentMethodId = null`,
    detach bij Stripe). Recht om mandaat in te trekken (consumentenrecht).
 
-d. Run alles: `npm test -- --run` + `npx tsc --noEmit` +
-   `npx playwright test tests/e2e/`. Alles groen.
+d. Run alles: `npm test -- --run` + `npx tsc --noEmit` + `npm run build` +
+   `npx playwright test tests/e2e/`. Alles groen (build = EXIT 0).
 
 e. `V19_REPORT.md`:
    - Wat werkt nu automatisch vs vangnet
@@ -206,7 +206,7 @@ f. Commit: `docs(v19): auto no-cure-no-pay verified, copy + account fixes`.
 - [ ] Geen kaart → huidige flow ongewijzigd (degradeert netjes)
 - [ ] Fee-cap €50 → €500 + alle copy/voorwaarden/tests bijgewerkt
 - [ ] /account: kaart bekijken + mandaat intrekken
-- [ ] `npm test` + `npx tsc --noEmit` + e2e groen
+- [ ] `npm test` + `npx tsc --noEmit` + `npm run build` (EXIT 0) + e2e groen
 - [ ] V19_REPORT.md met eigenaar-stappen + juridisch restpunt
 
 ## Eindrapportage
