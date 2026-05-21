@@ -33,6 +33,8 @@ import { sendEmail, escapeHtml } from "@/lib/email";
 import { currencyForCountry } from "@/lib/format";
 import { dispatch } from "@/lib/auto-pingpong";
 import { recordProof } from "@/lib/outcome-proof";
+import { extractRelayToken } from "@/lib/relay";
+import { handleRelayReply } from "@/lib/relay-inbound";
 
 const APP_URL = process.env.APP_URL ?? "https://degeldheld.com";
 
@@ -260,6 +262,19 @@ export async function handleInbound(req: Request): Promise<Response> {
   }
 
   try {
+    // v23 relay: a provider reply to onderhandel+<token>@ routes by token
+    // straight to the relay handler (its own consent-gated decision flow).
+    const relayToken = extractRelayToken(email.to);
+    if (relayToken) {
+      const result = await handleRelayReply({
+        relayToken,
+        from: email.from,
+        text: email.text,
+        messageId: email.messageId,
+      });
+      return NextResponse.json({ ok: true, routed: "relay", result });
+    }
+
     const atts = await collectAttachments(email);
 
     // Proof + negotiation by subject-token / thread-id → reuse dispatch().
