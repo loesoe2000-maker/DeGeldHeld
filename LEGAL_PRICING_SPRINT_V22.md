@@ -4,8 +4,16 @@
 + hypotheek & verzekering uitschakelen (haalt AFM-vergunningrisico weg), en
 (B) échte, gesourcete markt-prijzen voor alle overige categorieën.
 
-**Draai dit ná v19** (beide raken `app/onderhandel/analyse/page.tsx`). Niet
-tegelijk met v19; na elke sprint `npm run build` draaien.
+**Volgorde:** v19 (auto-fee) is NIET vereist en is nog niet gedraaid — v22
+hangt er niet van af en kan standalone nu. Draai v22 en v19 nooit *tegelijk*
+(beide raken `app/onderhandel/analyse/page.tsx`); na elke sprint `npm run build`.
+
+**Scope — alleen NL-markt.** Dit script vult prijzen voor **Nederlandse**
+aanbieders. Buitenlandse providers worden wél door OCR herkend, maar de
+markt-vergelijking is NL-only (v18: niet-NL facturen tonen een "indicatief"-
+melding). Buitenlandse prijzen vallen BUITEN scope — dat is een latere
+expansie-sprint per land (met eigen prijzen + lokale wetgeving). Verzin hier
+geen buitenlandse prijzen.
 
 ## ⚠️ GUARDRAILS — lees eerst, hier zijn we streng (geen debug-nacht meer)
 
