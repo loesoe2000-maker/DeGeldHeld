@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { FLAG_DEFAULTS } from "@/lib/feature-flags";
 
 /**
  * v23/v25 — source-level anti-abuse + consent invariants. The route behaviour
@@ -72,5 +73,15 @@ describe("v23 anti-abuse — source-level invariants", () => {
     const src = read("app/api/negotiations/[id]/relay-approve/route.ts");
     expect(src).not.toMatch(/actualSavingsCents/);
     expect(src).not.toMatch(/proofVerifiedAt/);
+  });
+
+  it("the consent-prompt entrypoint (email page) is flag-gated too", () => {
+    const src = read("app/onderhandel/email/page.tsx");
+    expect(src).toMatch(/isEnabled\(["']RELAY_ENABLED["']\)/);
+    expect(src).toMatch(/RelayConsentPrompt/);
+  });
+
+  it("FEATURE_RELAY_ENABLED stays OFF by default (owner flips it post-review)", () => {
+    expect(FLAG_DEFAULTS.RELAY_ENABLED).toBe(false);
   });
 });

@@ -79,8 +79,25 @@ audit-trail.
 - Intrekken = `relayState = PAUSED` (geen mails meer); de goedkeuring-gate =
   `relayState = AWAITING_APPROVAL` (klant accepteert/weigert de deal zelf).
 
+## v25 — veiligheidsgates rond de volmacht
+- **Feature-flag (`FEATURE_RELAY_ENABLED`, default `false`).** De volledige
+  relay — consent-prompt-zichtbaarheid, `relay-authorize`, de status-pagina,
+  `relay-approve`, `relay-pause` — staat **uit** tot de eigenaar 'm aanzet. Uit
+  → uitsluitend de handmatige kopieer-flow. **Zet 'm pas aan ná juridisch
+  akkoord op dit document + /voorwaarden + /privacy.**
+- **Kaart verplicht (GUARDRAIL 4).** `relay-authorize` weigert (409
+  `card-required`) zonder gekoppelde fee-kaart + geaccepteerd
+  no-cure-no-pay-mandaat. "Wij doen het werk" → een bewezen besparing moet
+  afschrijfbaar zijn.
+- **Provider-adresregister (`lib/relay-providers.ts`).** Alleen op de officiële
+  contactpagina geverifieerde adressen (elk met `// bron:`). Onbekend → de klant
+  voert het adres zelf in. Geen gehallucineerde adressen.
+
 ## Eigenaar-restpunten
 1. Machtigingstekst + voorwaarden + privacyverklaring **door jurist/DPO laten
    toetsen** vóór de relay live gaat.
 2. Bevestig dat de relay-afzender (SPF/DKIM/DMARC op het verzend-domein) klopt
    zodat mails namens de klant niet in spam landen.
+3. Bevestig de adressen in `lib/relay-providers.ts` (steekproef op de officiële
+   contactpagina's) vóór activering.
+4. Zet **`FEATURE_RELAY_ENABLED=true`** in Vercel pas ná akkoord op 1–3.
