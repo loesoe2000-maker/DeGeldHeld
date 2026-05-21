@@ -45,7 +45,34 @@ export type MarketPlan = {
  *      dan een verouderde/verzonnen prijs). Bump PRICES_AS_OF.
  *   Bron-categorieën: TELECOM, STREAMING, GYM, SOFTWARE/OPSLAG, OV.
  */
-export const SOURCED_MARKET_PLANS: MarketPlan[] = [];
+export const SOURCED_MARKET_PLANS: MarketPlan[] = [
+  // ===== STREAMING — geverifieerd 2026-05-20 (publieke prijspagina's) =====
+  { provider: "Spotify", category: "STREAMING", plan: "Premium Individual", priceCents: 1299, source: "https://www.spotify.com/nl/premium/", verifiedAt: "2026-05-20" },
+  { provider: "Spotify", category: "STREAMING", plan: "Premium Student", priceCents: 699, source: "https://www.spotify.com/nl/premium/", verifiedAt: "2026-05-20" },
+  { provider: "Spotify", category: "STREAMING", plan: "Premium Duo", priceCents: 1799, source: "https://www.spotify.com/nl/premium/", verifiedAt: "2026-05-20" },
+  { provider: "Spotify", category: "STREAMING", plan: "Premium Family", priceCents: 2199, source: "https://www.spotify.com/nl/premium/", verifiedAt: "2026-05-20" },
+  { provider: "Netflix", category: "STREAMING", plan: "Basis", priceCents: 999, source: "https://help.netflix.com/nl/node/24926", verifiedAt: "2026-05-20" },
+  { provider: "Netflix", category: "STREAMING", plan: "Standaard", priceCents: 1599, source: "https://help.netflix.com/nl/node/24926", verifiedAt: "2026-05-20" },
+  { provider: "Netflix", category: "STREAMING", plan: "Premium", priceCents: 2099, source: "https://help.netflix.com/nl/node/24926", verifiedAt: "2026-05-20" },
+  { provider: "Disney+", category: "STREAMING", plan: "Standaard met reclame", priceCents: 699, source: "https://www.disneyplus.com/nl-nl", verifiedAt: "2026-05-20" },
+  { provider: "Disney+", category: "STREAMING", plan: "Standaard", priceCents: 1099, source: "https://www.disneyplus.com/nl-nl", verifiedAt: "2026-05-20" },
+  { provider: "Disney+", category: "STREAMING", plan: "Premium", priceCents: 1599, source: "https://www.disneyplus.com/nl-nl", verifiedAt: "2026-05-20" },
+
+  // ===== SOFTWARE — geverifieerd 2026-05-20 =====
+  { provider: "Microsoft 365", category: "SOFTWARE", plan: "Personal (maandelijks)", priceCents: 1000, source: "https://www.microsoft.com/nl-nl/microsoft-365/buy/compare-all-microsoft-365-products", verifiedAt: "2026-05-20" },
+  { provider: "Microsoft 365", category: "SOFTWARE", plan: "Family (maandelijks)", priceCents: 1300, source: "https://www.microsoft.com/nl-nl/microsoft-365/buy/compare-all-microsoft-365-products", verifiedAt: "2026-05-20" },
+
+  // ===== OPSLAG (cloud) — geverifieerd 2026-05-20 =====
+  { provider: "iCloud+", category: "OPSLAG", plan: "50 GB", priceCents: 99, source: "https://support.apple.com/nl-nl/108047", verifiedAt: "2026-05-20" },
+  { provider: "iCloud+", category: "OPSLAG", plan: "200 GB", priceCents: 299, source: "https://support.apple.com/nl-nl/108047", verifiedAt: "2026-05-20" },
+  { provider: "iCloud+", category: "OPSLAG", plan: "2 TB", priceCents: 999, source: "https://support.apple.com/nl-nl/108047", verifiedAt: "2026-05-20" },
+  { provider: "iCloud+", category: "OPSLAG", plan: "6 TB", priceCents: 2999, source: "https://support.apple.com/nl-nl/108047", verifiedAt: "2026-05-20" },
+  { provider: "iCloud+", category: "OPSLAG", plan: "12 TB", priceCents: 5999, source: "https://support.apple.com/nl-nl/108047", verifiedAt: "2026-05-20" },
+  { provider: "Google One", category: "OPSLAG", plan: "Basic 100 GB", priceCents: 199, source: "https://one.google.com/about/plans", verifiedAt: "2026-05-20" },
+  { provider: "Google One", category: "OPSLAG", plan: "AI Plus 2 TB", priceCents: 999, source: "https://one.google.com/about/plans", verifiedAt: "2026-05-20" },
+  { provider: "Google One", category: "OPSLAG", plan: "AI Pro 5 TB", priceCents: 2199, source: "https://one.google.com/about/plans", verifiedAt: "2026-05-20" },
+  { provider: "Dropbox", category: "OPSLAG", plan: "Plus 2 TB", priceCents: 999, source: "https://www.dropbox.com/plans", verifiedAt: "2026-05-20" },
+];
 
 /** Energie — NL medians (cents). */
 export const ENERGY_MEDIANS = {
