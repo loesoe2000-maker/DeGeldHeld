@@ -88,6 +88,25 @@ e. Commit per logische stap (`feat(prices): refresh playbook` /
 
 ---
 
+## DEEL 2B — DPA-register automatisch invullen
+
+Vul `docs/VERWERKERSOVEREENKOMSTEN.md` met de actuele DPA-gegevens per
+sub-verwerker, zodat het AVG-register compleet is.
+
+a. WebFetch de DPA-pagina van élke sub-verwerker en leg vast: **Vercel**
+   (vercel.com/legal/dpa), **Stripe** (stripe.com/legal/dpa), **Cloudflare**
+   (cloudflare.com/cloudflare-customer-dpa), **Sentry** (sentry.io/legal/dpa),
+   **Resend**, **Neon**, **Groq** (zoek hun actuele DPA/legal-pagina).
+b. Per provider in de tabel: wat ze verwerken · **DPA-URL** · **status**
+   (`auto-geïncorporeerd` óf `eigenaar-actie: expliciet accepteren/aanvragen`)
+   · gecontroleerd-op-datum. Markeer **Cloudflare** + **Groq** als
+   "eigenaar bevestigt/vraagt aan" (de rest is auto via de voorwaarden).
+c. **Geen verzonnen URLs** — alleen wat via WebFetch bevestigd is; niet
+   gevonden → markeer `te verifiëren door eigenaar`.
+d. Commit: `docs(privacy): fill DPA register with verified sub-processor links`.
+
+---
+
 ## DEEL 3 — Aggregate + rapport
 
 a. `npm test -- --run` + `npx tsc --noEmit` + **`npm run build` (EXIT 0)**.
