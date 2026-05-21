@@ -369,6 +369,56 @@ export async function persistFeeSetup(opts: {
   return { ok: true };
 }
 
+/**
+ * v19 — charge the no-cure-no-pay fee off-session against the user's saved
+ * card. Requires stripeCustomerId + feePaymentMethodId + an accepted mandate.
+ *
+ * Returns { ok:true, paymentIntentId } on success, { ok:false, reason } when
+ * the card needs authentication / is declined / no card on file — the caller
+ * then falls back to the manual pay flow (no dunning here).
+ */
+export async function chargeFeeOffSession(opts: {
+  userId: string;
+  negotiationId: string;
+  feeCents: number;
+}): Promise<{ ok: true; paymentIntentId: string } | { ok: false; reason: string }> {
+  if (opts.feeCents <= 0) return { ok: false, reason: "no fee to charge" };
+  const user = await prisma.user.findUnique({
+    where: { id: opts.userId },
+    select: { stripeCustomerId: true, feePaymentMethodId: true, feeMandateAcceptedAt: true },
+  });
+  if (!user?.stripeCustomerId || !user.feePaymentMethodId) {
+    return { ok: false, reason: "no card on file" };
+  }
+  if (!user.feeMandateAcceptedAt) {
+    return { ok: false, reason: "no mandate on file" };
+  }
+  if (!apiKey || apiKey === "sk_test_dummy") {
+    // No live Stripe in dev/test → treat as "needs manual" so the fallback
+    // path is exercised rather than pretending a charge succeeded.
+    return { ok: false, reason: "stripe not configured" };
+  }
+  try {
+    const pi = await client().paymentIntents.create({
+      amount: opts.feeCents,
+      currency: "eur",
+      customer: user.stripeCustomerId,
+      payment_method: user.feePaymentMethodId,
+      off_session: true,
+      confirm: true,
+      metadata: { negotiationId: opts.negotiationId, kind: "auto-fee" },
+    });
+    if (pi.status === "succeeded") {
+      return { ok: true, paymentIntentId: pi.id };
+    }
+    return { ok: false, reason: `payment_intent status ${pi.status}` };
+  } catch (e) {
+    // StripeCardError / authentication_required / declined → graceful fallback.
+    const reason = (e as { code?: string; message?: string }).code ?? (e as Error).message ?? "charge failed";
+    return { ok: false, reason };
+  }
+}
+
 // ---------- DEEL 10 paywall ----------
 
 /**

@@ -18,7 +18,7 @@ export function computeSavingsStats(
   let attempts = 0;
   for (const n of negotiations) {
     attempts += 1;
-    if (n.state === "SUCCESS" || n.state === "BILLED") {
+    if (n.state === "SUCCESS" || n.state === "BILLED" || n.state === "FEE_PAID") {
       totalSuccessful += 1;
       totalSavedCents += n.actualSavingsCents ?? 0;
     } else if (
@@ -61,6 +61,7 @@ export function negotiationLabel(state: NegotiationState): string {
     SUCCESS_UNVERIFIED: "Geslaagd (niet geverifieerd)",
     BILLED_PENDING_PAYMENT: "Fee — wacht op betaling",
     BILLED_OVERDUE: "Fee — betaling te laat",
+    FEE_PAID: "Fee automatisch voldaan",
   };
   return labels[state] ?? state;
 }
@@ -79,11 +80,11 @@ export function isOpenState(state: NegotiationState): boolean {
 }
 
 export function isClosedState(state: NegotiationState): boolean {
-  return ["SUCCESS", "FAILED", "BILLED", "ACCEPTED", "REJECTED"].includes(state);
+  return ["SUCCESS", "FAILED", "BILLED", "ACCEPTED", "REJECTED", "FEE_PAID"].includes(state);
 }
 
 export function tierClass(state: NegotiationState): string {
-  if (state === "SUCCESS" || state === "BILLED" || state === "ACCEPTED") {
+  if (state === "SUCCESS" || state === "BILLED" || state === "ACCEPTED" || state === "FEE_PAID") {
     return "bg-brand-100 text-brand-800";
   }
   if (state === "FAILED" || state === "REJECTED") return "bg-red-100 text-red-800";

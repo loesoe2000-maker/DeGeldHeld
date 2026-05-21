@@ -9,7 +9,10 @@
  */
 
 import { prisma } from "@/lib/db";
-import { feeForVerifiedSavings, shouldChargeVerifiedFee } from "@/lib/payments";
+import { feeForVerifiedSavings, shouldChargeVerifiedFee, chargeFeeOffSession } from "@/lib/payments";
+import { sendEmail } from "@/lib/email";
+
+const APP_URL = process.env.APP_URL ?? "https://www.degeldheld.com";
 
 /** Minimum percentage drop between old and new monthly amount to count
  *  as a real saving. Anything smaller is likely OCR noise.  */
@@ -91,11 +94,10 @@ export async function recordProof(opts: {
   });
 
   if (verdict.verdict === "verified") {
-    // Fetch the userId once so the optional fee-eligibility check
-    // (admin bypass + flag-off short-circuit) can reuse it.
+    // Fetch userId (+ email/billId for the fallback mail) once.
     const neg = await prisma.negotiation.findUnique({
       where: { id: opts.negotiationId },
-      select: { userId: true },
+      select: { userId: true, billId: true, user: { select: { email: true } } },
     });
     const feeCents = feeForVerifiedSavings(verdict.yearlySavingsCents);
     const charge = neg
@@ -105,19 +107,73 @@ export async function recordProof(opts: {
         })
       : false;
 
-    await prisma.negotiation.update({
-      where: { id: opts.negotiationId },
-      data: {
-        // Charge path → BILLED_PENDING_PAYMENT so the user sees the
-        // fee CTA on /uitkomst. Non-charge (admin/flag-off/sub-floor)
-        // jumps straight to SUCCESS — same as legacy.
-        state: charge && feeCents > 0 ? "BILLED_PENDING_PAYMENT" : "SUCCESS",
-        proofVerifiedAt: new Date(),
-        actualSavingsCents: verdict.yearlySavingsCents,
-        feeAmountCents: charge ? feeCents : null,
-        feeInvoicedAt: charge && feeCents > 0 ? new Date() : null,
-      },
-    });
+    const baseData = {
+      proofVerifiedAt: new Date(),
+      actualSavingsCents: verdict.yearlySavingsCents,
+    };
+
+    if (charge && feeCents > 0 && neg) {
+      // v19: try to charge the fee off-session against a saved card. On
+      // success → FEE_PAID (no manual step). On failure / no card →
+      // BILLED_PENDING_PAYMENT (the existing manual pay flow + a mail).
+      const result = await chargeFeeOffSession({
+        userId: neg.userId,
+        negotiationId: opts.negotiationId,
+        feeCents,
+      });
+      if (result.ok) {
+        await prisma.negotiation.update({
+          where: { id: opts.negotiationId },
+          data: {
+            ...baseData,
+            state: "FEE_PAID",
+            feeAmountCents: feeCents,
+            feeInvoicedAt: new Date(),
+            feePaidAt: new Date(),
+            feePaymentIntentId: result.paymentIntentId,
+          },
+        });
+      } else {
+        await prisma.negotiation.update({
+          where: { id: opts.negotiationId },
+          data: {
+            ...baseData,
+            state: "BILLED_PENDING_PAYMENT",
+            feeAmountCents: feeCents,
+            feeInvoicedAt: new Date(),
+          },
+        });
+        // Best-effort fallback mail with the manual pay link.
+        if (neg.user?.email) {
+          try {
+            const link = `${APP_URL}/onderhandel/${neg.billId}/uitkomst`;
+            const eur = (feeCents / 100).toFixed(2).replace(".", ",");
+            await sendEmail({
+              to: neg.user.email,
+              subject: "Je onderhandeling is gelukt — rond de fee af",
+              text: `Goed nieuws — je onderhandeling is gelukt en de besparing is bevestigd!
+
+We konden de fee (€${eur}) niet automatisch afschrijven. Rond 'm hier handmatig af:
+${link}
+
+— DeGeldHeld`,
+              html: `<p>Goed nieuws — je onderhandeling is gelukt en de besparing is bevestigd!</p>
+<p>We konden de fee (<strong>€${eur}</strong>) niet automatisch afschrijven.</p>
+<p><a href="${link}" style="display:inline-block;background:#059669;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600">Rond de betaling af</a></p>
+<p>— DeGeldHeld</p>`,
+            });
+          } catch {
+            /* never block on outbound mail */
+          }
+        }
+      }
+    } else {
+      // No charge (admin / flag-off / sub-floor) → straight to SUCCESS.
+      await prisma.negotiation.update({
+        where: { id: opts.negotiationId },
+        data: { ...baseData, state: "SUCCESS", feeAmountCents: null, feeInvoicedAt: null },
+      });
+    }
   }
 
   return { proofId: proof.id, verdict };

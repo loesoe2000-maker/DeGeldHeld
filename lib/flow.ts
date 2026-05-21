@@ -15,7 +15,7 @@ const TRANSITIONS: Record<NegotiationState, NegotiationState[]> = {
   BILL_UPLOAD: ["ANALYSE", "FAILED"],
   ANALYSE: ["EMAIL_GEN", "FAILED"],
   EMAIL_GEN: ["AWAITING", "EMAIL_SENT", "FAILED"],
-  AWAITING: ["SUCCESS", "SUCCESS_UNVERIFIED", "FAILED", "RESPONSE_RECEIVED"],
+  AWAITING: ["SUCCESS", "SUCCESS_UNVERIFIED", "FEE_PAID", "FAILED", "RESPONSE_RECEIVED"],
   EMAIL_SENT: ["RESPONSE_RECEIVED", "ACCEPTED", "REJECTED", "FAILED"],
   RESPONSE_RECEIVED: ["COUNTER_SENT", "ACCEPTED", "REJECTED", "FAILED"],
   COUNTER_SENT: ["RESPONSE_RECEIVED", "ACCEPTED", "REJECTED", "FAILED"],
@@ -27,8 +27,10 @@ const TRANSITIONS: Record<NegotiationState, NegotiationState[]> = {
   // v11 revenue verification — unverified can be promoted once proof
   // arrives; billing states cascade independently.
   SUCCESS_UNVERIFIED: ["SUCCESS", "FAILED"],
-  BILLED_PENDING_PAYMENT: ["BILLED", "BILLED_OVERDUE"],
-  BILLED_OVERDUE: ["BILLED"],
+  BILLED_PENDING_PAYMENT: ["BILLED", "BILLED_OVERDUE", "FEE_PAID"],
+  BILLED_OVERDUE: ["BILLED", "FEE_PAID"],
+  // v19 auto no-cure-no-pay terminal: fee charged off-session.
+  FEE_PAID: [],
 };
 
 export function canTransition(from: NegotiationState, to: NegotiationState): boolean {

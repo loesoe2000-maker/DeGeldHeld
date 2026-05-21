@@ -153,6 +153,8 @@ enum NegotiationState {
   SUCCESS_UNVERIFIED       // user claims success without uploading proof
   BILLED_PENDING_PAYMENT   // proof verified, fee invoice waiting on user
   BILLED_OVERDUE           // 14 days passed without payment
+  // v19 auto no-cure-no-pay:
+  FEE_PAID                 // proof verified + fee charged off-session
 }
 
 enum RoundOutcome {
@@ -290,6 +292,9 @@ model Negotiation {
   proofVerifiedAt  DateTime?
   feeInvoicedAt    DateTime?
   feeAmountCents   Int?
+  // v19 auto no-cure-no-pay: set when the fee was charged off-session.
+  feePaidAt          DateTime?
+  feePaymentIntentId String?
 
   user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   bill    Bill     @relation(fields: [billId], references: [id], onDelete: Cascade)

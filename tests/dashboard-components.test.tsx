@@ -103,6 +103,8 @@ describe("components/NegotiationList", () => {
     proofVerifiedAt: null,
     feeInvoicedAt: null,
     feeAmountCents: null,
+    feePaidAt: null,
+    feePaymentIntentId: null,
     bill: { provider: "T-Mobile", amountCents: 4250, category: "TELECOM" as const },
   };
 
