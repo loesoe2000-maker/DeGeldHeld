@@ -16,6 +16,8 @@ import { compareWater } from "@/lib/categories/water";
 import { ANON_COOKIE_NAME, isValidAnonSessionId } from "@/lib/anon-session";
 import AnonymousMailPrompt from "@/components/AnonymousMailPrompt";
 import TrackEvent from "@/components/TrackEvent";
+import OcrCorrectionForm from "@/components/OcrCorrectionForm";
+import { listProvidersByCountry } from "@/lib/providers";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -145,6 +147,14 @@ export default async function AnalysePage({
             </details>
           )}
         </div>
+        {/* OCR dead-end rescue: let the user fix it inline instead of bailing. */}
+        <OcrCorrectionForm
+          billId={bill.id}
+          currentProvider={bill.provider}
+          currentMonthlyCents={bill.monthlyCents ?? bill.amountCents}
+          currentCategory={bill.category}
+          providers={listProvidersByCountry("NL").map((p) => p.canonical)}
+        />
         <div className="mt-8 flex flex-wrap gap-3">
           <Link
             href="/onderhandel"
@@ -288,6 +298,14 @@ export default async function AnalysePage({
           <Comparison result={comparison} subType={bill.subType} />
         </div>
       )}
+
+      <OcrCorrectionForm
+        billId={bill.id}
+        currentProvider={bill.provider}
+        currentMonthlyCents={comparisonAmount}
+        currentCategory={bill.category}
+        providers={listProvidersByCountry("NL").map((p) => p.canonical)}
+      />
 
       <CategoryInfoSection
         primary={primaryFromLegacy(bill.category)}
