@@ -11,9 +11,41 @@
  * Sources: ACM energie-tariefoverzicht, hypotheekrente-overzichten,
  * verzekering-vergelijkers (Independer/Pricewise), drinkwaterbedrijven.
  */
+import type { Category } from "@/lib/providers";
 
 /** ISO date the medians below were last verified. Bump on every refresh. */
-export const PRICES_AS_OF = "2026-05-01";
+export const PRICES_AS_OF = "2026-05-20";
+
+/**
+ * v22: a single market plan-price with a MANDATORY source. Because `source`
+ * is required, a price without a verifiable URL simply does not compile —
+ * that's the point: no hallucinated prices ever land in the comparison.
+ *
+ * Only NL-market, currently-supported categories (telecom, streaming, gym,
+ * software, opslag, OV, bank — NOT hypotheek/verzekering, those are gated).
+ */
+export type MarketPlan = {
+  provider: string;
+  category: Category;
+  plan: string; // tarief-/pakketnaam zoals afgedrukt op de bron
+  priceCents: number; // maandprijs in cents
+  source: string; // URL waar deze prijs vandaan komt (VERPLICHT)
+  verifiedAt: string; // ISO-datum van de fetch
+};
+
+/**
+ * SOURCED plans — elke entry draagt de URL waar 'ie vandaan komt + de
+ * fetch-datum. Per categorie gevuld in v22 DEEL 5.
+ *
+ * REFRESH-PROCEDURE (maandelijks, navolgbaar):
+ *   1. Open per categorie de provider-/officiële tariefpagina's (de `source`
+ *      URLs hieronder zijn de te-controleren bronnen).
+ *   2. Werk priceCents bij naar het afgedrukte maandtarief; update verifiedAt.
+ *   3. Kun je een prijs niet meer verifiëren? → verwijder 'm (liever een gat
+ *      dan een verouderde/verzonnen prijs). Bump PRICES_AS_OF.
+ *   Bron-categorieën: TELECOM, STREAMING, GYM, SOFTWARE/OPSLAG, OV.
+ */
+export const SOURCED_MARKET_PLANS: MarketPlan[] = [];
 
 /** Energie — NL medians (cents). */
 export const ENERGY_MEDIANS = {
