@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { generateEmail } from "@/lib/negotiator";
 import { buildComparison } from "@/lib/comparison";
+import { isSupportedCategory } from "@/lib/market-coverage";
 import { negotiatorCache, cacheKey } from "@/lib/llm_cache";
 import EmailDisplay from "@/components/EmailDisplay";
 
@@ -24,6 +25,12 @@ export default async function EmailPage({
 
   const bill = await prisma.bill.findFirst({ where: { id: billId, userId } });
   if (!bill) redirect("/onderhandel");
+
+  // v22 AFM gate: never generate a negotiation for hypotheek/verzekering —
+  // route back to the analyse page which shows the "not supported" state.
+  if (!isSupportedCategory(bill.category)) {
+    redirect(`/onderhandel/analyse?bill=${bill.id}`);
+  }
 
   const comparison = buildComparison({
     provider: bill.provider,

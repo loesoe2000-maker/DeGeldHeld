@@ -13,6 +13,23 @@
 import type { Category, Country } from "@/lib/providers";
 import { MARKET_PLANS, planCountry } from "@/lib/market_db";
 
+/**
+ * v22: categories we do NOT offer at all — hypotheek + verzekering are
+ * Wft-products; advising/intermediating requires an AFM licence we don't
+ * (yet) hold. Single source of truth for "do we support this category". The
+ * enum values + lib/categories/{hypotheek,verzekering}.ts stay (to avoid
+ * dangling imports); they're just gated out of the UI.
+ */
+export const UNSUPPORTED_CATEGORIES: ReadonlySet<Category> = new Set<Category>([
+  "HYPOTHEEK",
+  "VERZEKERING",
+]);
+
+/** True when DeGeldHeld offers comparison/negotiation for this category. */
+export function isSupportedCategory(category: Category): boolean {
+  return !UNSUPPORTED_CATEGORIES.has(category);
+}
+
 /** Categories whose market data is NL-only (dated medians). */
 const NL_ONLY_CATEGORIES: ReadonlySet<Category> = new Set<Category>([
   "ENERGIE",

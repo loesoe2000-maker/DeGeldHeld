@@ -19,9 +19,13 @@ export default function CategoryUploadGrid({
   filledCategories: Category[];
 }) {
   const filled = new Set<PrimaryCategory>(filledCategories.map(primaryFromLegacy));
+  // v22: VERZEKERING is gated (AFM licence) → no upload tile. Hypotheek is a
+  // WONEN sub-type, not its own tile, so WONEN stays (covers water/gemeente).
+  const GATED: ReadonlySet<PrimaryCategory> = new Set<PrimaryCategory>(["VERZEKERING"]);
+  const tiles = PRIMARY_CATEGORIES.filter((c) => !GATED.has(c));
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-      {PRIMARY_CATEGORIES.map((primary) => {
+      {tiles.map((primary) => {
         const meta = PRIMARY_META[primary];
         const done = filled.has(primary);
         return (

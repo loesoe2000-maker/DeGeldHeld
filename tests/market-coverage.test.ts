@@ -1,7 +1,20 @@
 import { describe, it, expect } from "vitest";
-import { hasMarketData, countryLabel } from "@/lib/market-coverage";
+import { hasMarketData, countryLabel, isSupportedCategory } from "@/lib/market-coverage";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+
+describe("v22 supported-category gate (AFM)", () => {
+  it("hypotheek + verzekering are NOT supported (any country)", () => {
+    expect(isSupportedCategory("HYPOTHEEK")).toBe(false);
+    expect(isSupportedCategory("VERZEKERING")).toBe(false);
+  });
+  it("telecom / energie / water / streaming stay supported", () => {
+    expect(isSupportedCategory("TELECOM")).toBe(true);
+    expect(isSupportedCategory("ENERGIE")).toBe(true);
+    expect(isSupportedCategory("WATER")).toBe(true);
+    expect(isSupportedCategory("STREAMING")).toBe(true);
+  });
+});
 
 describe("v18 market-coverage — honesty gate", () => {
   it("NL is covered for every category", () => {
@@ -52,10 +65,16 @@ describe("v18 analyse page — honest fallback contract", () => {
     expect(src).toMatch(/\{marketDataCovered && \(\s*<div/);
   });
 
-  it("category-specific blocks are gated behind marketDataCovered", () => {
+  it("supported category-specific blocks are gated behind marketDataCovered", () => {
     expect(src).toMatch(/marketDataCovered && bill\.category === "ENERGIE"/);
     expect(src).toMatch(/marketDataCovered && bill\.category === "WATER"/);
-    expect(src).toMatch(/marketDataCovered && bill\.category === "VERZEKERING"/);
-    expect(src).toMatch(/marketDataCovered && bill\.category === "HYPOTHEEK"/);
+  });
+
+  it("v22: hypotheek + verzekering are gated out (no render block, AFM)", () => {
+    // The Wft-product render blocks are removed; the page early-returns a
+    // "not supported" state via isSupportedCategory instead.
+    expect(src).toMatch(/isSupportedCategory\(bill\.category\)/);
+    expect(src).not.toMatch(/data-testid="cat-verzekering"/);
+    expect(src).not.toMatch(/data-testid="cat-hypotheek"/);
   });
 });

@@ -1,4 +1,8 @@
 /**
+ * INACTIVE — gated in v22, niet aangeboden tot AFM-vergunning. Blijft
+ * bestaan om dangling imports/tests te voorkomen; niet getoond in de UI
+ * (zie lib/market-coverage.ts → UNSUPPORTED_CATEGORIES).
+ *
  * lib/categories/verzekering.ts — autoverzekering-vergelijking.
  * v18: premie-ranges live in lib/market-prices.ts (single dated source).
  */

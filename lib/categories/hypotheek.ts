@@ -1,4 +1,8 @@
 /**
+ * INACTIVE — gated in v22, niet aangeboden tot AFM-vergunning. Blijft
+ * bestaan om dangling imports/tests te voorkomen; niet getoond in de UI
+ * (zie lib/market-coverage.ts → UNSUPPORTED_CATEGORIES).
+ *
  * lib/categories/hypotheek.ts — hypotheek oversluit-rekensom (mei 2026).
  *
  * Markt-rentes (NL, mei 2026):

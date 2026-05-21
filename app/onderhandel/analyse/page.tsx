@@ -9,11 +9,9 @@ import { primaryFromLegacy } from "@/lib/categories";
 import { infoFor } from "@/lib/category-info";
 import CategoryInfoSection from "@/components/CategoryInfoSection";
 import { pricesAreStale, pricesAsOfLabel } from "@/lib/market-prices";
-import { hasMarketData, countryLabel } from "@/lib/market-coverage";
+import { hasMarketData, countryLabel, isSupportedCategory } from "@/lib/market-coverage";
 import { requiresPayment } from "@/lib/payments";
 import { compareEnergy, type EnergyContractType } from "@/lib/categories/energie";
-import { compareInsurance, type InsuranceCoverageType } from "@/lib/categories/verzekering";
-import { compareMortgage } from "@/lib/categories/hypotheek";
 import { compareWater } from "@/lib/categories/water";
 import { ANON_COOKIE_NAME, isValidAnonSessionId } from "@/lib/anon-session";
 import AnonymousMailPrompt from "@/components/AnonymousMailPrompt";
@@ -50,6 +48,49 @@ export default async function AnalysePage({
   if (!bill) redirect("/onderhandel");
 
   const isAnonymous = !userId;
+
+  // v22 AFM gate: hypotheek + verzekering are Wft-products we don't offer
+  // until we hold an AFM licence. We still OCR + store the bill, but show a
+  // clear "not supported" state — no comparison, no savings, no mail CTA.
+  if (!isSupportedCategory(bill.category)) {
+    return (
+      <main className="mx-auto max-w-3xl px-6 py-12">
+        <h1 className="text-3xl font-bold text-slate-900">
+          Deze categorie ondersteunen we (nog) niet
+        </h1>
+        <p className="mt-3 text-slate-600">
+          We richten ons op <strong>telecom, energie, water en abonnementen</strong>.
+          Hypotheek en verzekering zijn financiële producten waarvoor een
+          AFM-vergunning nodig is — die bieden we (nog) niet aan, dus we doen
+          hier geen vergelijking of onderhandeling.
+        </p>
+        <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+          <strong>Wat we wel zagen:</strong>
+          <ul className="mt-2 list-disc pl-5">
+            <li>Provider: {bill.provider || "—"}</li>
+            <li>
+              Bedrag:{" "}
+              {bill.amountCents > 0 ? `€${(bill.amountCents / 100).toFixed(2)}` : "—"}
+            </li>
+          </ul>
+        </div>
+        <div className="mt-8 flex flex-wrap gap-3">
+          <Link
+            href="/onderhandel"
+            className="rounded-lg bg-brand-600 px-6 py-3 font-semibold text-white hover:bg-brand-700"
+          >
+            Een andere rekening uploaden
+          </Link>
+          <Link
+            href="/dashboard"
+            className="rounded-lg border border-slate-300 px-6 py-3 font-medium text-slate-700 hover:bg-slate-50"
+          >
+            Terug naar dashboard
+          </Link>
+        </div>
+      </main>
+    );
+  }
 
   // DEEL 10 paywall — first bill free, others require payment first.
   // Anonymous flow skips paywall entirely; we want them to see value
@@ -291,80 +332,9 @@ export default async function AnalysePage({
         );
       })()}
 
-      {marketDataCovered && bill.category === "VERZEKERING" && (() => {
-        // v17: use the REAL coverage type + deductible from OCR.
-        const coverage = ((): InsuranceCoverageType => {
-          const c = (bill.insuranceCoverage ?? "").toUpperCase();
-          if (c === "WA" || c === "WA+" || c === "CASCO") return c as InsuranceCoverageType;
-          return "UNKNOWN";
-        })();
-        const r = compareInsurance({
-          type: coverage,
-          premiumMonthlyCents: bill.monthlyCents ?? bill.amountCents,
-          deductibleCents: bill.insuranceDeductibleCents,
-        });
-        return (
-          <div data-testid="cat-verzekering" className="mt-8 rounded-xl border border-sky-200 bg-sky-50 p-5 text-sm text-sky-900">
-            <h2 className="text-base font-semibold">Verzekering-vergelijking</h2>
-            {coverage === "UNKNOWN" && (
-              <span data-testid="verzekering-estimate-badge" className="mt-1 inline-block rounded bg-amber-100 px-2 py-0.5 text-xs text-amber-900">
-                dekking niet gedetecteerd — vergelijking op premie-percentiel
-              </span>
-            )}
-            <p className="mt-1">Je premie zit in het <strong>{r.percentile === "high" ? "duurste kwartiel" : r.percentile === "low" ? "goedkoopste kwartiel" : "midden"}</strong> van de markt.</p>
-            {r.alternatives.length > 0 ? (
-              <ul className="mt-2 list-disc pl-5">
-                {r.alternatives.map((a) => (
-                  <li key={a.name}>
-                    <strong>{a.name}</strong>: €{(a.premiumMonthlyCents / 100).toFixed(2)}/mnd ({a.notes}) — bespaart €{(a.yearlySavingsCents / 100).toFixed(0)}/jaar
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="mt-1">Geen goedkopere alternatieven gevonden met vergelijkbare dekking.</p>
-            )}
-          </div>
-        );
-      })()}
-
-      {marketDataCovered && bill.category === "HYPOTHEEK" && (() => {
-        // v17: use REAL OCR rente + rentevaste-periode. Restschuld is
-        // rarely on a monthly invoice → estimate conservatively from
-        // the monthly payment and LABEL it as an estimate.
-        const maandlast = bill.monthlyCents ?? bill.amountCents;
-        const rateDetected = bill.mortgageInterestPct != null;
-        const termDetected = bill.mortgageTermYears != null;
-        // Rough restschuld estimate: monthly × 12 × remaining term.
-        // Conservative — clamped to a sane band so a tiny invoice
-        // doesn't produce a silly tiny mortgage.
-        const estTermYears = bill.mortgageTermYears ?? 20;
-        const estRestschuldCents = Math.max(
-          5_000_000, // €50k floor
-          Math.min(maandlast * 12 * estTermYears, 100_000_000), // €1M ceiling
-        );
-        const r = compareMortgage({
-          restschuldCents: estRestschuldCents,
-          rentePercentage: bill.mortgageInterestPct ?? 4.5,
-          rentevasteJaren: bill.mortgageTermYears ?? 10,
-          looptijdJaren: estTermYears,
-          maandlastCents: maandlast,
-        });
-        const anyEstimate = !rateDetected || !termDetected;
-        return (
-          <div data-testid="cat-hypotheek" className="mt-8 rounded-xl border border-purple-200 bg-purple-50 p-5 text-sm text-purple-900">
-            <h2 className="text-base font-semibold">Hypotheek oversluit-kalkulator</h2>
-            {anyEstimate && (
-              <span data-testid="hypotheek-estimate-badge" className="mt-1 inline-block rounded bg-amber-100 px-2 py-0.5 text-xs text-amber-900">
-                {!rateDetected ? "rente geschat" : "rente uit factuur"} · restschuld is altijd een schatting uit je maandlast
-              </span>
-            )}
-            <p className="mt-1">Markt-rente {r.marketRatePct}% vs jouw {rateDetected ? "" : "geschatte "}{r.yourRatePct}% — verschil <strong>{r.rateDeltaPct}%</strong>.</p>
-            <p className="mt-1">Bruto jaarbesparing: €{(r.yearlySavingsGrossCents / 100).toFixed(0)} (na oversluitkosten: €{(r.yearlySavingsNetCents / 100).toFixed(0)}/jaar gemiddeld).</p>
-            <p className="mt-1"><strong>{r.oversluitWorthIt ? "Oversluiten is rendabel" : "Oversluiten loont waarschijnlijk niet"}</strong> — terugverdientijd {r.paybackMonths >= 0 ? `${r.paybackMonths} maanden` : "n.v.t."}.</p>
-            {r.notes.map((n, i) => <p key={i} className="mt-1 opacity-80">{n}</p>)}
-          </div>
-        );
-      })()}
+      {/* v22: VERZEKERING + HYPOTHEEK render blocks removed — those
+          categories are gated out above (AFM licence). The compare libs
+          stay in lib/categories/ but are no longer surfaced here. */}
 
       {isAnonymous ? (
         <AnonymousMailPrompt
