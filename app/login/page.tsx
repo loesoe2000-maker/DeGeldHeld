@@ -4,6 +4,22 @@ import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 
+const GENERIC_SEND_ERROR =
+  "Er ging iets mis bij het versturen. Probeer het zo opnieuw.";
+
+/** Map a NextAuth / send-gate error code to a Dutch, user-facing message. */
+function mapAuthError(code: string | null | undefined): string | null {
+  if (!code) return null;
+  switch (code) {
+    case "rate_limited":
+      return "Te veel inlogpogingen vanaf dit netwerk. Wacht een uur en probeer het dan opnieuw.";
+    case "blocked":
+      return "Dit verzoek werd geblokkeerd. Gebruik een gewone browser of app en probeer het opnieuw.";
+    default:
+      return GENERIC_SEND_ERROR;
+  }
+}
+
 function LoginForm() {
   const params = useSearchParams();
   const checkEmail = params?.get("check") === "email";
@@ -17,12 +33,34 @@ function LoginForm() {
       : "/dashboard";
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [error, setError] = useState<string | null>(() =>
+    mapAuthError(params?.get("error")),
+  );
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setError(null);
     setLoading(true);
-    await signIn("resend", { email, callbackUrl });
-    setLoading(false);
+    try {
+      // redirect:false so we can surface a clear inline error — the send is
+      // rate-limited / bot-gated server-side in the resend route handler,
+      // which returns { url: "/login?error=…" } for next-auth/react to read.
+      const res = await signIn<"email">("resend", {
+        email,
+        callbackUrl,
+        redirect: false,
+      });
+      if (res?.ok && !res.error) {
+        setSent(true);
+      } else {
+        setError(mapAuthError(res?.error) ?? GENERIC_SEND_ERROR);
+      }
+    } catch {
+      setError("Netwerkfout — controleer je verbinding en probeer het opnieuw.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -36,7 +74,7 @@ function LoginForm() {
           maken automatisch een <strong>gratis account</strong> aan als je nieuw
           bent. Geen wachtwoord nodig.
         </p>
-        {checkEmail ? (
+        {checkEmail || sent ? (
           <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
             <p className="font-medium text-emerald-800">Check je inbox 📬</p>
             <p className="mt-1 text-sm text-emerald-700">
@@ -70,6 +108,14 @@ function LoginForm() {
             >
               {loading ? "Versturen..." : "Stuur me een inloglink"}
             </button>
+            {error && (
+              <p
+                role="alert"
+                className="rounded border border-red-200 bg-red-50 p-3 text-sm text-red-700"
+              >
+                {error}
+              </p>
+            )}
             <p className="text-xs text-slate-500">
               Tip: gebruik een persoonlijk e-mailadres — school- en werkmail
               blokkeren onze inloglink soms.

@@ -1,53 +1,9 @@
-import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
-import AnonymousMailPrompt from "@/components/AnonymousMailPrompt";
+import { describe, it, expect } from "vitest";
 
-vi.mock("next-auth/react", () => ({
-  signIn: vi.fn(async () => ({ ok: true })),
-}));
-
-describe("AnonymousMailPrompt — v15 DEEL 2", () => {
-  it("shows the projected yearly savings + provider headline", () => {
-    render(
-      <AnonymousMailPrompt
-        billId="bill_abc"
-        provider="KPN"
-        yearlySavingsCents={27200}
-      />,
-    );
-    expect(screen.getByTestId("anon-mail-prompt")).toBeTruthy();
-    expect(screen.getByText(/€272\/jaar/)).toBeTruthy();
-    expect(screen.getByText(/KPN/)).toBeTruthy();
-  });
-
-  it("renders email-input + submit button", () => {
-    render(
-      <AnonymousMailPrompt billId="b" provider="KPN" yearlySavingsCents={1000} />,
-    );
-    expect(screen.getByTestId("anon-email-input")).toBeTruthy();
-    expect(screen.getByTestId("anon-submit")).toBeTruthy();
-  });
-
-  it("clamps negative savings to 0 (defensive)", () => {
-    render(
-      <AnonymousMailPrompt
-        billId="b"
-        provider="KPN"
-        yearlySavingsCents={-500}
-      />,
-    );
-    expect(screen.getByText(/€0\/jaar/)).toBeTruthy();
-  });
-
-  it("the email-prompt section sits in the page (data-testid present)", () => {
-    render(
-      <AnonymousMailPrompt billId="b" provider="Eneco" yearlySavingsCents={10000} />,
-    );
-    const section = screen.getByTestId("anon-mail-prompt");
-    expect(section).toBeTruthy();
-  });
-});
-
+// The inline anonymous email-capture component was removed (its abuse guards
+// moved to the magic-link send route — see tests/concurrency.test.ts). What
+// remains worth locking in is that the analyse page routes anonymous visitors
+// through /login with a bill callbackUrl instead of capturing email inline.
 describe("Analyse page anonymous detection — source-level", () => {
   const { readFileSync } = require("node:fs");
   const { resolve } = require("node:path");

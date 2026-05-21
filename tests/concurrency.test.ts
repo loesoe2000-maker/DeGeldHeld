@@ -106,9 +106,13 @@ describe("v18 double-submit upload guard (source-level)", () => {
   });
 });
 
-describe("v18 email-signup rate-limit (source-level)", () => {
-  it("anon email-signup route enforces a per-IP rate-limit", () => {
-    const src = readFileSync(resolve(__dirname, "../app/api/anon/email-signup/route.ts"), "utf8");
+describe("magic-link send rate-limit (source-level)", () => {
+  it("the resend signin route enforces a per-IP rate-limit", () => {
+    const src = readFileSync(
+      resolve(__dirname, "../app/api/auth/[...nextauth]/route.ts"),
+      "utf8",
+    );
     expect(src).toMatch(/rateLimit/);
+    expect(src).toMatch(/magic-link:/);
   });
 });

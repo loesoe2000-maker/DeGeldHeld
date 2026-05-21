@@ -1023,28 +1023,6 @@ async function checkActivityCacheHeader(): Promise<CheckResult> {
   };
 }
 
-async function checkAnonSignupAntiBot(): Promise<CheckResult> {
-  // curl UA must be blocked by the v15 anti-bot bundle.
-  const r = await fetch(`${BASE}/api/anon/email-signup`, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      "user-agent": "curl/8.6.0",
-    },
-    body: JSON.stringify({
-      email: "smoke@example.com",
-      billId: "x",
-      hp: "",
-      renderedAt: Date.now() - 5000,
-    }),
-  });
-  return {
-    name: "POST /api/anon/email-signup (curl UA blocked)",
-    ok: r.status === 400,
-    detail: `${r.status}`,
-  };
-}
-
 async function checkCleanupAnonCronUnauth(): Promise<CheckResult> {
   // /api/cron/cleanup-anonymous without bearer secret → 401.
   const r = await fetch(`${BASE}/api/cron/cleanup-anonymous`);
@@ -1123,7 +1101,6 @@ async function main() {
     checkAnonUploadEmpty,      // 61 — v15 anonymous upload route loads
     checkActivityApi,          // 62 — v15 activity feed JSON
     checkActivityCacheHeader,  // 63 — v15 activity cache header
-    checkAnonSignupAntiBot,    // 64 — v15 UA blocklist rejects curl
     checkCleanupAnonCronUnauth, // 65 — v15 cleanup cron requires secret
   ];
 
