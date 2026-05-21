@@ -33,3 +33,17 @@ export function fromDomain(from = EMAIL_FROM): string {
 export function isTestSender(from = EMAIL_FROM): boolean {
   return fromDomain(from).endsWith("resend.dev");
 }
+
+/**
+ * v25 relay From-header: "{customer} via DeGeldHeld <verified@domain>". Makes
+ * the on-behalf relationship explicit to the provider WITHOUT changing the
+ * bare address (so SPF/DKIM/DMARC alignment on the verified domain is kept).
+ * Data-minimal: only the customer's name (already needed to negotiate).
+ */
+export function relayFromHeader(customerName: string, from = EMAIL_FROM): string {
+  const addr = fromAddress(from);
+  const name = (customerName ?? "").trim() || "een klant";
+  // Strip characters that would break the display-name / header.
+  const safe = name.replace(/["<>\n\r]/g, "").slice(0, 60);
+  return `${safe} via DeGeldHeld <${addr}>`;
+}

@@ -91,7 +91,12 @@ describe("v23 sendRelayMail — on-behalf send shape", () => {
     expect(mail.replyTo).toBe("onderhandel+tok_abc123@degeldheld.com");
     expect(String(mail.subject)).toContain("[NEGOTIATION-neg_1]");
     expect(String(mail.text)).toContain("namens Anne Jansen");
-    expect((mail.headers as Record<string, string>)["Message-ID"]).toMatch(/@degeldheld\.com>$/);
+    const headers = mail.headers as Record<string, string>;
+    expect(headers["Message-ID"]).toMatch(/@degeldheld\.com>$/);
+    // RFC-5322 threading: References mirrors the thread Message-ID.
+    expect(headers["References"]).toBe(headers["Message-ID"]);
+    // From makes the on-behalf relationship explicit, same verified domain.
+    expect(String(mail.from)).toMatch(/^Anne Jansen via DeGeldHeld <[^@\s]+@degeldheld\.com>$/);
     // thread persisted + first send marks EMAIL_SENT
     expect(h.updates[0].providerThreadId).toBeTruthy();
     expect(h.updates[0].state).toBe("EMAIL_SENT");

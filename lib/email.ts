@@ -19,12 +19,18 @@ export async function sendEmail(opts: {
   headers?: Record<string, string>;
   /** v23 relay: reply-to routing so provider replies come back to us. */
   replyTo?: string;
+  /**
+   * v25 relay: override the From DISPLAY NAME (e.g. "Anne via DeGeldHeld").
+   * Must stay on the verified domain — build it with relayFromHeader() so
+   * SPF/DKIM/DMARC alignment is preserved. Defaults to EMAIL_FROM.
+   */
+  from?: string;
 }) {
   if (!apiKey || apiKey === "re_test_dummy") {
     return { id: "test-noop", skipped: true };
   }
   const result = await client().emails.send({
-    from,
+    from: opts.from ?? from,
     to: opts.to,
     subject: opts.subject,
     html: opts.html,

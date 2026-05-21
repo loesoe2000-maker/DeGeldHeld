@@ -8,6 +8,7 @@
  */
 import { prisma } from "@/lib/db";
 import { sendEmail, escapeHtml } from "@/lib/email";
+import { relayFromHeader } from "@/lib/email-from";
 import { generateThreadId, messageIdFor } from "@/lib/email-thread";
 import { canRelaySend, relayReplyTo } from "@/lib/relay";
 
@@ -52,13 +53,16 @@ export async function sendRelayMail(opts: {
   const text = opts.body + relaySignature(neg.user.name ?? "");
   const html = `<pre style="font-family:inherit;white-space:pre-wrap">${escapeHtml(text)}</pre>`;
 
+  // Stable References header so the provider's mail client keeps one thread.
+  const threadMessageId = messageIdFor(threadId);
   const sent = await sendEmail({
     to: neg.providerEmail,
     subject,
     text,
     html,
+    from: relayFromHeader(neg.user.name ?? ""), // "{klant} via DeGeldHeld <verified@domain>"
     replyTo: relayReplyTo(neg.relayToken),
-    headers: { "Message-ID": messageIdFor(threadId) },
+    headers: { "Message-ID": threadMessageId, References: threadMessageId },
   });
 
   // Persist the thread + outbound bookkeeping. The first send marks the
