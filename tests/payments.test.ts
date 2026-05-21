@@ -3,6 +3,7 @@ import {
   computeSuccessFeeCents,
   createCheckoutSession,
   createFeeSetupSession,
+  ensureStripeCustomer,
   reconcileFeeSetupFromSession,
   shouldMarkPaid,
   shouldMarkRefunded,
@@ -120,6 +121,15 @@ describe("payments/createFeeSetupSession (test mode) — return-URL separator", 
       returnTo: "/account",
     });
     expect(s.url).toBe("https://example.com/account?card=ok");
+  });
+});
+
+describe("payments/ensureStripeCustomer (test mode)", () => {
+  it("returns null without real Stripe (dev/dummy mode), never throws", async () => {
+    // Real create+persist needs a live key + DB; here we just guard that the
+    // dummy-mode short-circuit holds so callers (createFeeSetupSession) degrade.
+    const r = await ensureStripeCustomer("user_1", "a@b.nl");
+    expect(r).toBeNull();
   });
 });
 

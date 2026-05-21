@@ -153,6 +153,36 @@ export async function createCheckoutSession(input: CheckoutInput): Promise<Check
 export type FeeSetupSession = { id: string; url: string | null; test: boolean };
 
 /**
+ * Get-or-create the user's Stripe Customer and persist its id on the user.
+ *
+ * Off-session charging (chargeFeeOffSession) REQUIRES a Customer. Relying on
+ * Stripe Checkout's `customer_email` did NOT reliably create/persist one — it
+ * only prefills the email — so stripeCustomerId stayed null and the
+ * no-cure-no-pay fee was uncollectable. We now create the Customer explicitly.
+ * Real-Stripe only; returns null in dev/dummy mode.
+ */
+export async function ensureStripeCustomer(
+  userId: string,
+  email: string,
+): Promise<string | null> {
+  if (!apiKey || apiKey === "sk_test_dummy") return null;
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { stripeCustomerId: true, email: true },
+  });
+  if (user?.stripeCustomerId) return user.stripeCustomerId;
+  const customer = await client().customers.create({
+    email: email || user?.email || undefined,
+    metadata: { userId },
+  });
+  await prisma.user.update({
+    where: { id: userId },
+    data: { stripeCustomerId: customer.id },
+  });
+  return customer.id;
+}
+
+/**
  * v19 — hosted Stripe Checkout in `mode: "setup"`: the user attaches a card
  * (Stripe handles the form + SCA/3DS + storage) at €0. On completion the
  * webhook (DEEL 3) reads the SetupIntent's payment_method + saves it as the
@@ -179,18 +209,16 @@ export async function createFeeSetupSession(input: {
       test: true,
     };
   }
-  const user = await prisma.user.findUnique({
-    where: { id: input.userId },
-    select: { stripeCustomerId: true },
-  });
+  // Off-session charging needs a real Stripe Customer — create/reuse + persist
+  // it up-front and pass it explicitly (customer_email left stripeCustomerId
+  // null and the fee uncollectable). See ensureStripeCustomer above.
+  const customerId = await ensureStripeCustomer(input.userId, input.userEmail);
   const session = await client().checkout.sessions.create({
     mode: "setup",
     // Card only — iDEAL/SEPA can't authorise an off-session mandate here.
     payment_method_types: ["card"],
-    // Reuse the existing customer when we have one; otherwise Stripe creates
-    // one in setup mode and the webhook persists its id.
-    ...(user?.stripeCustomerId
-      ? { customer: user.stripeCustomerId }
+    ...(customerId
+      ? { customer: customerId }
       : { customer_email: input.userEmail }),
     metadata: { userId: input.userId, purpose: "fee-mandate" },
     // session_id lets the return page reconcile the card directly with Stripe
@@ -431,7 +459,7 @@ export async function chargeFeeOffSession(opts: {
     where: { id: opts.userId },
     select: { stripeCustomerId: true, feePaymentMethodId: true, feeMandateAcceptedAt: true },
   });
-  if (!user?.stripeCustomerId || !user.feePaymentMethodId) {
+  if (!user?.feePaymentMethodId) {
     return { ok: false, reason: "no card on file" };
   }
   if (!user.feeMandateAcceptedAt) {
@@ -442,11 +470,22 @@ export async function chargeFeeOffSession(opts: {
     // path is exercised rather than pretending a charge succeeded.
     return { ok: false, reason: "stripe not configured" };
   }
+  // Resolve the Stripe Customer. Legacy/edge records can have a saved card but
+  // a null stripeCustomerId (Checkout customer_email didn't persist one). A
+  // saved PaymentMethod is always attached to a customer, so recover + backfill
+  // it rather than failing an otherwise-valid charge.
+  let customerId = user.stripeCustomerId;
+  if (!customerId) {
+    customerId = await resolveCustomerFromPaymentMethod(opts.userId, user.feePaymentMethodId);
+  }
+  if (!customerId) {
+    return { ok: false, reason: "no customer on file" };
+  }
   try {
     const pi = await client().paymentIntents.create({
       amount: opts.feeCents,
       currency: "eur",
-      customer: user.stripeCustomerId,
+      customer: customerId,
       payment_method: user.feePaymentMethodId,
       off_session: true,
       confirm: true,
@@ -460,6 +499,27 @@ export async function chargeFeeOffSession(opts: {
     // StripeCardError / authentication_required / declined → graceful fallback.
     const reason = (e as { code?: string; message?: string }).code ?? (e as Error).message ?? "charge failed";
     return { ok: false, reason };
+  }
+}
+
+/**
+ * Recover + persist a user's Stripe Customer id from a saved PaymentMethod.
+ * Self-heals records where the card was saved but stripeCustomerId was never
+ * captured. Real-Stripe only; returns null when it can't resolve.
+ */
+async function resolveCustomerFromPaymentMethod(
+  userId: string,
+  paymentMethodId: string,
+): Promise<string | null> {
+  try {
+    const pm = await client().paymentMethods.retrieve(paymentMethodId);
+    const cust = typeof pm.customer === "string" ? pm.customer : pm.customer?.id ?? null;
+    if (cust) {
+      await prisma.user.update({ where: { id: userId }, data: { stripeCustomerId: cust } });
+    }
+    return cust;
+  } catch {
+    return null;
   }
 }
 
