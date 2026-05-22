@@ -38,6 +38,7 @@ const STATIC_PAGES = [
   "/account/banks",
   "/prijs",
   "/geld-check",
+  "/plus",
 ];
 
 // admin-only pages are intentionally skipped from the audit since they
