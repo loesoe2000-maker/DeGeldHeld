@@ -4,26 +4,28 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { track } from "@/lib/analytics";
 import FeeMandatePrompt from "@/components/FeeMandatePrompt";
+import type { RelayChannel } from "@/lib/relay-providers";
 
 /**
- * v23/v25 — consent UI for negotiate-on-behalf. Soft, opt-in: without it the
- * manual one-click-copy flow stays. v25 completes the missing link:
+ * v23/v25/v26 — consent UI for negotiate-on-behalf. Soft, opt-in: without it
+ * the manual one-click-copy flow stays.
  *
- *   - CARD-FIRST (GUARDRAIL 4): no fee-card on file → show the card-link step
- *     instead of the start button. Relay can't authorize without a chargeable card.
- *   - PROVIDER ADDRESS (the missing link): a verified registry address is sent
- *     automatically; otherwise the customer types the address from their invoice.
- *   - Posting still requires the explicit checkbox; the server records the exact
- *     accepted mandate text (audit) and fires the first relay mail.
- *
- * `mandateText` + `resolvedProviderEmail` are computed server-side (lib/relay.ts
- * imports node:crypto, so it must not be pulled into this client bundle).
+ *   - CARD-FIRST (GUARDRAIL 4): no fee-card → show the card-link step.
+ *   - CONFIRM-BEFORE-SEND (v26): a verified registry address is shown and must
+ *     be CONFIRMED ("klopt dit?") before the first mail goes out; the customer
+ *     can change it. No verified address → a manual address is REQUIRED.
+ *   - HONEST EXPECTATION (v26): for a "no-email" provider we say e-mail works
+ *     poorly there instead of pretending.
+ *   - The explicit consent checkbox is always required; the server records the
+ *     exact accepted mandate text and fires the first relay mail.
  */
 export default function RelayConsentPrompt({
   negotiationId,
   provider,
   hasFeeCard,
   resolvedProviderEmail,
+  channel,
+  noEmailNote,
   mandateText,
   returnTo,
 }: {
@@ -31,6 +33,8 @@ export default function RelayConsentPrompt({
   provider: string;
   hasFeeCard: boolean;
   resolvedProviderEmail: string | null;
+  channel: RelayChannel;
+  noEmailNote: string | null;
   mandateText: string;
   returnTo: string;
 }) {
@@ -38,13 +42,17 @@ export default function RelayConsentPrompt({
   const [agreed, setAgreed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // Only shown when the registry has no verified address for this provider.
+
+  // A verified address starts in "verify" mode (confirm/change); otherwise the
+  // customer must type one ("manual" mode from the start).
+  const hasVerified = !!resolvedProviderEmail;
+  const [editing, setEditing] = useState(!hasVerified);
+  const [confirmed, setConfirmed] = useState(false);
   const [manualEmail, setManualEmail] = useState("");
 
   const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
-  // GUARDRAIL 4 — no chargeable card → no relay. Send the customer to the
-  // card-link step (the same no-cure-no-pay mandate used for the manual flow).
+  // GUARDRAIL 4 — no chargeable card → no relay. Send to the card-link step.
   if (!hasFeeCard) {
     return (
       <section
@@ -65,32 +73,38 @@ export default function RelayConsentPrompt({
     );
   }
 
+  // The address we'll actually send to + whether we're cleared to start.
+  const effectiveEmail = editing ? manualEmail.trim().toLowerCase() : resolvedProviderEmail;
+  const addressReady = editing ? EMAIL_RE.test(manualEmail.trim().toLowerCase()) : confirmed;
+  const canStart = agreed && addressReady && !busy;
+
   async function authorize() {
-    if (!agreed || busy) return;
-
-    // Determine the provider address: verified registry hit → use it; else the
-    // customer-typed address (validated). No address → can't start.
-    let providerEmail = resolvedProviderEmail;
-    if (!providerEmail) {
-      const typed = manualEmail.trim().toLowerCase();
-      if (!EMAIL_RE.test(typed)) {
-        setError("Vul een geldig e-mailadres van de klantenservice in.");
-        return;
-      }
-      providerEmail = typed;
+    if (!agreed) return;
+    if (!addressReady || !effectiveEmail || !EMAIL_RE.test(effectiveEmail)) {
+      setError(
+        editing
+          ? "Vul een geldig e-mailadres van de klantenservice in."
+          : "Bevestig eerst het e-mailadres.",
+      );
+      return;
     }
-
     setBusy(true);
     setError(null);
     try {
       const r = await fetch(`/api/negotiations/${negotiationId}/relay-authorize`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ providerEmail }),
+        body: JSON.stringify({ providerEmail: effectiveEmail }),
       });
       if (r.status === 409) {
-        // card-required race (card removed mid-flow) → surface, don't loop.
-        setError("Koppel eerst je kaart om namens jou te kunnen onderhandelen.");
+        const reason = (await r.json().catch(() => ({})))?.reason;
+        setError(
+          reason === "card-required"
+            ? "Koppel eerst je kaart om namens jou te kunnen onderhandelen."
+            : reason === "address-required"
+              ? "Vul of bevestig eerst een e-mailadres."
+              : "Kon de machtiging niet opslaan.",
+        );
         setBusy(false);
         return;
       }
@@ -123,20 +137,54 @@ export default function RelayConsentPrompt({
         altijd pauzeren of stoppen.
       </p>
 
-      {resolvedProviderEmail ? (
+      {/* Honest expectation for providers that don't do email. */}
+      {channel === "no-email" && noEmailNote && (
         <p
-          data-testid="relay-provider-known"
-          className="mt-3 rounded-lg bg-white/60 px-3 py-2 text-sm text-brand-900"
+          data-testid="relay-no-email-note"
+          className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900"
         >
-          We mailen namens jou naar de klantenservice van {provider}.
+          {noEmailNote} Vul hieronder een adres in als je het hebt — anders kun
+          je deze onderhandeling beter zelf doen.
         </p>
+      )}
+
+      {/* Verified address → confirm-before-send. */}
+      {!editing && hasVerified ? (
+        <div data-testid="relay-confirm-address" className="mt-3 rounded-lg bg-white/60 px-3 py-3 text-sm text-brand-900">
+          <p>
+            We mailen namens jou naar{" "}
+            <strong data-testid="relay-resolved-email">{resolvedProviderEmail}</strong> — klopt dit?
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <button
+              type="button"
+              data-testid="relay-confirm-yes"
+              onClick={() => { setConfirmed(true); setError(null); }}
+              className={`rounded-md px-3 py-1.5 text-sm font-medium ${
+                confirmed
+                  ? "bg-emerald-100 text-emerald-800"
+                  : "bg-brand-600 text-white hover:bg-brand-700"
+              }`}
+            >
+              {confirmed ? "✓ Bevestigd" : "Ja, klopt"}
+            </button>
+            <button
+              type="button"
+              data-testid="relay-confirm-change"
+              onClick={() => { setEditing(true); setConfirmed(false); setManualEmail(resolvedProviderEmail ?? ""); }}
+              className="rounded-md border border-brand-200 px-3 py-1.5 text-sm font-medium text-brand-800 hover:bg-white"
+            >
+              Wijzig
+            </button>
+          </div>
+        </div>
       ) : (
         <label className="mt-3 block text-sm text-brand-900">
           <span className="font-medium">
             E-mailadres klantenservice van {provider}
           </span>
           <span className="block text-xs text-brand-700">
-            Dit staat vaak op je factuur of in je account.
+            Staat op je factuur of in de app/account.
           </span>
           <input
             type="email"
@@ -167,7 +215,7 @@ export default function RelayConsentPrompt({
       <button
         type="button"
         onClick={authorize}
-        disabled={!agreed || busy}
+        disabled={!canStart}
         data-testid="relay-consent-start"
         className="mt-4 rounded-lg bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-40"
       >

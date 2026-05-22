@@ -63,7 +63,14 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     const body = (await req.json()) as { providerEmail?: unknown };
     providerEmail = cleanEmail(body.providerEmail);
   } catch {
-    /* no body → defaults */
+    /* no body → handled by the address-required gate below */
+  }
+
+  // v26 CONFIRM-BEFORE-SEND — no relay starts without a confirmed/entered
+  // provider address. The consent UI either confirms a verified registry
+  // address or requires the customer to type one; this is the server backstop.
+  if (!providerEmail) {
+    return NextResponse.json({ error: "address required", reason: "address-required" }, { status: 409 });
   }
 
   // Idempotent: keep an existing token (so the reply-to stays stable).
@@ -77,24 +84,19 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
       relayAuthText: authText,
       relayToken: token,
       relayState: "RELAY_ACTIVE",
-      ...(providerEmail ? { providerEmail } : {}),
+      providerEmail,
     },
   });
 
-  // DEEL 2: if we have a provider address, send the first mail on behalf
-  // right away (consent-gated inside sendFirstRelayMail). Best-effort — the
-  // relay stays authorized even if the provider address isn't known yet.
-  let firstSend: string | null = null;
-  if (providerEmail) {
-    try {
-      const r = await sendFirstRelayMail(negotiation.id);
-      firstSend = r.ok ? "sent" : r.reason;
-    } catch (e) {
-      Sentry.captureException(e, { tags: { module: "relay-authorize" } });
-      firstSend = "error";
-    }
-  } else {
-    firstSend = "no-provider-address";
+  // Send the first mail on behalf right away (consent-gated inside
+  // sendFirstRelayMail). We always have a vetted address here.
+  let firstSend: string;
+  try {
+    const r = await sendFirstRelayMail(negotiation.id);
+    firstSend = r.ok ? "sent" : r.reason;
+  } catch (e) {
+    Sentry.captureException(e, { tags: { module: "relay-authorize" } });
+    firstSend = "error";
   }
 
   return NextResponse.json({ ok: true, relayState: "RELAY_ACTIVE", firstSend });

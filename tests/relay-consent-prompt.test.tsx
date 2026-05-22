@@ -3,23 +3,32 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import RelayConsentPrompt from "../components/RelayConsentPrompt";
 
 /**
- * v25 DEEL 2 — the consent UI completes the missing link: it resolves/asks for
- * the provider address and posts it so sendFirstRelayMail can fire. It also
- * enforces the card-first gate (GUARDRAIL 4) in the UI.
+ * v25/v26 — the consent UI resolves/asks for the provider address and posts it
+ * so sendFirstRelayMail can fire. v26 adds confirm-before-send (a verified
+ * address must be confirmed), required manual entry on doubt, and an honest
+ * note for no-email providers. Card-first gate (GUARDRAIL 4) stays.
  */
 const refresh = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh }) }));
 const track = vi.fn();
 vi.mock("@/lib/analytics", () => ({ track: (...a: unknown[]) => track(...a) }));
 
-const baseProps = {
+const verifiedProps = {
   negotiationId: "neg_1",
   provider: "Greenchoice",
   hasFeeCard: true,
   resolvedProviderEmail: "vragen@greenchoice.nl",
+  channel: "email" as const,
+  noEmailNote: null,
   mandateText: "Ik machtig DeGeldHeld om namens mij te onderhandelen.",
   returnTo: "/onderhandel/email?bill=bill_1",
 };
+
+function lastPostedEmail(): string {
+  const calls = (fetch as unknown as { mock: { calls: unknown[][] } }).mock.calls;
+  const [, init] = calls[calls.length - 1];
+  return JSON.parse((init as { body: string }).body).providerEmail;
+}
 
 beforeEach(() => {
   refresh.mockReset();
@@ -29,63 +38,83 @@ beforeEach(() => {
 
 describe("RelayConsentPrompt — card gate", () => {
   it("no fee-card → shows the card-link step, not the start button", () => {
-    render(<RelayConsentPrompt {...baseProps} hasFeeCard={false} />);
+    render(<RelayConsentPrompt {...verifiedProps} hasFeeCard={false} />);
     expect(screen.getByTestId("relay-card-required")).toBeInTheDocument();
     expect(screen.getByTestId("fee-mandate-prompt")).toBeInTheDocument();
     expect(screen.queryByTestId("relay-consent-start")).not.toBeInTheDocument();
   });
 });
 
-describe("RelayConsentPrompt — registry hit", () => {
-  it("hides the manual input + authorize sends the verified address", async () => {
-    render(<RelayConsentPrompt {...baseProps} />);
+describe("RelayConsentPrompt — verified address (confirm-before-send)", () => {
+  it("shows the address with a confirm step; start is blocked until confirmed", async () => {
+    render(<RelayConsentPrompt {...verifiedProps} />);
+    expect(screen.getByTestId("relay-confirm-address")).toBeInTheDocument();
+    expect(screen.getByTestId("relay-resolved-email")).toHaveTextContent("vragen@greenchoice.nl");
     expect(screen.queryByTestId("relay-provider-email")).not.toBeInTheDocument();
-    expect(screen.getByTestId("relay-provider-known")).toBeInTheDocument();
 
+    // Agreeing alone is not enough — the address must be confirmed.
     fireEvent.click(screen.getByTestId("relay-consent-agree"));
-    fireEvent.click(screen.getByTestId("relay-consent-start"));
+    expect(screen.getByTestId("relay-consent-start")).toBeDisabled();
 
+    fireEvent.click(screen.getByTestId("relay-confirm-yes"));
+    expect(screen.getByTestId("relay-consent-start")).toBeEnabled();
+
+    fireEvent.click(screen.getByTestId("relay-consent-start"));
     await waitFor(() => expect(fetch).toHaveBeenCalled());
-    const [url, init] = (fetch as unknown as { mock: { calls: unknown[][] } }).mock.calls[0];
-    expect(url).toBe("/api/negotiations/neg_1/relay-authorize");
-    expect(JSON.parse((init as { body: string }).body)).toEqual({ providerEmail: "vragen@greenchoice.nl" });
+    expect(lastPostedEmail()).toBe("vragen@greenchoice.nl");
     await waitFor(() => expect(refresh).toHaveBeenCalled());
     expect(track).toHaveBeenCalledWith("relay_authorized");
   });
-});
 
-describe("RelayConsentPrompt — registry miss (manual entry)", () => {
-  const missProps = { ...baseProps, provider: "KPN", resolvedProviderEmail: null };
-
-  it("shows the manual email input", () => {
-    render(<RelayConsentPrompt {...missProps} />);
-    expect(screen.getByTestId("relay-provider-email")).toBeInTheDocument();
-  });
-
-  it("blocks an empty/invalid address with a friendly error, no POST", async () => {
-    render(<RelayConsentPrompt {...missProps} />);
+  it("'Wijzig' reveals a prefilled input and posts the edited address", async () => {
+    render(<RelayConsentPrompt {...verifiedProps} />);
+    fireEvent.click(screen.getByTestId("relay-confirm-change"));
+    const input = screen.getByTestId("relay-provider-email") as HTMLInputElement;
+    expect(input.value).toBe("vragen@greenchoice.nl");
+    fireEvent.change(input, { target: { value: "retentie@greenchoice.nl" } });
     fireEvent.click(screen.getByTestId("relay-consent-agree"));
-    fireEvent.change(screen.getByTestId("relay-provider-email"), { target: { value: "not-an-email" } });
-    fireEvent.click(screen.getByTestId("relay-consent-start"));
-    await waitFor(() => expect(screen.getByText(/geldig e-mailadres/i)).toBeInTheDocument());
-    expect(fetch).not.toHaveBeenCalled();
-  });
-
-  it("posts the typed address when valid", async () => {
-    render(<RelayConsentPrompt {...missProps} />);
-    fireEvent.click(screen.getByTestId("relay-consent-agree"));
-    fireEvent.change(screen.getByTestId("relay-provider-email"), { target: { value: "Klantenservice@KPN.com" } });
     fireEvent.click(screen.getByTestId("relay-consent-start"));
     await waitFor(() => expect(fetch).toHaveBeenCalled());
-    const [, init] = (fetch as unknown as { mock: { calls: unknown[][] } }).mock.calls[0];
-    expect(JSON.parse((init as { body: string }).body)).toEqual({ providerEmail: "klantenservice@kpn.com" });
+    expect(lastPostedEmail()).toBe("retentie@greenchoice.nl");
   });
 });
 
-describe("RelayConsentPrompt — requires consent checkbox", () => {
-  it("does not POST until the checkbox is ticked", () => {
-    render(<RelayConsentPrompt {...baseProps} />);
-    fireEvent.click(screen.getByTestId("relay-consent-start"));
+describe("RelayConsentPrompt — unknown provider (manual entry required)", () => {
+  const unknownProps = { ...verifiedProps, provider: "Ben", resolvedProviderEmail: null, channel: "unknown" as const };
+
+  it("requires a manual address; empty/invalid → error, no POST", async () => {
+    render(<RelayConsentPrompt {...unknownProps} />);
+    expect(screen.getByTestId("relay-provider-email")).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId("relay-consent-agree"));
+    // start disabled with no address
+    expect(screen.getByTestId("relay-consent-start")).toBeDisabled();
+    fireEvent.change(screen.getByTestId("relay-provider-email"), { target: { value: "not-an-email" } });
+    expect(screen.getByTestId("relay-consent-start")).toBeDisabled();
     expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("posts the typed address (lowercased) when valid", async () => {
+    render(<RelayConsentPrompt {...unknownProps} />);
+    fireEvent.click(screen.getByTestId("relay-consent-agree"));
+    fireEvent.change(screen.getByTestId("relay-provider-email"), { target: { value: "Klantenservice@Ben.nl" } });
+    fireEvent.click(screen.getByTestId("relay-consent-start"));
+    await waitFor(() => expect(fetch).toHaveBeenCalled());
+    expect(lastPostedEmail()).toBe("klantenservice@ben.nl");
+  });
+});
+
+describe("RelayConsentPrompt — no-email provider (honest expectation)", () => {
+  const noEmailProps = {
+    ...verifiedProps, provider: "KPN", resolvedProviderEmail: null,
+    channel: "no-email" as const,
+    noEmailNote: "KPN behandelt service via telefoon en de app — geen publiek e-mailadres.",
+  };
+
+  it("shows the honest note and still requires a manual address", () => {
+    render(<RelayConsentPrompt {...noEmailProps} />);
+    expect(screen.getByTestId("relay-no-email-note")).toHaveTextContent(/geen publiek e-mailadres/i);
+    expect(screen.getByTestId("relay-provider-email")).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId("relay-consent-agree"));
+    expect(screen.getByTestId("relay-consent-start")).toBeDisabled(); // no address yet
   });
 });

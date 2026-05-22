@@ -7,7 +7,7 @@ import { isSupportedCategory } from "@/lib/market-coverage";
 import { negotiatorCache, cacheKey } from "@/lib/llm_cache";
 import RelayConsentPrompt from "@/components/RelayConsentPrompt";
 import { relayStatusLabel, relayMandateText } from "@/lib/relay";
-import { relayProviderEmail } from "@/lib/relay-providers";
+import { relayProviderEmail, relayProviderChannel, relayNoEmailNote } from "@/lib/relay-providers";
 import { isEnabled } from "@/lib/feature-flags";
 import TrackEvent from "@/components/TrackEvent";
 import EmailDisplay from "@/components/EmailDisplay";
@@ -177,6 +177,8 @@ export default async function EmailPage({
             provider={bill.provider}
             hasFeeCard={hasFeeCard}
             resolvedProviderEmail={relayProviderEmail(bill.provider)}
+            channel={relayProviderChannel(bill.provider)}
+            noEmailNote={relayNoEmailNote(bill.provider)}
             mandateText={relayMandateText(bill.provider)}
             returnTo={`/onderhandel/email?bill=${bill.id}`}
           />

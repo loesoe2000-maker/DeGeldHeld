@@ -86,30 +86,31 @@ describe("v25 relay-authorize gate", () => {
     expect((await res.json()).reason).toBe("card-required");
   });
 
-  it("authorizes with a card on file → RELAY_ACTIVE", async () => {
+  it("409 address-required when no provider address is supplied (v26 confirm-before-send)", async () => {
     const res = await POST(req({}), ctx);
+    expect(res.status).toBe(409);
+    expect((await res.json()).reason).toBe("address-required");
+    expect(h.updates).toHaveLength(0);
+    expect(h.firstSends).toBe(0);
+  });
+
+  it("with a providerEmail → authorizes, stores it + fires the first relay mail", async () => {
+    const res = await POST(req({ providerEmail: "retentie@kpn.com" }), ctx);
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.relayState).toBe("RELAY_ACTIVE");
     expect(h.updates[0].relayState).toBe("RELAY_ACTIVE");
     expect(h.updates[0].relayAuthorizedAt).toBeInstanceOf(Date);
-    // No provider address supplied → no first send.
-    expect(h.firstSends).toBe(0);
-    expect(body.firstSend).toBe("no-provider-address");
-  });
-
-  it("with a providerEmail → stores it + fires the first relay mail", async () => {
-    const res = await POST(req({ providerEmail: "retentie@kpn.com" }), ctx);
-    expect(res.status).toBe(200);
     expect(h.updates[0].providerEmail).toBe("retentie@kpn.com");
     expect(h.firstSends).toBe(1);
-    expect((await res.json()).firstSend).toBe("sent");
+    expect(body.firstSend).toBe("sent");
   });
 
-  it("rejects an invalid provider email (not stored)", async () => {
+  it("409 address-required for an invalid provider email (nothing stored/sent)", async () => {
     const res = await POST(req({ providerEmail: "not-an-email" }), ctx);
-    expect(res.status).toBe(200);
-    expect(h.updates[0]).not.toHaveProperty("providerEmail");
+    expect(res.status).toBe(409);
+    expect((await res.json()).reason).toBe("address-required");
+    expect(h.updates).toHaveLength(0);
     expect(h.firstSends).toBe(0);
   });
 });
