@@ -134,11 +134,11 @@ describe("components/NegotiationList", () => {
     expect(screen.getByText(/186/)).toBeInTheDocument();
   });
 
-  it("links to negotiation detail", () => {
+  it("links to the negotiation timeline via a prominent button", () => {
     render(<NegotiationList items={[baseItem]} />);
-    expect(screen.getByRole("link", { name: /Bekijk/ })).toHaveAttribute(
+    expect(screen.getByTestId("view-negotiation")).toHaveAttribute(
       "href",
-      "/onderhandel/n1",
+      "/onderhandel/b1/historie",
     );
   });
 

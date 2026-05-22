@@ -40,7 +40,7 @@ export default async function HistoriePage({ params }: { params: Promise<{ billI
       steps.push({
         at: r.createdAt,
         label: `Ronde ${r.roundNumber} — ${bill.provider} reageerde`,
-        detail: r.providerResponse?.slice(0, 160) ?? r.outcome,
+        detail: r.providerResponse?.slice(0, 280) ?? r.outcome,
       });
       // ...and the counter we sent back on the customer's behalf. Without this
       // the timeline only showed the inbound — the customer couldn't see what
@@ -49,7 +49,7 @@ export default async function HistoriePage({ params }: { params: Promise<{ billI
         steps.push({
           at: r.confirmedSentAt,
           label: `Ronde ${r.roundNumber} — tegenvoorstel verstuurd`,
-          detail: r.counterBody.slice(0, 160),
+          detail: r.counterBody.slice(0, 280),
         });
       }
     }
@@ -66,18 +66,22 @@ export default async function HistoriePage({ params }: { params: Promise<{ billI
   steps.sort((a, b) => (a.at?.getTime() ?? 0) - (b.at?.getTime() ?? 0));
 
   return (
-    <main className="mx-auto max-w-2xl px-6 py-12">
-      <p className="text-sm text-slate-500">DeGeldHeld → {bill.provider} → Tijdlijn</p>
-      <h1 className="mt-2 text-3xl font-bold text-slate-900">Tijdlijn — {bill.provider}</h1>
-      <p className="mt-1 text-sm text-slate-500">€{(bill.amountCents / 100).toFixed(2).replace(".", ",")}/maand · {bill.category}</p>
+    <main className="mx-auto max-w-3xl px-6 py-12">
+      <p className="text-sm text-slate-500">DeGeldHeld → {bill.provider} → Onderhandeling</p>
+      <h1 className="mt-2 text-3xl font-bold text-slate-900">Onderhandeling — {bill.provider}</h1>
+      <p className="mt-1 text-sm text-slate-500">€{(bill.amountCents / 100).toFixed(2).replace(".", ",")}/maand · {bill.category} · {bill.negotiation?.rounds.length ?? 0} {(bill.negotiation?.rounds.length ?? 0) === 1 ? "ronde" : "rondes"}</p>
 
-      <ol data-testid="history-timeline" className="mt-8 space-y-4 border-l border-slate-200 pl-6">
+      <ol data-testid="history-timeline" className="mt-8 space-y-6 border-l-2 border-slate-200 pl-7">
         {steps.map((s, i) => (
           <li key={i} className="relative">
-            <span className="absolute -left-[33px] top-1.5 h-3 w-3 rounded-full border-2 border-brand-500 bg-white" />
-            <div className="text-sm text-slate-500">{fmt(s.at)}</div>
-            <div className="text-base font-semibold text-slate-900">{s.label}</div>
-            {s.detail && <div className="text-sm text-slate-600">{s.detail}</div>}
+            <span className="absolute -left-[37px] top-1 h-4 w-4 rounded-full border-2 border-brand-500 bg-white" />
+            <div className="text-xs uppercase tracking-wide text-slate-400">{fmt(s.at)}</div>
+            <div className="mt-0.5 text-lg font-semibold text-slate-900">{s.label}</div>
+            {s.detail && (
+              <div className="mt-2 whitespace-pre-wrap rounded-lg bg-slate-50 p-4 text-sm leading-relaxed text-slate-700">
+                {s.detail}
+              </div>
+            )}
           </li>
         ))}
       </ol>

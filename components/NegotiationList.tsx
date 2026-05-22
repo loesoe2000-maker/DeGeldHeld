@@ -52,15 +52,10 @@ export default function NegotiationList({ items }: { items: Item[] }) {
             )}
             <Link
               href={`/onderhandel/${n.billId}/historie`}
-              className="text-xs text-slate-500 hover:underline"
+              data-testid="view-negotiation"
+              className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-700"
             >
-              Tijdlijn
-            </Link>
-            <Link
-              href={`/onderhandel/${n.id}`}
-              className="text-sm font-medium text-brand-700 hover:underline"
-            >
-              Bekijk →
+              Bekijk onderhandeling →
             </Link>
             <BillDeleteButton billId={n.billId} provider={n.bill.provider} />
           </div>
