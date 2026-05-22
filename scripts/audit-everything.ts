@@ -40,6 +40,7 @@ const STATIC_PAGES = [
   "/geld-check",
   "/plus",
   "/vluchtclaim",
+  "/spookabonnementen",
 ];
 
 // admin-only pages are intentionally skipped from the audit since they
