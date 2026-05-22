@@ -23,6 +23,7 @@ vi.mock("@/lib/db", () => ({
   prisma: {
     negotiation: {
       findUnique: vi.fn(async () => (h.neg ? { ...h.neg, rounds: h.rounds } : null)),
+      findFirst: vi.fn(async () => (h.neg ? { ...h.neg, rounds: h.rounds } : null)),
       update: vi.fn(async (a: { data: Record<string, unknown> }) => {
         if (h.neg) Object.assign(h.neg, a.data);
         return {};

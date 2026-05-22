@@ -42,7 +42,7 @@ describe("v23 anti-abuse — source-level invariants", () => {
   });
   it("inbound relay routes ONLY by the unique relay token (token-scoped)", () => {
     const src = read("lib/relay-inbound.ts");
-    expect(src).toMatch(/findUnique\(\{\s*where:\s*\{\s*relayToken:/);
+    expect(src).toMatch(/findFirst\(\{\s*where:\s*\{\s*relayToken:/);
   });
   it("relay token is crypto-random (not Math.random)", () => {
     const src = read("lib/relay.ts");

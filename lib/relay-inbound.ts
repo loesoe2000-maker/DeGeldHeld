@@ -64,8 +64,12 @@ async function notifyCustomer(opts: {
  * routing via relayDecision().
  */
 export async function handleRelayReply(payload: RelayInboundPayload): Promise<RelayInboundResult> {
-  const negotiation = await prisma.negotiation.findUnique({
-    where: { relayToken: payload.relayToken },
+  // Case-insensitive token match: email systems routinely lowercase the
+  // local-part, so a mixed-case relayToken in the reply-to
+  // (onderhandel+<token>@) can come back lowercased on the provider's reply.
+  // Match insensitively so the reply still routes to its negotiation.
+  const negotiation = await prisma.negotiation.findFirst({
+    where: { relayToken: { equals: payload.relayToken, mode: "insensitive" } },
     include: { bill: true, user: true, rounds: { orderBy: { roundNumber: "asc" } } },
   });
   // Anti-abuse: an unknown/forged token matches nothing.

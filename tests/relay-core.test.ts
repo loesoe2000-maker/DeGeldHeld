@@ -31,7 +31,17 @@ describe("v23 relay token (anti-abuse)", () => {
     const b = generateRelayToken();
     expect(a).not.toBe(b);
     expect(a.length).toBeGreaterThanOrEqual(24);
-    expect(a).toMatch(/^[A-Za-z0-9_-]+$/); // base64url, valid in an email local-part
+    expect(a).toMatch(/^[A-Za-z0-9_-]+$/); // valid in an email local-part
+  });
+  it("token is case-insensitive-safe (no uppercase) — email lowercases the local-part", () => {
+    // Regression: mixed-case (base64url) tokens broke inbound matching because
+    // mail systems lowercase the address local-part on reply. Hex tokens have
+    // no uppercase, so the inbound token always matches the stored one.
+    for (let i = 0; i < 20; i++) {
+      const t = generateRelayToken();
+      expect(t).toBe(t.toLowerCase());
+      expect(t).toMatch(/^[0-9a-f]+$/);
+    }
   });
   it("round-trips through the reply-to address", () => {
     const t = generateRelayToken();

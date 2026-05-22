@@ -18,7 +18,7 @@ const h = vi.hoisted(() => ({
 vi.mock("@/lib/db", () => ({
   prisma: {
     negotiation: {
-      findUnique: vi.fn(async () => h.neg),
+      findFirst: vi.fn(async () => h.neg),
       update: vi.fn(async (a: { data: Record<string, unknown> }) => {
         h.updates.push(a.data);
         return {};

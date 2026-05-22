@@ -25,9 +25,14 @@ export type RelayState = "RELAY_ACTIVE" | "AWAITING_APPROVAL" | "PAUSED" | "DONE
 /** Max auto-counters before the relay always hands back to the customer. */
 export const MAX_AUTO_ROUNDS = 5;
 
-/** Crypto-random, unguessable relay token (anti-abuse: routes only to its own negotiation). */
+/**
+ * Crypto-random, unguessable relay token (anti-abuse: routes only to its own
+ * negotiation). Hex (lowercase, no mixed case): email systems routinely
+ * lowercase the address local-part, so a mixed-case token (e.g. base64url)
+ * could fail to match on the provider's inbound reply. Hex sidesteps that.
+ */
 export function generateRelayToken(): string {
-  return crypto.randomBytes(24).toString("base64url");
+  return crypto.randomBytes(24).toString("hex");
 }
 
 /**
