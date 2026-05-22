@@ -36,7 +36,22 @@ export default async function HistoriePage({ params }: { params: Promise<{ billI
     steps.push({ at: neg.createdAt, label: "Onderhandel-mail gegenereerd", detail: neg.strategy ?? "" });
     if (neg.emailSentAt) steps.push({ at: neg.emailSentAt, label: "Mail verstuurd", detail: neg.emailSubject ?? "" });
     for (const r of neg.rounds) {
-      steps.push({ at: r.createdAt, label: `Ronde ${r.roundNumber}`, detail: r.providerResponse?.slice(0, 120) ?? r.outcome });
+      // What the provider sent in...
+      steps.push({
+        at: r.createdAt,
+        label: `Ronde ${r.roundNumber} — ${bill.provider} reageerde`,
+        detail: r.providerResponse?.slice(0, 160) ?? r.outcome,
+      });
+      // ...and the counter we sent back on the customer's behalf. Without this
+      // the timeline only showed the inbound — the customer couldn't see what
+      // DeGeldHeld actually sent (the relay's auto-counter).
+      if (r.counterBody && r.confirmedSentAt) {
+        steps.push({
+          at: r.confirmedSentAt,
+          label: `Ronde ${r.roundNumber} — tegenvoorstel verstuurd`,
+          detail: r.counterBody.slice(0, 160),
+        });
+      }
     }
     if (neg.outcomeAskedAt) steps.push({ at: neg.outcomeAskedAt, label: "Uitkomst opgevraagd", detail: "" });
     if (neg.closedAt) steps.push({ at: neg.closedAt, label: "Afgesloten", detail: neg.state });
