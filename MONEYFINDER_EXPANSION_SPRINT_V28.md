@@ -22,10 +22,11 @@ Verbreedt DeGeldHeld naar **"vind al het geld dat je laat liggen"**: rekeningen
 ## ⚠️ GUARDRAILS
 1. **`npm run build` (EXIT 0) + `npx tsc --noEmit` + `npm test` groen vóór élke commit.**
 2. **NOOIT providergeld** (model B). Alleen klant-betaalt of % van teruggehaald geld.
-3. **Regels/bedragen MOETEN gesourcet zijn** (WebFetch, `// bron:` + peildatum):
-   toeslag-grenzen op belastingdienst.nl/toeslagen; EU261-bedragen op de officiële
-   EU-bron. **Géén gehallucineerde grenzen/bedragen** — een foute schatting schaadt
-   mensen. Onzeker → toon een range + "controleer bij de officiële instantie".
+3. **Regels/bedragen komen EXACT uit `docs/BENEFITS_DATA_2026.md`** — dat is de
+   al-gesourcete **bron-van-waarheid** (met `// bron:` + peildatum 2026). Neem die
+   één-op-één over. **Géén gehallucineerde of "bijgewerkte" grenzen/bedragen.**
+   Huurtoeslag = **indicatie + verwijzing** (complexe formule, geen exact bedrag).
+   Onzeker → range + "controleer/aanvragen bij de Belastingdienst".
 4. **Indicatie, geen advies / geen overname.** Toeslag-check = schatting +
    verwijzing naar de Belastingdienst-aanvraag (geen DigiD-integratie).
    Vluchtclaim-check = indicatie; de claim zelf is no-cure-no-pay (zie DEEL 4).
@@ -40,15 +41,17 @@ Verbreedt DeGeldHeld naar **"vind al het geld dat je laat liggen"**: rekeningen
 
 ## START
 ```
-Lees /Users/bdb/alpharadar-pro/degeldheld/MONEYFINDER_EXPANSION_SPRINT_V28.md én docs/EXPANSION_PROPOSALS.md, en voer alle deeltaken in volgorde uit. Per deel: npm test + npx tsc --noEmit + npm run build (EXIT 0) groen vóór de commit. Alle regels/grenzen/bedragen ALLEEN WebFetch-geverifieerd met // bron: + peildatum — niets gokken. Checks = indicatie + verwijzing; geen DigiD/aanvraag-overname; geen opslag van gevoelige data. Toeslagen/gemeente-check gratis; vluchtclaim no-cure-no-pay op teruggehaald geld. Geen providergeld, geen hyp/verz. Vermeld in elke commit "Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>". Geen --no-verify/--force. Eindig met V28_REPORT.md incl. bronnen + peildatums.
+Lees /Users/bdb/alpharadar-pro/degeldheld/MONEYFINDER_EXPANSION_SPRINT_V28.md, docs/BENEFITS_DATA_2026.md én docs/EXPANSION_PROPOSALS.md, en voer alle deeltaken in volgorde uit. Per deel: npm test + npx tsc --noEmit + npm run build (EXIT 0) groen vóór de commit. Alle regels/grenzen/bedragen komen EXACT uit docs/BENEFITS_DATA_2026.md (al gesourcet) — niets gokken of "bijwerken"; huurtoeslag = indicatie + verwijzing. Checks = indicatie + verwijzing; geen DigiD/aanvraag-overname; geen opslag van gevoelige data. Toeslagen/gemeente-check gratis; vluchtclaim no-cure-no-pay op teruggehaald geld. Geen providergeld, geen hyp/verz. Vermeld in elke commit "Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>". Geen --no-verify/--force. Eindig met V28_REPORT.md incl. bronnen + peildatums.
 ```
 
 ---
 
 ## DEEL 1 — Geld-check wizard: toeslagen + gemeente-regelingen (gratis)
-a. WebFetch de **officiële 2026-regels** (zorgtoeslag, huurtoeslag, kindgebonden
-   budget): inkomens-/vermogens-/huurgrenzen + max-bedragen. Codeer in
-   `lib/toeslagen.ts` met `// bron:` + peildatum.
+a. Neem de **2026-regels EXACT over uit `docs/BENEFITS_DATA_2026.md`**
+   (zorgtoeslag, huurtoeslag, kindgebonden budget — grenzen + bedragen + bronnen).
+   Codeer in `lib/toeslagen.ts` mét de `// bron:` + peildatum uit dat bestand.
+   **Huurtoeslag = alleen indicatie** (huur ≤ max-huurgrens + vermogen ok →
+   "mogelijk recht") + link naar de officiële proefberekening; géén exact bedrag.
 b. **Gemeente-regelingen** volgens het **"Bereken je Recht" (Nibud/Stimulansz)**-
    model: postcode → gemeente; inkomen → indicatie van landelijke + (generiek-veilig)
    lokale regelingen (bijzondere bijstand, kwijtschelding, individuele
@@ -82,8 +85,9 @@ c. Commit: `feat(plus): subscription as the all-category money-finder engine`.
 a. **Check:** UI `/vluchtclaim` → vluchtnummer + datum → een **flight-data-adapter**
    (`lib/flightdata.ts`, providerafhankelijk: Aviation Edge / AviationStack — via
    env-key, achter `FEATURE_CLAIMS`) haalt de **werkelijke vertraging** op →
-   `eu261Compensation(distanceKm, delayMin)` (gesourcete EU261-bedragen) →
-   "indicatie: €X". Geen API-key → nette "binnenkort"-staat.
+   `eu261Compensation(distanceKm, delayMin)` (EU261-bedragen + drempels EXACT uit
+   `docs/BENEFITS_DATA_2026.md`) → "indicatie: €X". Geen API-key → nette
+   "binnenkort"-staat.
 b. **Claim:** als de klant doorgaat → een no-cure-no-pay claim-flow (model `Claim`):
    DeGeldHeld stelt de claim-brief op namens de klant (zelfde consent-principe als
    de relay) → bij uitbetaling **% van het teruggehaalde bedrag** (bijv. 25% — onder
