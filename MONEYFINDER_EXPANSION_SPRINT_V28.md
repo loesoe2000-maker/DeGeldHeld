@@ -1,5 +1,13 @@
 # DeGeldHeld v28 — "Vind al je geld" uitbreiding (model B: nooit providergeld)
 
+> **🟢 Status (2026-05-23) — DEEL 1 + EU261-calc al uitgevoerd in commit `e23d4ff` op `main`:**
+> `lib/toeslagen.ts` (pure engine, 2026-grenzen sourced) · `lib/eu261.ts` (pure
+> compensatie-calc) · `app/geld-check/` (wizard, client-side privacy) · feature-flags
+> `GELD_CHECK_ENABLED` + `CLAIMS` (default false) · 42 nieuwe tests · entry-points op
+> Hero + dashboard (flag-gated). Build EXIT 0, 1874/1874 tests pass.
+> **➡️ Sla DEEL 1 over en start bij DEEL 2.** Hergebruik de bestaande engine
+> (`estimateBenefits`, `eu261Compensation`) — niet opnieuw bouwen.
+
 **Lees eerst `docs/EXPANSION_PROPOSALS.md`** (gesourcet marktonderzoek). Eigenaar
 koos **model B**: omzet komt van de **klant** (abonnement / no-cure-no-pay) of van
 **teruggehaald/geclaimd geld** — **nooit van providers**.
