@@ -22,7 +22,13 @@ export type AnalyticsEvent =
   | "email_copied"
   | "email_sent"
   | "outcome_marked"
-  | "proof_submitted";
+  | "proof_submitted"
+  // v28 geld-check (toeslagen + gemeente) — geen PII
+  | "geld_check_started"
+  | "geld_check_results_viewed"
+  | "geld_check_aanvraag_clicked"
+  // v28 EU261 vluchtclaim (achter FEATURE_CLAIMS) — geen PII
+  | "vluchtclaim_checked";
 
 /** Only non-PII primitives. provider/category are business categoricals, not PII. */
 export type AnalyticsProps = Record<string, string | number | boolean | null | undefined>;

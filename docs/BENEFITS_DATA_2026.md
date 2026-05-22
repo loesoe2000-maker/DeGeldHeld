@@ -23,7 +23,10 @@
 | Max. vermogen (1-1-2026) | € 146.011 | € 184.633 |
 | Max. toeslag | € 129 / mnd | € 246 / mnd |
 - Voorwaarden: 18+, NL-basisverzekering, inkomen+vermogen onder de grens.
-- *bron: [Belastingdienst — vermogen zorgtoeslag](https://www.belastingdienst.nl/wps/wcm/connect/nl/zorgtoeslag/content/maximaal-vermogen-zorgtoeslag) · [geld.nl — grens zorgtoeslag 2026](https://blog.geld.nl/zorgverzekering/grens-zorgtoeslag)*
+- Het **max-bedrag** geldt bij lage inkomens; richting de inkomensgrens **bouwt de
+  toeslag af naar € 0**. → toon het max als **bovengrens** ("tot € X/mnd") + verwijs
+  voor het exacte bedrag naar de proefberekening. Géén afbouw-formule faken.
+- *bron: [Belastingdienst — max. inkomen zorgtoeslag](https://www.belastingdienst.nl/wps/wcm/connect/nl/zorgtoeslag/content/maximaal-inkomen-voor-zorgtoeslag) · [Belastingdienst — vermogen zorgtoeslag](https://www.belastingdienst.nl/wps/wcm/connect/nl/zorgtoeslag/content/maximaal-vermogen-zorgtoeslag) · [Zorgwijzer — zorgtoeslag 2026 (omlaag)](https://www.zorgwijzer.nl/zorgverzekering-2026/zorgtoeslag-omlaag-in-2026-bereken-hier-hoeveel-je-per-maand-krijgt)*
 
 ## HUURTOESLAG 2026 (indicatie — complexe formule)
 | Grens | Bedrag |
@@ -31,16 +34,20 @@
 | Kwaliteitskortingsgrens | € 498,20 |
 | Lage aftoppingsgrens | € 713,02 |
 | Hoge aftoppingsgrens | € 764,14 |
-| Max. huur (21+) | € 932,93 |
-| Max. huur (18-20) | € 498,20 |
-| Max. vermogen | € 38.479 (alleenst.) / € 76.958 (partner) |
-- **Géén vaste inkomensgrens** — afhankelijk van huur + aantal bewoners.
+| Rekengrens / aftopping max. huur | € 932,93 |
+| Max. vermogen | € 38.479 per persoon (≈ € 76.958 voor partners samen) |
+- **Géén vaste inkomensgrens** — hangt af van huur + aantal bewoners.
+- **⚠️ NIEUW in 2026 (belangrijk — niet als drempel gebruiken!):** de **maximale
+  huurgrens (€ 932,93) is GEEN voorwaarde meer** om huurtoeslag te krijgen. Ook
+  huurders met een hogere huur kunnen huurtoeslag aanvragen; in de berekening wordt
+  de huur boven € 932,93 wél **afgetopt** op € 932,93. → **géén huur-plafond als
+  toegangsdrempel** in de check.
 - Subsidie-% van de huur: 100% tot kwaliteitskortingsgrens, 65% tussen
-  kwaliteitskortings- en lage aftoppingsgrens, 40% boven de hoge aftoppingsgrens.
-- **Implementatie:** check of huur ≤ max-huurgrens + vermogen onder de grens →
-  "je komt mogelijk in aanmerking" + **link naar de officiële proefberekening**
-  voor het exacte bedrag. Geen exact bedrag zelf uitrekenen.
-- *bron: [Belastingdienst — vermogen huurtoeslag](https://www.belastingdienst.nl/wps/wcm/connect/nl/huurtoeslag/content/maximaal-vermogen-huurtoeslag) · [Woonbond — normen en grenzen huurtoeslag](https://www.woonbond.nl/thema/huren-en-geld/normen-en-grenzen-huurtoeslag/) · [Over Toeslagen — bedragen 2026](https://www.overtoeslagen.nl/actueel/nieuws/2025/11/24/bedragen-huurtoeslag-en-andere-toeslagen-2026-bekend)*
+  kwaliteitskortings- en aftoppingsgrens, 40% boven de hoge aftoppingsgrens.
+- **Implementatie (indicatie):** huurt de persoon + vermogen onder de grens →
+  "je komt **mogelijk** in aanmerking" + **link naar de officiële proefberekening**.
+  Géén exact bedrag zelf uitrekenen, géén huur-plafond als drempel.
+- *bron: [Rijksoverheid — huurtoeslagparameters 2026](https://www.rijksoverheid.nl/actueel/nieuws/2025/11/25/indexering-inkomensgrenzen-woningcorporaties-maximale-huurprijsgrenzen-en-huurtoeslagparameters-2026) · [Woonbond — normen en grenzen huurtoeslag](https://www.woonbond.nl/thema/huren-en-geld/normen-en-grenzen-huurtoeslag/) · [Belastingdienst — vermogen huurtoeslag](https://www.belastingdienst.nl/wps/wcm/connect/nl/huurtoeslag/content/maximaal-vermogen-huurtoeslag)*
 
 ## KINDGEBONDEN BUDGET 2026
 | Veld | Bedrag |
@@ -48,10 +55,13 @@
 | Max. per kind < 12 jr | € 2.580 / jr |
 | Max. per kind 12-16 jr | € 3.283 / jr |
 | Max. per kind 16-17 jr | € 3.516 / jr |
-| Extra alleenstaande ouder | ± € 3.320 / jr *(bronnen variëren licht → toon als "ca.")* |
+| Extra alleenstaande ouder (ALO-kop) | ca. € 3.320 / jr *(Consumentenbond; een enkele bron noemt € 3.407 → toon als "ca.")* |
 | Max. inkomen voor het volledige bedrag | € 29.736 (alleenst.) / € 39.141 (partner) |
-| Max. vermogen | € 146.011 (alleenst.) |
-- Boven de inkomensgrens: **afbouw** (geen harde nul). → indicatie/range.
+| Max. vermogen | € 146.011 (alleenst.) / € 184.633 (partner) |
+- Per-kind-bedragen + ALO-kop zijn hard; het **totaal** hangt af van inkomen
+  (afbouw boven de grens, geen harde nul). → reken het **max** uit (inkomen onder de
+  grens) en toon dat als **bovengrens** ("tot € X/jr"); boven de grens → "je komt
+  mogelijk in aanmerking" + proefberekening. **Géén afbouw-percentage faken.**
 - *bron: [Consumentenbond — kindgebonden budget 2026](https://www.consumentenbond.nl/toeslagen/kindgebonden-budget) · [Belastingdienst — max inkomen kindgebonden budget](https://www.belastingdienst.nl/wps/wcm/connect/nl/kindgebonden-budget/content/maximaal-inkomen-kindgebonden-budget)*
 
 ## GEMEENTE-REGELINGEN (model, geen vaste bedragen)

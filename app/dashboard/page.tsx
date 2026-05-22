@@ -16,6 +16,7 @@ import { pickNudgeCategory } from "@/lib/category-gap";
 import { ensureReferralCode, buildShareUrl } from "@/lib/referral";
 import ReferralBlock from "@/components/ReferralBlock";
 import AnalyticsIdentify from "@/components/AnalyticsIdentify";
+import { isEnabled } from "@/lib/feature-flags";
 
 export const metadata = { title: "Dashboard — DeGeldHeld" };
 export const dynamic = "force-dynamic";
@@ -132,6 +133,28 @@ export default async function DashboardPage() {
           We analyseren 'm en sturen je een link terug.
         </p>
       </section>
+
+      {isEnabled("GELD_CHECK_ENABLED") ? (
+        <section
+          data-testid="geld-check-tile"
+          className="mt-8 rounded-xl border border-brand-200 bg-brand-50 p-6"
+        >
+          <h2 className="text-xl font-semibold text-brand-900">
+            Vind al je geld — gratis geld-check
+          </h2>
+          <p className="mt-1 text-sm text-brand-800">
+            Nederlanders laten jaarlijks &gt; € 1 miljard aan toeslagen liggen. Doe
+            een gratis check (geen DigiD, niets opgeslagen) en zie welke toeslagen +
+            gemeente-regelingen je mogelijk misloopt.
+          </p>
+          <Link
+            href="/geld-check"
+            className="mt-4 inline-flex items-center gap-1 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-700"
+          >
+            Start de geld-check →
+          </Link>
+        </section>
+      ) : null}
 
       {await renderReferralSection(userId)}
 

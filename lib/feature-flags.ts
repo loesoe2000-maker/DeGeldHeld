@@ -40,6 +40,18 @@ const FLAG_DEFAULTS = {
   // reviewed the volmacht + voorwaarden + privacy (docs/MACHTIGING.md).
   // Off → only the existing manual copy-to-send flow, zero relay UI.
   RELAY_ENABLED: false,
+  // Off by default — v28 gratis "vind al je geld"-check (toeslagen +
+  // gemeente-regelingen). Pure indicatie, geen DigiD/opslag. Flip aan zodra
+  // owner de privacy-tekst + indicatie-disclaimer heeft gereviewed (zie
+  // GELD_CHECK_DISCLAIMER in lib/toeslagen.ts). Gates het /geld-check
+  // entrypoint + de dashboard/landing-tile.
+  GELD_CHECK_ENABLED: false,
+  // Off by default — v28 EU261 vluchtclaim-check + no-cure-no-pay claim-flow.
+  // Achter deze flag tot:
+  //   1. flight-data-API key (Aviation Edge / AviationStack) is ingericht
+  //   2. juridische check op de volmacht/claim-brief is afgerond
+  // De pure berekening (lib/eu261.ts) staat los en is altijd testbaar.
+  CLAIMS: false,
 } as const;
 
 export type FeatureFlag = keyof typeof FLAG_DEFAULTS;

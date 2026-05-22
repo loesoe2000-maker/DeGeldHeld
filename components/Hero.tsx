@@ -1,6 +1,8 @@
 import Link from "next/link";
+import { isEnabled } from "@/lib/feature-flags";
 
 export default function Hero() {
+  const geldCheckOn = isEnabled("GELD_CHECK_ENABLED");
   return (
     <section className="bg-gradient-to-b from-brand-50 to-white px-6 py-20 sm:py-28">
       <div className="mx-auto max-w-4xl text-center">
@@ -40,6 +42,16 @@ export default function Hero() {
             Bekijk hoe het werkt (30 sec) →
           </Link>
         </p>
+        {geldCheckOn ? (
+          <p className="mt-3">
+            <Link
+              href="/geld-check"
+              className="text-sm font-medium text-brand-700 underline decoration-dotted underline-offset-4 hover:text-brand-800"
+            >
+              Of doe de gratis geld-check: welke toeslagen loop je mis? →
+            </Link>
+          </p>
+        ) : null}
       </div>
     </section>
   );
