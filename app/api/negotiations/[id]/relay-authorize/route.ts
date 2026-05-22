@@ -11,7 +11,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { generateRelayToken, relayMandateText } from "@/lib/relay";
+import { generateRelayToken, relayMandateText, relayAddressSanity } from "@/lib/relay";
 import { sendFirstRelayMail } from "@/lib/relay-send";
 import { isEnabled } from "@/lib/feature-flags";
 import * as Sentry from "@sentry/nextjs";
@@ -71,6 +71,12 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   // address or requires the customer to type one; this is the server backstop.
   if (!providerEmail) {
     return NextResponse.json({ error: "address required", reason: "address-required" }, { status: 409 });
+  }
+
+  // v26 ADDRESS SANITY — never mail a no-reply mailbox or a malformed address.
+  const sanity = relayAddressSanity(providerEmail);
+  if (!sanity.ok) {
+    return NextResponse.json({ error: "bad address", reason: sanity.reason }, { status: 409 });
   }
 
   // Idempotent: keep an existing token (so the reply-to stays stable).

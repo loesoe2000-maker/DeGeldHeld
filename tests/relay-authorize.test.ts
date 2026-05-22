@@ -113,4 +113,12 @@ describe("v25 relay-authorize gate", () => {
     expect(h.updates).toHaveLength(0);
     expect(h.firstSends).toBe(0);
   });
+
+  it("409 (sanity) for a no-reply provider address (nothing stored/sent)", async () => {
+    const res = await POST(req({ providerEmail: "noreply@kpn.com" }), ctx);
+    expect(res.status).toBe(409);
+    expect((await res.json()).reason).toBe("noreply");
+    expect(h.updates).toHaveLength(0);
+    expect(h.firstSends).toBe(0);
+  });
 });

@@ -50,6 +50,45 @@ export function relayReplyTo(token: string): string {
   return `onderhandel+${token}@${DOMAIN}`;
 }
 
+const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+// Unmonitored mailboxes — a relay mail there is silently lost.
+const NOREPLY_RE = /^(no-?reply|do-?not-?reply|noreply|donotreply|geen-?antwoord)\b/i;
+
+export type RelayAddressSanity =
+  | { ok: true }
+  | { ok: false; reason: "invalid-format" | "noreply" };
+
+/**
+ * v26 — sanity gate before the FIRST relay send. HARD-rejects only the
+ * unambiguous cases: a malformed address, or a no-reply / do-not-reply mailbox
+ * (a relay mail there never reaches a human). Domain-mismatch is intentionally
+ * NOT hard-blocked here — see relayDomainLooksOff (advisory, false-positive
+ * prone, so the UI uses it to nudge "klopt dit?" rather than to refuse).
+ */
+export function relayAddressSanity(email: string): RelayAddressSanity {
+  const e = (email ?? "").trim().toLowerCase();
+  if (!EMAIL_RE.test(e)) return { ok: false, reason: "invalid-format" };
+  const local = e.slice(0, e.indexOf("@"));
+  if (NOREPLY_RE.test(local)) return { ok: false, reason: "noreply" };
+  return { ok: true };
+}
+
+/**
+ * v26 advisory: does the address-domain look unrelated to the provider? Crude
+ * token-overlap heuristic — used ONLY as a soft "klopt dit?" hint (never to
+ * hard-block), because brand↔domain mismatches are common (e.g. resellers).
+ */
+export function relayDomainLooksOff(email: string, providerCanonical: string): boolean {
+  const at = (email ?? "").indexOf("@");
+  if (at < 0) return false;
+  const domain = email.slice(at + 1).toLowerCase();
+  const core = (providerCanonical ?? "").toLowerCase().replace(/[^a-z0-9]/g, "");
+  if (core.length < 3) return false;
+  const domainCore = domain.replace(/\.[a-z.]+$/, "").replace(/[^a-z0-9]/g, "");
+  if (!domainCore) return false;
+  return !domainCore.includes(core) && !core.includes(domainCore);
+}
+
 /**
  * Extract a relay token from one or more recipient addresses
  * (onderhandel+<token>@domain). Returns null when none match.

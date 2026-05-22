@@ -10,7 +10,7 @@ import { prisma } from "@/lib/db";
 import { sendEmail, escapeHtml } from "@/lib/email";
 import { relayFromHeader } from "@/lib/email-from";
 import { generateThreadId, messageIdFor } from "@/lib/email-thread";
-import { canRelaySend, relayReplyTo } from "@/lib/relay";
+import { canRelaySend, relayReplyTo, relayAddressSanity } from "@/lib/relay";
 
 export type RelaySendResult =
   | { ok: true; messageId: string; threadId: string }
@@ -43,6 +43,10 @@ export async function sendRelayMail(opts: {
   if (!canRelaySend(neg)) return { ok: false, reason: "relay not authorized/active" };
   if (!neg.relayToken) return { ok: false, reason: "no relay token" };
   if (!neg.providerEmail) return { ok: false, reason: "no-provider-address" };
+  // Defense-in-depth: never put a relay mail on the wire to a no-reply /
+  // malformed mailbox, even if a bad address slipped past the authorize gate.
+  const sanity = relayAddressSanity(neg.providerEmail);
+  if (!sanity.ok) return { ok: false, reason: `bad-address-${sanity.reason}` };
 
   // Keep a stable thread so provider replies match this negotiation.
   const threadId = neg.providerThreadId ?? generateThreadId();
