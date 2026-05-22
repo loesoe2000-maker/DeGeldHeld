@@ -39,6 +39,7 @@ const STATIC_PAGES = [
   "/prijs",
   "/geld-check",
   "/plus",
+  "/vluchtclaim",
 ];
 
 // admin-only pages are intentionally skipped from the audit since they
@@ -92,6 +93,8 @@ const API_PROBES: ApiProbe[] = [
   { path: "/api/whatsapp/activate", method: "POST", body: {}, expectJson: true, okStatuses: [400, 401] },
   { path: "/api/outbound/whatsapp", method: "POST", body: {}, expectJson: true, okStatuses: [400, 401, 503] },
   { path: "/api/inbound/whatsapp", method: "POST", body: {}, expectJson: true, okStatuses: [401, 503] },
+  // v28 vluchtclaim check — flag-gated (CLAIMS); 404 als flag uit, anders 400 op bad input.
+  { path: "/api/vluchtclaim/check", method: "POST", body: {}, expectJson: true, okStatuses: [400, 404] },
 ];
 
 type Row = {
