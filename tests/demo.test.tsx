@@ -2,9 +2,9 @@ import { describe, it, expect } from "vitest";
 import { DEMO_FIXTURES, getDemoFixture } from "../lib/demo-fixtures";
 
 describe("demo-fixtures", () => {
-  it("has exactly 3 fixtures (telecom/energie/verzekering)", () => {
-    expect(DEMO_FIXTURES).toHaveLength(3);
-    expect(DEMO_FIXTURES.map((f) => f.id).sort()).toEqual(["energie", "telecom", "verzekering"]);
+  it("has only supported-category fixtures (telecom/energie — no AFM-gated verzekering)", () => {
+    expect(DEMO_FIXTURES).toHaveLength(2);
+    expect(DEMO_FIXTURES.map((f) => f.id).sort()).toEqual(["energie", "telecom"]);
   });
 
   it("each fixture has bill, analysis and mail", () => {
@@ -31,7 +31,6 @@ describe("demo-fixtures", () => {
   it("getDemoFixture finds by id", () => {
     expect(getDemoFixture("telecom")?.bill.provider).toBe("KPN");
     expect(getDemoFixture("energie")?.bill.provider).toBe("Eneco");
-    expect(getDemoFixture("verzekering")?.bill.provider).toBe("Centraal Beheer");
   });
 
   it("getDemoFixture returns undefined for unknown id", () => {

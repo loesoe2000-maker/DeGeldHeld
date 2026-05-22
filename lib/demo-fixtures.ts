@@ -1,18 +1,21 @@
 /**
  * lib/demo-fixtures.ts — Fake bills + analyses + mails voor /demo.
  *
- * GEEN DB-call, GEEN auth, ALLES in memory. Drie scenario's zodat
- * een nieuwe bezoeker de volledige flow kan zien zonder upload.
+ * GEEN DB-call, GEEN auth, ALLES in memory. Scenario's zodat een nieuwe
+ * bezoeker de volledige flow kan zien zonder upload.
+ *
+ * ALLEEN ondersteunde categorieën (geen hypotheek/verzekering — die zijn
+ * AFM-gegate, dus die horen niet in de demo).
  */
 
 export type DemoFixture = {
-  id: "telecom" | "energie" | "verzekering";
+  id: "telecom" | "energie";
   label: string;
   emoji: string;
   bill: {
     provider: string;
     plan: string;
-    category: "TELECOM" | "ENERGIE" | "VERZEKERING";
+    category: "TELECOM" | "ENERGIE";
     monthlyCents: number;
     period: string;
   };
@@ -109,49 +112,6 @@ Ik blijf graag bij Eneco, mits het tarief marktconform wordt. Concreet vraag ik:
 - Vastrecht reductie naar maximaal €6/mnd
 
 Mocht u dit niet kunnen aanbieden, zeg ik mijn contract op per einde van de huidige termijn.
-
-Met vriendelijke groet,
-[Jouw naam]`,
-    },
-  },
-  {
-    id: "verzekering",
-    label: "Centraal Beheer autoverzekering",
-    emoji: "🚗",
-    bill: {
-      provider: "Centraal Beheer",
-      plan: "WA+ Volkswagen Polo",
-      category: "VERZEKERING",
-      monthlyCents: 2890,
-      period: "mei 2026",
-    },
-    analysis: {
-      marketMedianMonthlyCents: 2350,
-      yearlySavingsCents: 6480,
-      alternatives: [
-        { name: "Inshared", monthlyCents: 1720, notes: "Online-only, eigen risico €150" },
-        { name: "Promovendum", monthlyCents: 1850, notes: "Korting hbo/wo-opgeleiden" },
-        { name: "Univé", monthlyCents: 1990, notes: "Schadevrije jaren behouden bij overstap" },
-      ],
-      note: "Je premie zit in het duurste kwartiel voor WA+ verzekeringen.",
-    },
-    mail: {
-      subject: "Premie-verlaging WA+ verzekering — polisnummer X1234567",
-      strategy: "MATCH_OFFER",
-      confidence: 0.65,
-      reasoning: "Verzekeraars matchen vaak goedkopere offertes om bestaande klanten te behouden. MATCH_OFFER met concrete alternatieven uit dezelfde dekking-klasse werkt.",
-      body: `Geachte heer/mevrouw,
-
-Ik schrijf u over mijn WA+ autoverzekering bij Centraal Beheer (polisnr X1234567). Mijn huidige maandpremie bedraagt €28,90.
-
-Vergelijkbare offertes met dezelfde dekking (WA+ voor Volkswagen Polo 2018):
-- Inshared: €17,20/mnd
-- Promovendum: €18,50/mnd
-- Univé: €19,90/mnd
-
-Dat is ~€65 per jaar voordeliger. Ik waardeer de goede schadeservice die ik bij u heb ervaren en wil graag klant blijven. Kunt u een voorstel doen dat marktconform is, bij voorkeur richting €19-€22 per maand?
-
-Ik ontvang graag uw reactie binnen 14 werkdagen.
 
 Met vriendelijke groet,
 [Jouw naam]`,
