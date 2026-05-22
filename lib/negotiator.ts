@@ -460,7 +460,29 @@ ${displayName}${input.customerEmail && input.customerEmail.toLowerCase() !== dis
     ? `\n\nIk let bij ${input.provider} expliciet op het ${vocab.slice(0, 3).join(", ")}.`
     : "";
 
-  const body = `${greetingNL},
+  // v26.1: round-aware fallback. On a counter (roundContext present) the
+  // template must RESPOND to the provider's previous offer — not re-send the
+  // opening mail. This matters because the LLM can rate-limit (free Groq tier)
+  // and fall back here; without this the "counter" was a duplicate of round 1.
+  const rc = input.roundContext;
+  const prevOffer =
+    rc?.previousOfferedCents != null
+      ? `€${(rc.previousOfferedCents / 100).toFixed(2).replace(".", ",")}`
+      : null;
+  const body = rc
+    ? `${greetingNL},
+
+Bedankt voor ${tonality === "FORMEEL" ? "uw" : "je"} reactie${prevOffer ? ` en het aanbod van ${prevOffer} per maand` : ""}. Dat waardeer ik, maar het is nog onvoldoende.
+
+Zoals ik eerder aangaf biedt ${altProvider} ${altName || "een vergelijkbaar pakket"} voor €${altPrice} per maand — zo'n €${yearSaved} per jaar minder. Ik blijf liever bij ${input.provider}, maar dan tegen een passend tarief.
+
+Daarom ${askVerb} nogmaals ${tonality === "FORMEEL" ? "mijn" : "mijn"} maandbedrag te verlagen naar €${targetPrice}. Kunt ${tonality === "FORMEEL" ? "u" : "je"} dat toezeggen? Zo niet, dan zal ik binnen 30 dagen overstappen.${vocabLine}
+
+${closingPhrase}
+
+${closingNL},
+${displayName}${input.customerEmail && input.customerEmail.toLowerCase() !== displayName.toLowerCase() ? `\n${input.customerEmail}` : ""}`
+    : `${greetingNL},
 
 Ik ${writeVerb} over ${tonality === "FORMEEL" ? "mijn" : "mijn"} ${input.provider}-account${klantnummerNL}. Ik ben al meerdere jaren klant${planLine}, met een huidig maandbedrag van €${huidig}.
 

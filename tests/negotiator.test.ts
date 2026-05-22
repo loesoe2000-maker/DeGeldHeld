@@ -134,4 +134,19 @@ describe("negotiator/generateEmail (no API key)", () => {
     const r = await generateEmail({ ...baseInput, alternatives: alts });
     expect(r.expectedSavingsCents).toBe(alts[0].yearlySavingsCents);
   });
+
+  it("counter (roundContext) responds to the provider's offer — not the opening mail", async () => {
+    // Regression: the auto-counter fell back here (LLM rate-limited) and the
+    // template ignored roundContext, so the relay re-sent the opening mail
+    // instead of countering. The fallback is now round-aware.
+    const round1 = await generateEmail({ ...baseInput, alternatives: [altWith(5000)] });
+    const counter = await generateEmail({
+      ...baseInput,
+      alternatives: [altWith(5000)],
+      roundContext: { roundNumber: 2, previousOfferedCents: 2166, previousTone: "constructief" },
+    });
+    expect(counter.body).not.toBe(round1.body); // not a duplicate of the opening
+    expect(counter.body).toMatch(/21,66/); // references the provider's offer
+    expect(counter.body).toMatch(/Bedankt voor/i); // acknowledges the reply
+  });
 });
