@@ -27,6 +27,8 @@ export type AnalyticsEvent =
   | "geld_check_started"
   | "geld_check_results_viewed"
   | "geld_check_aanvraag_clicked"
+  // v28 funnel — kruisverwijzing van de geld-check naar de rekeningen-flow
+  | "geld_check_to_onderhandel"
   // v28 EU261 vluchtclaim (achter FEATURE_CLAIMS) — geen PII
   | "vluchtclaim_checked";
 

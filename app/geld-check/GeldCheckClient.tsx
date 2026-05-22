@@ -381,9 +381,52 @@ function Results({ result }: { result: GeldCheckResult }) {
         ))}
       </ul>
 
+      {/* v28 funnel — door-stroom naar de rekeningen-onderhandeling. */}
+      <CrossCTA result={result} />
+
       <p className="mt-8 rounded-lg bg-slate-50 p-4 text-xs leading-relaxed text-slate-600">
         {result.disclaimer}
       </p>
+    </section>
+  );
+}
+
+function CrossCTA({ result }: { result: GeldCheckResult }) {
+  const found = result.totaalIndicatieMaandCents > 0;
+  return (
+    <section
+      data-testid="geld-check-cross-cta"
+      className="mt-8 rounded-2xl border border-brand-200 bg-brand-50/40 p-6"
+    >
+      <h3 className="text-lg font-semibold text-slate-900">
+        {found
+          ? "Mooi — laten we ook je vaste lasten checken"
+          : "Geen evident toeslagenrecht — check je vaste lasten"}
+      </h3>
+      <p className="mt-1 text-sm text-slate-700">
+        {found ? (
+          <>
+            Bovenop de tot{" "}
+            <strong>{formatEurCents(result.totaalIndicatieMaandCents)}/mnd</strong>{" "}
+            aan toeslagen kun je vaak nog €350–€800 per jaar besparen door je
+            telefoon-, internet- of energierekening te laten onderhandelen.
+          </>
+        ) : (
+          <>
+            Een gemiddeld huishouden bespaart €350–€800 per jaar op vaste lasten
+            zoals telefoon, internet en energie. Upload je rekening — we
+            onderhandelen automatisch en je betaalt alleen 20% van wat we
+            besparen.
+          </>
+        )}
+      </p>
+      <Link
+        href="/onderhandel"
+        onClick={() => track("geld_check_to_onderhandel", { found })}
+        className="mt-4 inline-flex items-center gap-1 rounded-lg bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-brand-700"
+      >
+        Check ook mijn rekeningen →
+      </Link>
     </section>
   );
 }
