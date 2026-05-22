@@ -53,8 +53,11 @@ Monitoring map: **errors → Sentry · funnel → PostHog · traffic → Vercel 
 
 ## Feature flags (`lib/feature-flags.ts`, env `FEATURE_<FLAG>`)
 - `FEATURE_NO_CURE_NO_PAY=true` → **ON** (20% model live).
-- `FEATURE_RELAY_ENABLED` → **OFF** (relay built+tested in V25/V26, jurist-approved;
-  flip to `true` in Vercel only when launching the relay to real users).
+- `FEATURE_RELAY_ENABLED` → **ON** (jurist-approved; enabled 2026-05-22 + tested
+  end-to-end live: send → receive → auto-counter → notify → timeline. Set to
+  `false` in Vercel to roll back. Follow-ups: paid Groq (fewer counter
+  fallbacks = smarter counters), notification deliverability (gmail spam), and
+  Neon always-on so a cold DB doesn't drop inbound webhooks/page loads).
 - `AUTO_PINGPONG`, `PSD2_ENABLED`, `WHATSAPP_ENABLED` → off (legacy/experimental).
 
 ## ⚠️ Current state & sequencing (read before planning anything)
