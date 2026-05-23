@@ -1,8 +1,16 @@
 # DeGeldHeld v29 — Box 3 + NS Geld-Terug + Zorgkostenaftrek + "vind al je geld"-hub
 
+> **🟢 Status (2026-05-24) — DEEL 0 is AL GEDAAN:** `docs/V29_DATA_2026.md` ligt
+> klaar als bron-van-waarheid (Belastingdienst-/Rijksoverheid-/NS-/Hoge Raad-
+> gesourcet, peildatum 2026, geverifieerd 2026-05-24). **Sla DEEL 0 over.**
+> Hergebruik die data EXACT in `lib/box3.ts`, `lib/ns.ts`, `lib/zorgkosten.ts` —
+> niets gokken of "bijwerken". Bij verschil tussen aggregator en Belastingdienst:
+> **Belastingdienst wint** (bv. 2026 banktegoeden-forfait 1,28%, NIET 1,44%).
+
 **Lees eerst:**
+- `docs/V29_DATA_2026.md` — **bron-van-waarheid** (alle forfaits/drempels/bedragen)
 - `docs/EXPANSION_RESEARCH_V29.md` — gesourcete marktscan + revenue-verdicts per feature
-- `docs/BENEFITS_DATA_2026.md` — V28-pattern voor sourced data-file (kopieer de stijl)
+- `docs/BENEFITS_DATA_2026.md` — V28-pattern (stijl-referentie voor toon/structuur)
 - `V28_REPORT.md` — wat al staat (`lib/toeslagen.ts`, `lib/eu261.ts`, `lib/plus.ts`,
   `app/geld-check/`, `app/vluchtclaim/`, `app/spookabonnementen/`, `app/plus/`)
 
@@ -46,48 +54,34 @@ via Plus) revenue brengen, plus één **"vind al je geld"-hub** die alles samenb
 ## START
 
 ```
-Lees /Users/bdb/alpharadar-pro/degeldheld/MONEYFINDER_EXPANSION_SPRINT_V29.md, docs/EXPANSION_RESEARCH_V29.md én docs/BENEFITS_DATA_2026.md (als stijl-referentie). Voer alle deeltaken uit in volgorde. DEEL 0 is verplicht — maak EERST docs/V29_DATA_2026.md met ALLE Box 3-forfaits + heffingsvrij vermogen 2017-2025+ + Wet tegenbewijsregeling-procedure + NS Geld-Terug exacte bedragen + EU-PRR-verschillen + zorgkostenaftrek-drempel + volledige lijst aftrekbare/niet-aftrekbare posten — élk getal met // bron: officiële Belastingdienst/Rijksoverheid/NS-URL + verifiedAt. Niets uit aggregators, niets gokken. Bij twijfel → indicatie + verwijzing, geen exact bedrag. Per deel: npm test + npx tsc --noEmit + npm run build (EXIT 0) groen vóór de commit. Revenue-model EXACT zoals in guardrail 5: Box 3 gefaseerd (gratis indicatie + NCNP 25% alleen bij ≥€500 verwachte teruggave), NS gratis + Plus-upsell, zorgkosten gratis. Privacy: alles client-side, ph-no-capture, geen opslag. Alle features achter feature-flags (default false). Geen providergeld, geen hyp/verz. Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>. Geen --no-verify/--force. Eindig met V29_REPORT.md incl. bronnen + peildatums + eigenaar-stappen.
+Lees /Users/bdb/alpharadar-pro/degeldheld/MONEYFINDER_EXPANSION_SPRINT_V29.md, docs/V29_DATA_2026.md, docs/EXPANSION_RESEARCH_V29.md én docs/BENEFITS_DATA_2026.md (als stijl-referentie). DEEL 0 is AL GEDAAN — docs/V29_DATA_2026.md ligt klaar. SLA DEEL 0 OVER en start direct bij DEEL 1. Hergebruik de forfaits/drempels/bedragen EXACT uit docs/V29_DATA_2026.md — niets gokken, niets uit aggregators. Bij verschil aggregator vs Belastingdienst: Belastingdienst wint (bv. 2026 banktegoeden 1,28% NIET 1,44%). Per deel: npm test + npx tsc --noEmit + npm run build (EXIT 0) groen vóór de commit. Revenue-model EXACT zoals in guardrail 5: Box 3 gefaseerd (gratis indicatie + NCNP 25% alleen bij ≥€500 verwachte teruggave), NS gratis + Plus-upsell, zorgkosten gratis. Privacy: alles client-side, ph-no-capture, geen opslag. Alle features achter feature-flags (default false). Geen providergeld, geen hyp/verz. Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>. Geen --no-verify/--force. Eindig met V29_REPORT.md incl. bronnen + peildatums + eigenaar-stappen.
 ```
 
 ---
 
-## DEEL 0 — `docs/V29_DATA_2026.md` (bron-van-waarheid, verplicht eerst)
+## DEEL 0 — `docs/V29_DATA_2026.md` (bron-van-waarheid) ✅ AL GEDAAN
 
-a. Maak `docs/V29_DATA_2026.md` met:
-   - **Box 3** (sectie):
-     - Forfaitaire rendementen per jaar **2017 t/m 2025+** per **vermogensschijf**
-       (sparen / overige bezittingen / schulden), EXACT van Belastingdienst.
-     - **Heffingsvrij vermogen** per jaar.
-     - **Wet tegenbewijsregeling Box 3** (ingegaan 19 jul 2025) — kernregels:
-       wie kan tegenbewijs leveren, OWR-formulier, deadline-richtlijnen,
-       welke vermogenscategorieën.
-     - Eerlijk over wat WEL en NIET hard te schatten is (rendement spaargeld =
-       relatief hard via gemiddelde spaarrente; beleggingen = klant moet zelf
-       opgeven; vastgoed = ander regime).
-     - Bronnen: Rijksoverheid (tijdlijn rechtsherstel), Belastingdienst (forfaits),
-       Hoge Raad-arresten (6 jun 2024, 14 jun 2024, 20 dec 2024), Wet
-       tegenbewijsregeling Stb 2025.
-   - **NS Geld-Terug** (sectie):
-     - Exacte percentages per vertraging-band (NS-regeling: 30-59 min = 50%,
-       ≥ 60 min = 100% · EU-PRR Verordening 2021/782: 60-119 min = 25%,
-       ≥ 120 min = 50% — wanneer welke geldt).
-     - Minimum claim (€ 2,30) · deadline (3 maanden).
-     - Abonnement-handling (Vrij / Voordeel / Flex / kortingsabonnement).
-     - Uitsluitingen (overmacht, terrorisme, exceptioneel weer).
-     - Bronnen: NS Voorwaarden Geld-Terug-bij-Vertraging-PDF, EU 2021/782,
-       Rover.
-   - **Zorgkostenaftrek** (sectie):
-     - Drempel-formule (1,65% van toetsingsinkomen, minimum € 164 per
-       belastingplichtige — peildatum verifiëren voor 2025/2026).
-     - Volledige lijst **wel-aftrekbare** posten (zorgkosten ziekte/invaliditeit:
-       genees-/heelkundige hulp, voorgeschreven medicijnen, hulpmiddelen, vervoer
-       i.v.m. ziekte, dieet op doktersrecept, etc.).
-     - Volledige lijst **niet-aftrekbare** posten (eigen risico, premies, etc.).
-     - Bronnen: Belastingdienst (overzicht zorgkosten + drempelbedrag),
-       Eindrapport aftrek specifieke zorgkosten Eerste Kamer 2022.
-   - Eerlijk over wat indicatie-only is.
-b. Geen aggregator-cijfers (geen blog/influencer). Officiële bronnen of weglaten.
-c. Commit: `docs(v29): sourced data file for box3 + NS + zorgkostenaftrek 2026`.
+**SKIP.** Het bestand `docs/V29_DATA_2026.md` is al opgeleverd (2026-05-24,
+sourced tegen Belastingdienst / Rijksoverheid / Wikipedia (historie) / NS /
+EU-Lex). Gebruik die data EXACT in DEEL 1-3.
+
+Wat erin staat (samengevat — lees het bestand zelf voor de volledige tabellen):
+- **Box 3**: forfaits per jaar 2017-2026 voor banktegoeden / overige bezittingen
+  / schulden + tarief per jaar + heffingsvrij vermogen per jaar +
+  schulden-drempel 2026 (€ 3.800) + berekeningswijze (6 stappen Belastingdienst)
+  + Wet tegenbewijsregeling 19 jul 2025 + OWR-deadlines (1 mei 2026 /
+  1 oktober 2026 / 2020-deadline al 31 dec 2025).
+- **NS**: NS-binnenland 30-59=50% / ≥60=100% · EU-PRR 60-119=25% / ≥120=50% ·
+  abonnement 15-29=50% / ≥30=100% · min € 2,30 · deadline 1 maand · Vrij/Flex
+  = verwijzing naar Mijn NS (geen verzonnen bedragen) · uitsluitingen.
+- **Zorgkosten**: drempel 2026 min € 166 (formule 1,65% × drempelinkomen) ·
+  partner-handling · AOW-verhoging 113% onder € 41.123 · wel/niet-aftrekbare
+  categorieën (zonder exacte bedragen — link naar Belastingdienst-overzicht).
+
+**Bronnen-discipline (uit de data-file)**: bij verschil tussen aggregator en
+Belastingdienst → **Belastingdienst wint**. Voorbeeld dat al fout zou zijn
+gegaan: 2026 banktegoeden-forfait staat in aggregators als 1,44% maar
+Belastingdienst publiceert **1,28%** → 1,28% gaat in de code.
 
 ---
 
