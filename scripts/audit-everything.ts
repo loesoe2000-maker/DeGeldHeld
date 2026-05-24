@@ -43,6 +43,7 @@ const STATIC_PAGES = [
   "/spookabonnementen",
   "/box3-check",
   "/ns-check",
+  "/zorgkosten-check",
 ];
 
 // admin-only pages are intentionally skipped from the audit since they
