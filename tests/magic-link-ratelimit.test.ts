@@ -45,7 +45,7 @@ function authReq(
       email: "real@user.com",
       csrfToken: "x",
       callbackUrl: "/dashboard",
-    }),
+    }).toString(),
   }) as unknown as NextRequest;
 }
 
