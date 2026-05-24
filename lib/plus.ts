@@ -25,32 +25,39 @@ export type PlusPillar = {
 export const PLUS_PILLARS: ReadonlyArray<PlusPillar> = [
   {
     id: "rescan",
-    title: "Maandelijkse her-scan van je vaste lasten",
+    title: "Maandelijkse her-scan vaste lasten",
     body:
-      "Telkens als je nieuwe rekening binnenkomt, kijken we of er weer ruimte zit — " +
-      "telecom, internet, energie, streaming én water (waar geen onderhandel-fee zit).",
+      "Elke 1e van de maand draaien we /api/cron/plus-rescan: we checken je " +
+      "geüploade rekeningen op nieuwe spookabonnementen of dubbele " +
+      "afschrijvingen — en mailen je alleen áls er iets verandert (geen lege " +
+      "maandmail).",
   },
   {
     id: "hercheck",
-    title: "Periodieke her-check toeslagen + gemeente-regelingen + Box 3",
+    title: "Her-check toeslagen / Box 3 / zorgkosten",
     body:
-      "Inkomen, gezinssituatie en de grenzen wijzigen door de tijd. We her-checken " +
-      "elk kwartaal en bij elke jaarwisseling — dan staan de nieuwe 2027-bedragen klaar.",
+      "Open Box 3-claims volgen we in je dashboard tot de Belastingdienst-" +
+      "beschikking binnen is. Voor toeslagen + zorgkosten herinneren we je " +
+      "elk kwartaal aan de vragenlijst — jouw inkomen blijft client-side, " +
+      "we slaan niets gevoeligs op.",
   },
   {
     id: "alerts",
-    title: "Alerts: contract-einde, prijsstijging, grens-wijziging",
+    title: "Alerts: contract-einde + prijsstijging",
     body:
-      "Een mailtje vlák voordat je contract verlengt of als een provider gaat verhogen, " +
-      "zodat je op het juiste moment kunt onderhandelen of overstappen.",
+      "Een mailtje vlák voordat je contract verlengt of als een provider " +
+      "gaat verhogen, zodat je op het juiste moment kunt onderhandelen of " +
+      "overstappen. Bestaande crons (contract-radar, monthly-recheck) " +
+      "voeden dit.",
   },
   {
     id: "nsclaim",
-    title: "Auto-claim: élke NS-vertraging herinnerd",
+    title: "NS-vertraging herinnerd vóór de deadline",
     body:
-      "Plus scant je treinritten en seint zodra je recht hebt op compensatie — vóór de " +
-      "1-maands-deadline van NS. De claim zelf indien je nog steeds zelf via Mijn NS, maar " +
-      "je vergeet hem niet meer. Onderdeel van Plus, geen losse fee.",
+      "Heb je een treinrit gemeld? Plus seint binnen 1 maand vóór de NS-" +
+      "deadline zodat je niet vergeet de claim in te dienen. De claim zelf " +
+      "dien je in via Mijn NS — wij volgen alleen het schema. Onderdeel van " +
+      "Plus, geen losse fee.",
   },
 ];
 

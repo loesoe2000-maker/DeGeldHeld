@@ -70,6 +70,10 @@ const FLAG_DEFAULTS = {
   // zorgkosten/vluchtclaim/NS/spookabonnementen bij elkaar brengt. Tegels
   // verschijnen alleen als hun eigen flag aan staat (geen lege/dode UI).
   MONEYFINDER_HUB_ENABLED: false,
+  // Off by default — v30 Plus maandelijkse her-scan cron. Mag pas aan zodra
+  // owner CRON_SECRET in Vercel heeft gezet + Resend-template gereviewed +
+  // KvK/KYC rond is (anders zijn er geen active Plus-users om te scannen).
+  PLUS_RESCAN_CRON_ENABLED: false,
 } as const;
 
 export type FeatureFlag = keyof typeof FLAG_DEFAULTS;
