@@ -15,9 +15,9 @@ export const RECHECK_CADENCE_DAYS = 90; // ~ ieder kwartaal
 /** Indicatieve prijsband voor de communicatie — geen live Stripe-prijs. */
 export const PLUS_PRICE = { lowEur: 2.99, highEur: 4.99 } as const;
 
-/** De drie waarde-pijlers — server-component leest dit, tests locken inhoud. */
+/** De waarde-pijlers — server-component leest dit, tests locken inhoud. */
 export type PlusPillar = {
-  id: "rescan" | "hercheck" | "alerts";
+  id: "rescan" | "hercheck" | "alerts" | "nsclaim";
   title: string;
   body: string;
 };
@@ -32,7 +32,7 @@ export const PLUS_PILLARS: ReadonlyArray<PlusPillar> = [
   },
   {
     id: "hercheck",
-    title: "Periodieke her-check toeslagen + gemeente-regelingen",
+    title: "Periodieke her-check toeslagen + gemeente-regelingen + Box 3",
     body:
       "Inkomen, gezinssituatie en de grenzen wijzigen door de tijd. We her-checken " +
       "elk kwartaal en bij elke jaarwisseling — dan staan de nieuwe 2027-bedragen klaar.",
@@ -43,6 +43,14 @@ export const PLUS_PILLARS: ReadonlyArray<PlusPillar> = [
     body:
       "Een mailtje vlák voordat je contract verlengt of als een provider gaat verhogen, " +
       "zodat je op het juiste moment kunt onderhandelen of overstappen.",
+  },
+  {
+    id: "nsclaim",
+    title: "Auto-claim: élke NS-vertraging herinnerd",
+    body:
+      "Plus scant je treinritten en seint zodra je recht hebt op compensatie — vóór de " +
+      "1-maands-deadline van NS. De claim zelf indien je nog steeds zelf via Mijn NS, maar " +
+      "je vergeet hem niet meer. Onderdeel van Plus, geen losse fee.",
   },
 ];
 

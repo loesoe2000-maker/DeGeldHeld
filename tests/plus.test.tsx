@@ -63,8 +63,8 @@ describe("plus — her-check cadence (pure)", () => {
 });
 
 describe("plus — value-propositie", () => {
-  it("heeft precies 3 pijlers: rescan, hercheck, alerts", () => {
-    expect(PLUS_PILLARS.map((p) => p.id)).toEqual(["rescan", "hercheck", "alerts"]);
+  it("heeft de 4 v29-pijlers: rescan, hercheck, alerts, nsclaim", () => {
+    expect(PLUS_PILLARS.map((p) => p.id)).toEqual(["rescan", "hercheck", "alerts", "nsclaim"]);
     for (const p of PLUS_PILLARS) {
       expect(p.title.length).toBeGreaterThan(8);
       expect(p.body.length).toBeGreaterThan(40);
