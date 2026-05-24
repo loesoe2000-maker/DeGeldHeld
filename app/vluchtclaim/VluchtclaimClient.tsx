@@ -5,6 +5,7 @@ import Link from "next/link";
 import { formatEurCents } from "@/lib/format";
 import { track } from "@/lib/analytics";
 import type { Eu261Result } from "@/lib/eu261";
+import PostCheckCta from "@/components/PostCheckCta";
 
 /**
  * v28 DEEL 4 — gratis EU261-check UI. Vluchtnummer + datum → POST naar
@@ -118,6 +119,17 @@ export default function VluchtclaimClient() {
       </form>
 
       {response ? <Result response={response} /> : null}
+      {response ? (
+        <PostCheckCta
+          fromCheck="vluchtclaim"
+          vondstCents={
+            response.kind === "found" && response.result.eligible
+              ? response.result.amountCents
+              : null
+          }
+          vondstLabel="EU261-compensatie"
+        />
+      ) : null}
 
       <footer className="mt-12 border-t border-slate-200 pt-6 text-xs text-slate-500">
         <p>

@@ -24,6 +24,7 @@ import {
   type Box3Result,
 } from "@/lib/box3";
 import { track } from "@/lib/analytics";
+import PostCheckCta from "@/components/PostCheckCta";
 
 const SUPPORTED_JAREN = [2026, 2025, 2024, 2023, 2022, 2021, 2020, 2019, 2018, 2017] as const;
 
@@ -254,6 +255,13 @@ export default function Box3CheckClient() {
           input={input}
           briefOpen={briefOpen}
           setBriefOpen={setBriefOpen}
+        />
+      ) : null}
+      {result ? (
+        <PostCheckCta
+          fromCheck="box3"
+          vondstCents={result.verwachteTeruggaveCents > 0 ? result.verwachteTeruggaveCents : null}
+          vondstLabel="verwachte teruggave"
         />
       ) : null}
 

@@ -17,7 +17,7 @@ export const PLUS_PRICE = { lowEur: 2.99, highEur: 4.99 } as const;
 
 /** De waarde-pijlers — server-component leest dit, tests locken inhoud. */
 export type PlusPillar = {
-  id: "rescan" | "hercheck" | "alerts" | "nsclaim";
+  id: "rescan" | "hercheck" | "alerts" | "nsclaim" | "telecom_belscript";
   title: string;
   body: string;
 };
@@ -58,6 +58,18 @@ export const PLUS_PILLARS: ReadonlyArray<PlusPillar> = [
       "deadline zodat je niet vergeet de claim in te dienen. De claim zelf " +
       "dien je in via Mijn NS — wij volgen alleen het schema. Onderdeel van " +
       "Plus, geen losse fee.",
+  },
+  {
+    // v30 — TELECOM herframed van TYPE_A (NCNP) naar TYPE_B (advies). Het " +
+    // belscript is wat we leveren; klant belt zelf met retentie.
+    id: "telecom_belscript",
+    title: "Jaarlijks vers telecom-retentie-belscript",
+    body:
+      "NL-telecom doet retentie via de telefoon, niet via e-mail — dus een " +
+      "20% NCNP-fee op een gesprek dat jij zelf voert is grijs. Plus levert " +
+      "elk jaar een vers retentie-belscript op maat (KPN/Vodafone/Odido/" +
+      "Ziggo), met de actuele alternatieve aanbiedingen die je inzet. " +
+      "Géén fee per gelukt gesprek — onderdeel van Plus.",
   },
 ];
 

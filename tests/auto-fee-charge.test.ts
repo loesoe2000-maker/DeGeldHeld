@@ -19,7 +19,14 @@ vi.mock("@/lib/db", () => ({
   prisma: {
     outcomeProof: { create: vi.fn(async () => ({ id: "proof_1" })) },
     negotiation: {
-      findUnique: vi.fn(async () => ({ userId: "u1", billId: "b1", user: { email: "a@b.nl" } })),
+      findUnique: vi.fn(async () => ({
+        userId: "u1",
+        billId: "b1",
+        user: { email: "a@b.nl" },
+        // v30 fee-integrity: ENERGIE is een TYPE_A NCNP-categorie; deze fixture
+        // moet de bill.category meeleveren omdat recordProof daarop gate't.
+        bill: { category: "ENERGIE" },
+      })),
       update: vi.fn(async (a: { data: Record<string, unknown> }) => {
         h.negUpdates.push(a.data);
         return {};

@@ -11,6 +11,8 @@
 import { prisma } from "@/lib/db";
 import { feeForVerifiedSavings, shouldChargeVerifiedFee, chargeFeeOffSession } from "@/lib/payments";
 import { sendEmail } from "@/lib/email";
+import { categoryAllowsFee } from "@/lib/category-strategy";
+import type { Category } from "@/lib/providers";
 
 const APP_URL = process.env.APP_URL ?? "https://www.degeldheld.com";
 
@@ -94,13 +96,25 @@ export async function recordProof(opts: {
   });
 
   if (verdict.verdict === "verified") {
-    // Fetch userId (+ email/billId for the fallback mail) once.
+    // Fetch userId (+ email/billId + category for the v30 fee-integrity gate).
     const neg = await prisma.negotiation.findUnique({
       where: { id: opts.negotiationId },
-      select: { userId: true, billId: true, user: { select: { email: true } } },
+      select: {
+        userId: true,
+        billId: true,
+        user: { select: { email: true } },
+        bill: { select: { category: true } },
+      },
     });
     const feeCents = feeForVerifiedSavings(verdict.yearlySavingsCents);
-    const charge = neg
+    // v30 fee-integrity: TELECOM (en andere TYPE_B-categorieën) triggeren géén
+    // NCNP-fee — de "lever" is daar advies, geen e-mail-onderhandeling.
+    // Defensief: onbekende/ontbrekende categorie → fee toestaan (legacy
+    // negotiation-rijen zonder bill-include blijven werken zoals voorheen).
+    const categoryFeeAllowed = neg?.bill?.category
+      ? categoryAllowsFee(neg.bill.category as Category)
+      : true;
+    const charge = neg && categoryFeeAllowed
       ? await shouldChargeVerifiedFee({
           userId: neg.userId,
           actualSavingsCents: verdict.yearlySavingsCents,

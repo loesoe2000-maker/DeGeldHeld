@@ -17,6 +17,7 @@ import {
   type ZorgkostenResult,
 } from "@/lib/zorgkosten";
 import { track } from "@/lib/analytics";
+import PostCheckCta from "@/components/PostCheckCta";
 
 const CATEGORIES = [
   { id: "geneeskundigeHulp", label: "Genees-/heelkundige hulp (arts, fysio buiten basis, tandarts boven basis)" },
@@ -186,6 +187,14 @@ export default function ZorgkostenCheckClient() {
       {result ? <Results result={result} /> : null}
 
       <Checklist />
+
+      {result ? (
+        <PostCheckCta
+          fromCheck="zorgkosten"
+          vondstCents={result.indicatieJa && result.aftrekbaarCents > 0 ? result.aftrekbaarCents : null}
+          vondstLabel="aftrekbaar"
+        />
+      ) : null}
 
       <footer className="mt-12 border-t border-slate-200 pt-6 text-xs text-slate-500">
         Peildatum {ZORGKOSTEN_PEILDATUM} · drempel + categorieën{" "}

@@ -31,6 +31,9 @@ export type AnalyticsEvent =
   | "geld_check_to_onderhandel"
   // v28 EU261 vluchtclaim (achter FEATURE_CLAIMS) — geen PII
   | "vluchtclaim_checked"
+  // v30 PostCheckCta — meetbare conversie van gratis-check naar Plus / onderhandeling.
+  | "plus_cta_clicked"
+  | "onderhandel_cta_clicked"
   // v29 Box 3-rechtsherstel (achter FEATURE_BOX3_CHECK_ENABLED) — geen PII
   | "box3_check_started"
   | "box3_results_viewed"

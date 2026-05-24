@@ -3,6 +3,7 @@ import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { formatEurCents } from "@/lib/format";
+import PostCheckCta from "@/components/PostCheckCta";
 import {
   detectWaste,
   totalPotentialMonthlyCents,
@@ -115,6 +116,12 @@ export default async function SpookabonnementenPage() {
           </ul>
         </>
       )}
+
+      <PostCheckCta
+        fromCheck="spookabonnementen"
+        vondstCents={potentialMonthly > 0 ? potentialMonthly : null}
+        vondstLabel="dubbele/onbenutte abonnementen"
+      />
 
       <footer className="mt-12 border-t border-slate-200 pt-6 text-xs text-slate-500">
         DeGeldHeld biedt géén betaalde opzegdienst. We helpen je het{" "}

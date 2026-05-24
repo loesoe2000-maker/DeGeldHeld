@@ -18,6 +18,7 @@ import {
   type NsResult,
 } from "@/lib/ns";
 import { track } from "@/lib/analytics";
+import PostCheckCta from "@/components/PostCheckCta";
 
 export default function NsCheckClient() {
   const [ticket, setTicket] = useState("");
@@ -207,6 +208,13 @@ export default function NsCheckClient() {
           route={route}
           briefOpen={briefOpen}
           setBriefOpen={setBriefOpen}
+        />
+      ) : null}
+      {result ? (
+        <PostCheckCta
+          fromCheck="ns"
+          vondstCents={result.eligible && !result.belowMinimum ? result.compensationCents : null}
+          vondstLabel="compensatie"
         />
       ) : null}
 

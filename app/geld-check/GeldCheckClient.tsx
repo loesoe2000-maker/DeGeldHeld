@@ -24,6 +24,7 @@ import {
   type Huishouden,
 } from "@/lib/toeslagen";
 import { track } from "@/lib/analytics";
+import PostCheckCta from "@/components/PostCheckCta";
 
 const STATUS_STYLES: Record<BenefitStatus, { pill: string; label: string; card: string }> = {
   likely: {
@@ -334,6 +335,13 @@ export default function GeldCheckClient() {
       </form>
 
       {result ? <Results result={result} /> : null}
+      {result ? (
+        <PostCheckCta
+          fromCheck="geld"
+          vondstCents={result.totaalIndicatieMaandCents > 0 ? result.totaalIndicatieMaandCents : null}
+          vondstLabel="toeslag mogelijk/mnd"
+        />
+      ) : null}
 
       <footer className="mt-12 border-t border-slate-200 pt-6 text-xs text-slate-500">
         <p>
