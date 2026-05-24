@@ -74,6 +74,9 @@ model User {
   bankConnections  BankConnection[]
   detectedRecurring DetectedRecurring[]
   fraudFlags    FraudFlag[]
+  // v30: Box 3 NCNP-claims (proof-back loop) + Plus monthly rescans.
+  box3Claims    Box3Claim[]
+  plusRescans   PlusRescan[]
 
   @@index([email])
 }
@@ -593,4 +596,52 @@ model MarketPlan {
 
   @@index([providerId])
   @@index([category, priceCents])
+}
+
+// ─────────────────────────────────────────────────────────────
+// v30 — Box 3 proof-back NCNP-loop (Box3Claim) + Plus monthly rescans (PlusRescan)
+//
+// AVG-grondslag voor Box3Claim + uploaded beschikking: noodzakelijk voor de
+// uitvoering van de overeenkomst (no-cure-no-pay-fee). Privacy-pagina vermeldt
+// dit expliciet als sub-processor-aansprakelijke verwerking. Zie V30_REPORT.md.
+// ─────────────────────────────────────────────────────────────
+
+model Box3Claim {
+  id                       String   @id @default(cuid())
+  userId                   String
+  jaar                     Int
+  verwachteTeruggaveCents  Int
+  /// INTENT | AWAITING_PROOF | PROOF_RECEIVED | CHARGED | FAILED
+  status                   String
+  werkelijkTeruggaveCents  Int?
+  /// URL to uploaded Belastingdienst-beschikking (Vercel Blob / Resend / etc).
+  proofStorageUrl          String?
+  proofUploadedAt          DateTime?
+  chargedAt                DateTime?
+  feeCents                 Int?
+  stripePaymentIntentId    String?
+  /// Reason on FAILED (OCR couldn't read, manual review needed).
+  failureReason            String?  @db.Text
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@index([status, createdAt])
+}
+
+model PlusRescan {
+  id           String   @id @default(cuid())
+  userId       String
+  runAt        DateTime @default(now())
+  /// JSON-shape: { nieuw: Finding[], gewijzigd: Finding[], verdwenen: Finding[] }
+  /// — see lib/plus-rescan.ts for the canonical shape.
+  findingsJson Json
+  /// Set when a notification mail was sent for this rescan.
+  notifiedAt   DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, runAt])
 }

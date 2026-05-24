@@ -286,6 +286,55 @@ function Results({
     result.verwachteTeruggaveCents > 0
       ? formatEurCents(result.verwachteTeruggaveCents)
       : null;
+  const [ncnpState, setNcnpState] = useState<
+    | { kind: "idle" }
+    | { kind: "pending" }
+    | { kind: "ok"; message: string }
+    | { kind: "auth" }
+    | { kind: "error"; message: string }
+  >({ kind: "idle" });
+
+  async function startNcnpClaim() {
+    if (ncnpState.kind === "pending") return;
+    setNcnpState({ kind: "pending" });
+    try {
+      const r = await fetch("/api/box3/claim", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          jaar: result.jaar,
+          verwachteTeruggaveCents: result.verwachteTeruggaveCents,
+        }),
+      });
+      if (r.status === 401) {
+        setNcnpState({ kind: "auth" });
+        return;
+      }
+      const data = (await r.json().catch(() => ({}))) as {
+        ok?: boolean;
+        reason?: string;
+      };
+      if (!r.ok || !data.ok) {
+        setNcnpState({
+          kind: "error",
+          message:
+            data.reason === "below-ncnp-threshold"
+              ? "Verwachte teruggave onder € 500 — gebruik het DIY-pad."
+              : "Kon claim niet opslaan — probeer het opnieuw.",
+        });
+        return;
+      }
+      track("box3_claim_created", { jaar: result.jaar });
+      setNcnpState({
+        kind: "ok",
+        message:
+          "Top — we hebben je een mail gestuurd met de upload-link voor zodra je " +
+          "Belastingdienst-beschikking binnen is.",
+      });
+    } catch {
+      setNcnpState({ kind: "error", message: "Netwerkfout — probeer het opnieuw." });
+    }
+  }
 
   return (
     <section id="box3-results" className={`mt-10 scroll-mt-12 rounded-2xl border p-6 ${s.card}`}>
@@ -326,11 +375,38 @@ function Results({
           <button
             type="button"
             data-testid="box3-ncnp-cta"
-            onClick={() => track("box3_ncnp_chosen", { jaar: result.jaar })}
-            className="mt-4 inline-flex items-center gap-1 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-700"
+            disabled={ncnpState.kind === "pending" || ncnpState.kind === "ok"}
+            onClick={() => {
+              track("box3_ncnp_chosen", { jaar: result.jaar });
+              void startNcnpClaim();
+            }}
+            className="mt-4 inline-flex items-center gap-1 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-700 disabled:opacity-40"
           >
-            Houd me op de hoogte — NCNP aanvragen →
+            {ncnpState.kind === "pending"
+              ? "Bezig…"
+              : ncnpState.kind === "ok"
+                ? "Verstuurd ✓"
+                : "Start NCNP — wij doen het OWR voor je →"}
           </button>
+          {ncnpState.kind === "ok" ? (
+            <p data-testid="box3-ncnp-ok" className="mt-2 text-sm text-brand-800">
+              {ncnpState.message}
+            </p>
+          ) : null}
+          {ncnpState.kind === "auth" ? (
+            <p data-testid="box3-ncnp-auth" className="mt-2 text-sm text-rose-700">
+              Log eerst in om de claim aan te maken —{" "}
+              <a href="/login" className="underline">
+                inloggen
+              </a>
+              .
+            </p>
+          ) : null}
+          {ncnpState.kind === "error" ? (
+            <p data-testid="box3-ncnp-error" className="mt-2 text-sm text-rose-700">
+              {ncnpState.message}
+            </p>
+          ) : null}
         </div>
       ) : (
         result.verwachteTeruggaveCents > 0 ? (

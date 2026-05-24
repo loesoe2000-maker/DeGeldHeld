@@ -1,0 +1,169 @@
+/**
+ * POST /api/box3/proof-back — v30 DEEL 1.
+ *
+ * Upload van een Belastingdienst-beschikking (PDF). OCR (pdfjs) → regex-parse
+ * van het toegekende bedrag → deterministisch CHARGED / FAILED via
+ * chargeFeeOffSession. Werkelijk < € 500 → CHARGED met fee € 0.
+ *
+ * AVG-grondslag voor opslag van Box3Claim + storageUrl: noodzakelijk voor de
+ * uitvoering van de NCNP-overeenkomst (zie V30_REPORT.md).
+ */
+import { NextResponse } from "next/server";
+import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/db";
+import { isEnabled } from "@/lib/feature-flags";
+import { extractPdfText } from "@/lib/pdf_extract";
+import { chargeFeeOffSession } from "@/lib/payments";
+import { sendEmail } from "@/lib/email";
+import * as Sentry from "@sentry/nextjs";
+import {
+  processProofUpload,
+  type Box3ClaimStatus,
+} from "@/lib/box3-claim";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+const MAX_FILE_BYTES = 10 * 1024 * 1024;
+const APP_URL = process.env.APP_URL ?? "https://www.degeldheld.com";
+
+export async function POST(req: Request) {
+  if (!isEnabled("BOX3_CHECK_ENABLED")) {
+    return NextResponse.json({ error: "Not found", reason: "disabled" }, { status: 404 });
+  }
+
+  const session = await auth();
+  if (!session?.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const userId = (session.user as { id: string }).id;
+
+  // We accepteren elke vorm waaruit we een FormData kunnen lezen — jsdom's
+  // Request zet bij FormData-body GEEN multipart-content-type, dus een
+  // strikte header-check zou de test-omgeving onnodig blokkeren.
+  let form: FormData;
+  try {
+    form = await req.formData();
+  } catch {
+    return NextResponse.json({ error: "form-data required" }, { status: 400 });
+  }
+
+  const claimId = String(form.get("claimId") ?? "");
+  const file = form.get("file");
+  if (!claimId) {
+    return NextResponse.json({ error: "claimId required" }, { status: 400 });
+  }
+  if (!(file instanceof File) || file.size === 0) {
+    return NextResponse.json({ error: "file required" }, { status: 400 });
+  }
+  if (file.size > MAX_FILE_BYTES) {
+    return NextResponse.json({ error: "file too large" }, { status: 413 });
+  }
+
+  // Anti-abuse: claim moet van de caller zijn + in een terminale-vrije status staan.
+  const claim = await prisma.box3Claim.findFirst({
+    where: { id: claimId, userId },
+  });
+  if (!claim) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+  if (claim.status === "CHARGED" || claim.status === "FAILED") {
+    return NextResponse.json(
+      { error: "claim already settled", status: claim.status },
+      { status: 409 },
+    );
+  }
+
+  const buf = Buffer.from(await file.arrayBuffer());
+  let pdfText = "";
+  try {
+    const pdf = await extractPdfText(buf);
+    pdfText = pdf.text ?? "";
+  } catch (e) {
+    Sentry.captureException(e, { tags: { module: "box3-proof-back", stage: "pdf" } });
+  }
+
+  // Pure beslis-pipeline (testbaar zonder formData) + Stripe-charge bij ok.
+  const outcome = await processProofUpload({
+    userId,
+    claimId: claim.id,
+    pdfText,
+    charge: chargeFeeOffSession,
+  });
+
+  if (outcome.kind === "failed") {
+    await prisma.box3Claim.update({
+      where: { id: claim.id },
+      data: {
+        status: "FAILED" satisfies Box3ClaimStatus,
+        proofUploadedAt: new Date(),
+        werkelijkTeruggaveCents: outcome.werkelijkTeruggaveCents ?? null,
+        failureReason: outcome.reason,
+      },
+    });
+    // Owner krijgt een mail voor handmatige review — géén stille uitkering.
+    try {
+      const adminEmail = process.env.ADMIN_REVIEW_EMAIL ?? "hallo@degeldheld.com";
+      await sendEmail({
+        to: adminEmail,
+        subject: `Box 3 proof-back FAILED — claim ${claim.id}`,
+        text: `Handmatige review nodig.\nClaim: ${claim.id}\nUser: ${userId}\nJaar: ${claim.jaar}\nReden: ${outcome.reason}`,
+        html: `<p>Handmatige review nodig.</p>
+<ul>
+  <li>Claim: <code>${claim.id}</code></li>
+  <li>User: <code>${userId}</code></li>
+  <li>Jaar: ${claim.jaar}</li>
+  <li>Reden: ${outcome.reason}</li>
+</ul>`,
+      });
+    } catch {
+      /* never block on outbound mail */
+    }
+    return NextResponse.json({
+      ok: false,
+      status: "FAILED",
+      reason: outcome.reason,
+      werkelijkTeruggaveCents: outcome.werkelijkTeruggaveCents ?? null,
+    });
+  }
+
+  if (outcome.kind === "no-fee") {
+    await prisma.box3Claim.update({
+      where: { id: claim.id },
+      data: {
+        status: "CHARGED" satisfies Box3ClaimStatus,
+        proofUploadedAt: new Date(),
+        werkelijkTeruggaveCents: outcome.werkelijkTeruggaveCents,
+        chargedAt: new Date(),
+        feeCents: 0,
+      },
+    });
+    return NextResponse.json({
+      ok: true,
+      status: "CHARGED",
+      werkelijkTeruggaveCents: outcome.werkelijkTeruggaveCents,
+      feeCents: 0,
+      reden: "Werkelijk teruggehaalde bedrag onder € 500 — geen fee.",
+    });
+  }
+
+  // outcome.kind === "charged" — fee deterministisch afgeschreven.
+  await prisma.box3Claim.update({
+    where: { id: claim.id },
+    data: {
+      status: "CHARGED" satisfies Box3ClaimStatus,
+      proofUploadedAt: new Date(),
+      werkelijkTeruggaveCents: outcome.werkelijkTeruggaveCents,
+      chargedAt: new Date(),
+      feeCents: outcome.feeCents,
+      stripePaymentIntentId: outcome.paymentIntentId,
+    },
+  });
+  return NextResponse.json({
+    ok: true,
+    status: "CHARGED",
+    werkelijkTeruggaveCents: outcome.werkelijkTeruggaveCents,
+    feeCents: outcome.feeCents,
+    paymentIntentId: outcome.paymentIntentId,
+  });
+}

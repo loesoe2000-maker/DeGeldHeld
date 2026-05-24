@@ -36,6 +36,11 @@ export type AnalyticsEvent =
   | "box3_results_viewed"
   | "box3_ncnp_chosen"
   | "box3_diy_chosen"
+  // v30 Box 3 proof-back NCNP-loop — geen PII
+  | "box3_claim_created"
+  | "box3_proof_uploaded"
+  | "box3_fee_charged"
+  | "box3_proof_failed"
   // v29 NS Geld-Terug bij vertraging (achter FEATURE_NS_CHECK_ENABLED)
   | "ns_check_started"
   | "ns_results_viewed"

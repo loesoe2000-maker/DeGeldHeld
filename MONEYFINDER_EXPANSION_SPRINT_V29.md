@@ -1,4 +1,4 @@
-# DeGeldHeld v29 — High-accuracy revenue stack (Box 3 + NS + Zorgkosten + Plus-loop + Hub)
+# DeGeldHeld v29 — Box 3 + NS Geld-Terug + Zorgkostenaftrek + "vind al je geld"-hub
 
 > **🟢 Status (2026-05-24) — DEEL 0 is AL GEDAAN:** `docs/V29_DATA_2026.md` ligt
 > klaar als bron-van-waarheid (Belastingdienst-/Rijksoverheid-/NS-/Hoge Raad-
@@ -13,124 +13,110 @@
 - `docs/BENEFITS_DATA_2026.md` — V28-pattern (stijl-referentie voor toon/structuur)
 - `V28_REPORT.md` — wat al staat (`lib/toeslagen.ts`, `lib/eu261.ts`, `lib/plus.ts`,
   `app/geld-check/`, `app/vluchtclaim/`, `app/spookabonnementen/`, `app/plus/`)
-- `lib/outcome-proof.ts` + `lib/payments.ts` — bestaand patroon voor
-  proof-detection + off-session NCNP-fee-charge (HERGEBRUIKEN, niet dupliceren)
 
-## Doel — accuracy-first, niet feature-first
-
-V28 voegde features toe (toeslagen, vluchtclaim, Plus, spookabonnementen). V29
-voegt 3 NIEUWE checks toe, maar de **kern is dat élke revenue-stream
-deterministisch wordt**: proof-back triggert auto-NCNP-fee, Plus heeft een
-**werkende** her-scan-loop i.p.v. een vage belofte, telecom wordt eerlijk
-herframed naar een Plus-pijler (géén valse NCNP-trigger meer). Geen nieuwe
-"misschien-revenue", alleen revenue waar code het mechanisme afdwingt.
-
+Doel: drie nieuwe consumer-aligned features die directe (Box 3) + indirecte (NS + Zorgkosten
+via Plus) revenue brengen, plus één **"vind al je geld"-hub** die alles samenbrengt.
 **Model B intact** (nooit providergeld). Alles **achter feature-flags** (default off).
 
-## ⚠️ GUARDRAILS (sprint-specifiek)
+## ⚠️ GUARDRAILS (sprint-specifiek, naast de standaard)
 
 1. **`npm run build` (EXIT 0) + `npx tsc --noEmit` + `npm test` groen vóór élke commit.**
-2. **Alle bedragen/forfaits EXACT uit `docs/V29_DATA_2026.md`** (al gesourcet).
-   Aggregators zijn géén bron — Belastingdienst/Rijksoverheid wint altijd.
-3. **Indicatie ≠ advies.** Box 3 = indicatie of bezwaar loont, exacte berekening
-   doet Belastingdienst-OWR. Zorgkosten = drempel + JA/NEE-checklist. NS =
-   indicatie compensatie, claim via Mijn NS. Sterke disclaimers + verwijzing
-   naar officiële kanalen op élke pagina.
-4. **Privacy / AVG (kritisch)**: inkomens-/vermogens-/zorgkosten-data
-   **client-side** verwerken (zoals `lib/toeslagen.ts` doet); niet opslaan;
-   `ph-no-capture` op alle gevoelige inputs; analytics alleen booleans/counts
-   (géén PII). **Uitzondering**: bij NCNP-claim-flow (DEEL 1) slaan we **wél**
-   de Claim-record + uitkomst-bewijs op — vereist voor de fee-charge. AVG
-   rechtvaardigt: noodzakelijk voor de overeenkomst.
+2. **DEEL 0 verplicht**: maak EERST `docs/V29_DATA_2026.md` met ALLE forfaits / drempels /
+   bedragen, **EXACT** uit officiële NL-bronnen (Belastingdienst / Rijksoverheid / NS /
+   Hoge Raad — niet uit aggregators). Élk getal heeft `// bron: <URL>` + peildatum +
+   verifiedAt. **Niets gokken of "bijwerken".** Bij twijfel → indicatie + verwijzing, geen
+   exact bedrag.
+3. **Indicatie ≠ advies.** Box 3 = indicatie of bezwaar loont, exacte berekening doet
+   Belastingdienst-OWR. Zorgkosten = drempel + JA/NEE-checklist, klant rekent zelf.
+   NS = indicatie compensatie, claim via Mijn NS / formulier. Sterke disclaimers + verwijzing
+   naar officiële kanalen op elke pagina.
+4. **Privacy / AVG (kritisch)**: inkomens-/vermogens-/zorgkosten-data **client-side**
+   verwerken (zoals `lib/toeslagen.ts` doet); niet opslaan; **`ph-no-capture`** op alle
+   gevoelige inputs; analytics alleen booleans/counts (géén PII).
 5. **Revenue-model (KRITISCH — niet versimpelen)**:
-   - **Box 3**: GRATIS indicatie altijd. **NCNP 25%** alléén aangeboden als
-     verwachte teruggave **≥ € 500** (HARD in code: `shouldOfferBox3Ncnp`).
-     Onder die drempel → DIY-brief + checklist, geen fee.
-   - **NS Geld-Terug**: GRATIS check + brief. **Plus = auto-claim** (echte
-     infra, niet alleen tekst — zie DEEL 4).
+   - **Box 3**: GRATIS indicatie altijd. **No-cure-no-pay 25%** alléén aanbieden als
+     verwachte teruggave **≥ € 500**. Onder die drempel → DIY-brief + checklist, geen fee
+     (anders pakken we 25% over €50 teruggave = onethisch + slechte CAC).
+   - **NS Geld-Terug**: GRATIS check + brief + reminder. **Plus-upsell**: "auto-claim
+     elke vertraging" als 4e pijler in `lib/plus.ts`. Geen losse NCNP-fee (€1-4 per
+     claim = niet verzilverbaar).
    - **Zorgkosten**: GRATIS, geen fee. Top-of-funnel naar Plus.
-   - **Telecom**: ⚠️ **GEEN NCNP-trigger meer.** Belscript is een
-     **Plus-pijler** (zelf bellen met onze scripts) — zie DEEL 4. Update
-     `lib/category-strategy.ts` zodat telecom-fee niet meer triggert via
-     `shouldChargeVerifiedFee` (was V27-grijs gebied, wordt nu code-honest).
-6. **Proof-back-trigger (accuracy-mechanisme — NIEUW in V29)**: voor élke
-   NCNP-claim (Box 3, vluchtclaim) bouwen we een **bewijs-upload-flow** die
-   het werkelijk teruggehaalde bedrag detecteert en de fee deterministisch
-   triggert via `chargeFeeOffSession`. Hergebruik `lib/outcome-proof.ts`-DNA.
-   Géén handmatige fee-collect — dat is hoe revenue lekt.
-7. **Géén providergeld** (model B). **Géén hyp/verz** (AFM-gate).
-8. **Flags blijven default UIT** tot eigenaar de privacy/disclaimer per feature
-   heeft gereviewed:
+6. **Géén providergeld** (model B). **Géén hyp/verz** (AFM-gate).
+7. **Flags blijven default UIT** tot eigenaar de privacy/disclaimer per feature heeft
+   gereviewed:
    - `BOX3_CHECK_ENABLED` (default false)
    - `NS_CHECK_ENABLED` (default false)
    - `ZORGKOSTEN_CHECK_ENABLED` (default false)
    - `MONEYFINDER_HUB_ENABLED` (default false) — gates `/vind-al-je-geld`
-   - `PLUS_RESCAN_CRON_ENABLED` (default false) — gates de Vercel cron
-9. Géén `--no-verify`/`--force`. Co-author trailer:
+8. Géén `--no-verify`/`--force`. Co-author trailer:
    `Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>`.
 
 ## START
 
 ```
-Lees /Users/bdb/alpharadar-pro/degeldheld/MONEYFINDER_EXPANSION_SPRINT_V29.md, docs/V29_DATA_2026.md, docs/EXPANSION_RESEARCH_V29.md én docs/BENEFITS_DATA_2026.md (als stijl-referentie). DEEL 0 is AL GEDAAN — docs/V29_DATA_2026.md ligt klaar. SLA DEEL 0 OVER en start direct bij DEEL 1. Hergebruik de forfaits/drempels/bedragen EXACT uit docs/V29_DATA_2026.md — niets gokken, niets uit aggregators. Bij verschil aggregator vs Belastingdienst: Belastingdienst wint (bv. 2026 banktegoeden 1,28% NIET 1,44%). Per deel: npm test + npx tsc --noEmit + npm run build (EXIT 0) groen vóór de commit. Revenue-model EXACT zoals guardrail 5: Box 3 gefaseerd (gratis < €500, NCNP 25% ≥€500 — HARD in code), NS gratis + werkende Plus auto-claim (DEEL 4), zorgkosten gratis, telecom = Plus-pijler (GEEN NCNP-trigger meer — update lib/category-strategy.ts). Guardrail 6 (NIEUW): bouw proof-back-upload-flow voor élke NCNP-claim → auto-fee-trigger via chargeFeeOffSession (hergebruik lib/outcome-proof.ts + lib/payments.ts). Guardrail 4: alle check-data client-side + ph-no-capture; uitzondering: Claim-record mag opgeslagen worden (vereist voor fee). Privacy strikt. Alle features achter feature-flags (default false). Geen providergeld, geen hyp/verz. Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>. Geen --no-verify/--force. Eindig met V29_REPORT.md incl. bronnen + peildatums + eigenaar-stappen.
+Lees /Users/bdb/alpharadar-pro/degeldheld/MONEYFINDER_EXPANSION_SPRINT_V29.md, docs/V29_DATA_2026.md, docs/EXPANSION_RESEARCH_V29.md én docs/BENEFITS_DATA_2026.md (als stijl-referentie). DEEL 0 is AL GEDAAN — docs/V29_DATA_2026.md ligt klaar. SLA DEEL 0 OVER en start direct bij DEEL 1. Hergebruik de forfaits/drempels/bedragen EXACT uit docs/V29_DATA_2026.md — niets gokken, niets uit aggregators. Bij verschil aggregator vs Belastingdienst: Belastingdienst wint (bv. 2026 banktegoeden 1,28% NIET 1,44%). Per deel: npm test + npx tsc --noEmit + npm run build (EXIT 0) groen vóór de commit. Revenue-model EXACT zoals in guardrail 5: Box 3 gefaseerd (gratis indicatie + NCNP 25% alleen bij ≥€500 verwachte teruggave), NS gratis + Plus-upsell, zorgkosten gratis. Privacy: alles client-side, ph-no-capture, geen opslag. Alle features achter feature-flags (default false). Geen providergeld, geen hyp/verz. Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>. Geen --no-verify/--force. Eindig met V29_REPORT.md incl. bronnen + peildatums + eigenaar-stappen.
 ```
 
 ---
 
-## DEEL 0 — `docs/V29_DATA_2026.md` ✅ AL GEDAAN
+## DEEL 0 — `docs/V29_DATA_2026.md` (bron-van-waarheid) ✅ AL GEDAAN
 
-**SKIP.** Hergebruik de data uit dat bestand exact. Bij verschil aggregator vs
-Belastingdienst: **Belastingdienst wint** (bv. 2026 banktegoeden 1,28%, NIET
-1,44%).
+**SKIP.** Het bestand `docs/V29_DATA_2026.md` is al opgeleverd (2026-05-24,
+sourced tegen Belastingdienst / Rijksoverheid / Wikipedia (historie) / NS /
+EU-Lex). Gebruik die data EXACT in DEEL 1-3.
+
+Wat erin staat (samengevat — lees het bestand zelf voor de volledige tabellen):
+- **Box 3**: forfaits per jaar 2017-2026 voor banktegoeden / overige bezittingen
+  / schulden + tarief per jaar + heffingsvrij vermogen per jaar +
+  schulden-drempel 2026 (€ 3.800) + berekeningswijze (6 stappen Belastingdienst)
+  + Wet tegenbewijsregeling 19 jul 2025 + OWR-deadlines (1 mei 2026 /
+  1 oktober 2026 / 2020-deadline al 31 dec 2025).
+- **NS**: NS-binnenland 30-59=50% / ≥60=100% · EU-PRR 60-119=25% / ≥120=50% ·
+  abonnement 15-29=50% / ≥30=100% · min € 2,30 · deadline 1 maand · Vrij/Flex
+  = verwijzing naar Mijn NS (geen verzonnen bedragen) · uitsluitingen.
+- **Zorgkosten**: drempel 2026 min € 166 (formule 1,65% × drempelinkomen) ·
+  partner-handling · AOW-verhoging 113% onder € 41.123 · wel/niet-aftrekbare
+  categorieën (zonder exacte bedragen — link naar Belastingdienst-overzicht).
+
+**Bronnen-discipline (uit de data-file)**: bij verschil tussen aggregator en
+Belastingdienst → **Belastingdienst wint**. Voorbeeld dat al fout zou zijn
+gegaan: 2026 banktegoeden-forfait staat in aggregators als 1,44% maar
+Belastingdienst publiceert **1,28%** → 1,28% gaat in de code.
 
 ---
 
-## DEEL 1 — Box 3-rechtsherstel check + brief-helper + **proof-back NCNP-loop**
+## DEEL 1 — Box 3-rechtsherstel check + brief-helper
 
 a. **Engine** `lib/box3.ts` (pure, client-side, zoals `lib/toeslagen.ts`):
-   - Types: `Box3Input` (jaar, spaargeld, beleggingen, schulden, werkelijk
-     rendement), `Box3Result` (forfaitaireBelastingCents,
-     werkelijkBelastingIndicatieCents, verwachteTeruggaveCents,
-     status: "likely" | "maybe" | "unlikely", uitleg, bron).
-   - `estimateBox3Restitution(input)` — pure. Forfaits + heffingsvrij vermogen
-     EXACT uit `docs/V29_DATA_2026.md`, met `// bron:` per constante.
-   - `shouldOfferBox3Ncnp(result)` — pure: `result.verwachteTeruggaveCents >=
-     50_000` (€ 500-drempel uit guardrail 5). HARDE gate — wordt door
-     payments-laag gecontroleerd.
+   - Types: `Box3Input` (jaar, spaargeld, beleggingen, schulden, vermogen-peildatum),
+     `Box3Result` (forfaitaire heffing, werkelijk-rendement-indicatie,
+     verwachteTeruggaveCents, lonsBezwaarStatus: "likely" | "maybe" | "unlikely",
+     biedNcnpAan: boolean, uitleg, bron).
+   - `estimateBox3Restitution(input)` — pure functie. Vergelijk fictief vs werkelijk
+     rendement met de forfaits uit `V29_DATA_2026.md` (importeer via constants met
+     `// bron:`). Indicatie geven, GEEN exact eindbedrag pretenderen.
+   - **Revenue-gate**: `biedNcnpAan = verwachteTeruggaveCents >= 50_000`
+     (€ 500-drempel uit guardrail 5).
 b. **UI** `/box3-check`:
-   - Server `app/box3-check/page.tsx` (flag `BOX3_CHECK_ENABLED`).
-   - `Box3CheckClient.tsx`: wizard → resultaat-kaart. Onder drempel:
-     "doe het zelf — hier is je brief + checklist (gratis)". Boven drempel:
-     "wij regelen 'm (no-cure-no-pay 25%)" + DIY-optie blijft beschikbaar.
-   - Privacy-callout (client-side, niets opgeslagen) — uitzondering NCNP-pad.
-   - Analytics: `box3_check_started | _results_viewed | _ncnp_chosen | _diy_chosen`.
-c. **Brief-helper** `lib/box3-brief.ts`: genereert pre-gefilde OWR-tekst +
-   bewijsstukken-lijst + verwijzing naar MijnBelastingdienst. Pure functie.
-d. **NCNP-pad (de revenue-loop)**:
-   - **Prisma**: voeg `Box3Claim`-model toe: `{ id, userId, jaar,
-     verwachteTeruggaveCents, owrFingerprint, status: "INTENT" | "AWAITING_PROOF"
-     | "PROOF_RECEIVED" | "CHARGED" | "FAILED", werkelijkTeruggaveCents?,
-     proofUploadedAt?, chargedAt?, stripePaymentIntentId? }`. Migrate.
-   - **Route** `POST /api/box3/claim`: bij NCNP-keuze → maakt `Box3Claim`
-     met state `AWAITING_PROOF` + verstuurt herinneringsmail "upload je
-     Belastingdienst-beschikking zodra die binnen is".
-   - **Route** `POST /api/box3/proof-back`: klant uploadt
-     Belastingdienst-beschikking (PDF) → OCR via bestaande `pdfjs`-route →
-     detecteer toegekend bedrag → update `Box3Claim` → **als bedrag ≥ € 500**
-     trigger `chargeFeeOffSession` (25% van werkelijk bedrag, cap € 500 als
-     bestaande pattern). Bij detectie-faal → `FAILED` + handmatige review.
-   - **UI** `/box3-check/proof/[claimId]`: upload-pagina voor de beschikking.
-e. **Feature-flag**: `BOX3_CHECK_ENABLED` in `lib/feature-flags.ts`.
-f. **Analytics**: extend `AnalyticsEvent`-union (events uit a/b + `box3_proof_uploaded`,
-   `box3_fee_charged`).
-g. **Tests** `tests/box3.test.ts` + `tests/box3-claim.test.ts`:
-   - Engine: forfait-vergelijking correct, élke constante `// bron:`.
-   - Gate: < € 500 → `shouldOfferBox3Ncnp` false; ≥ € 500 → true.
-   - Claim-flow: INTENT → AWAITING_PROOF → PROOF_RECEIVED → CHARGED happy path.
-   - Proof-back: bedrag < € 500 in beschikking → status CHARGED met €0 fee (eerlijk:
-     ook al was indicatie hoger, werkelijke uitkomst telt).
-   - Proof-back: OCR-faal → FAILED, géén fee.
-h. Commit: `feat(box3): rechtsherstel check + brief + proof-back NCNP-loop`.
+   - Server `app/box3-check/page.tsx` (flag-gated op `BOX3_CHECK_ENABLED`).
+   - `Box3CheckClient.tsx`: wizard (jaar selecteren → spaargeld / beleggingen /
+     schulden / werkelijk rendement) → resultaat-kaart. Onder kleinedrempel:
+     "doe het zelf — hier is de brief en checklist (gratis)". Boven drempel:
+     "wij doen 'm voor je (no-cure-no-pay 25%)" + DIY-optie blijft beschikbaar.
+   - Privacy-callout zoals geld-check (client-side, niets opgeslagen).
+   - `track("box3_check_started" | "box3_results_viewed" | "box3_ncnp_chosen" |
+     "box3_diy_chosen")` — alle non-PII.
+c. **Brief-helper**: pre-gefilde tekst voor het OWR-formulier + verwijzing naar
+   MijnBelastingdienst. Geen DigiD-integratie.
+d. **Feature-flag**: `BOX3_CHECK_ENABLED` (default false) in `lib/feature-flags.ts`.
+e. **Analytics**: extend `AnalyticsEvent`-union met de events hierboven.
+f. **Tests** `tests/box3.test.ts`:
+   - Engine: forfait-vergelijking correct, drempel-€500 gate werkt, élke
+     constante heeft `// bron:` (source-read assert).
+   - Edge cases: jaar buiten range → unlikely + verwijzing, vermogen onder
+     heffingsvrij → unlikely.
+   - Revenue-gate: < € 500 → biedNcnpAan = false; ≥ € 500 → true.
+g. Commit: `feat(box3): rechtsherstel check + brief-helper (gefaseerd model)`.
 
 ---
 
@@ -140,185 +126,123 @@ a. **Engine** `lib/ns.ts` (pure, EU261-pattern):
    - Types: `NsInput` (ticketCents, delayMinutes, isAbonnement, isInternational),
      `NsResult` (compensationCents, percentage, regime: "NS_NL" | "EU_PRR" |
      "ABONNEMENT_VERWIJS", eligible, reden).
-   - `nsCompensation(input)` — pure. Constants EXACT uit `V29_DATA_2026.md`.
-   - Vrij/Flex → regime `ABONNEMENT_VERWIJS` (géén verzonnen bedragen).
+   - `nsCompensation(input)` — pure. Past de juiste regeling toe: NS-NL voor
+     binnenland-losse-tickets, EU-PRR voor IC-direct/internationaal, abonnement
+     → verwijzing naar Mijn NS.
 b. **UI** `/ns-check`:
    - Server `app/ns-check/page.tsx` (flag `NS_CHECK_ENABLED`).
-   - `NsCheckClient.tsx`: vragenlijst → indicatie + brief-template (klant
-     plakt in Mijn NS) + reminder-knop (mailto met deadline = reis + 30 dgn).
-   - Analytics: `ns_check_started | _results_viewed | _reminder_set`.
-c. **Tests** `tests/ns.test.ts`:
-   - Regimes correct (NS-NL vs EU-PRR vs abonnement)
-   - Drempels op grens (30 min, 60 min, 120 min)
-   - Minimum € 2,30 → eligible=false
-   - Abonnement → regime ABONNEMENT_VERWIJS, geen amountCents
+   - `NsCheckClient.tsx`: vragenlijst (datum + ticket-type + ticketprijs +
+     vertraging) → indicatie + brief-template + reminder-knop ("zet me op deadline").
+   - Reminder = simpel email-mailto met formulier-link (geen achtergrond-job).
+c. **Plus-integratie** (de echte revenue):
+   - Update `lib/plus.ts`: voeg "auto-claim NS-vertragingen" toe als pijler.
+   - Update `app/plus/page.tsx`: noem het als concreet abonnement-voordeel.
+   - Echte auto-claim-implementatie = owner-werk (vergt account-koppeling) →
+     eerst alleen in de positionering + waitlist-signal.
+d. **Tests** `tests/ns.test.ts`:
+   - Regimes correct (NS-NL vs EU-PRR), drempels op grens, minimum € 2,30
+   - Abonnement → verwijzing-regime
    - Constants matchen `V29_DATA_2026.md`
-d. **Feature-flag**: `NS_CHECK_ENABLED`.
-e. Commit: `feat(ns): Geld-Terug bij Vertraging check + brief + reminder`.
+e. **Feature-flag**: `NS_CHECK_ENABLED` (default false).
+f. Commit: `feat(ns): Geld-Terug bij Vertraging check + Plus auto-claim pillar`.
 
 ---
 
 ## DEEL 3 — Zorgkostenaftrek check
 
 a. **Engine** `lib/zorgkosten.ts` (pure, geld-check-DNA):
-   - Types: `ZorgkostenInput`, `ZorgkostenResult` (drempelCents,
-     aftrekbaarCents, indicatieJa, checklistVeelvergeten, uitleg, bron).
-   - `estimateZorgkostenAftrek(input)` — pure. Drempel = max(€ 166,
-     1,65% × drempelinkomen) voor 2026. Partner = 2× minimum.
-   - AOW-verhoging 113% logica (alleen als AOW-leeftijd + inkomen ≤ € 41.123).
-   - **Geen exact belastingvoordeel in EUR** (hangt van marginaal tarief af):
-     `aftrekbaarCents` + tekst "× jouw marginale tarief".
+   - Types: `ZorgkostenInput` (toetsingsinkomen, partner, leeftijd, opgegeven
+     zorgkosten-totaal per categorie), `ZorgkostenResult` (drempelCents,
+     aftrekbaarCents, indicatieJa: boolean, checklistVeelvergeten:
+     {item: string, mogelijkAftrekbaar: boolean}[], uitleg, bron).
+   - `estimateZorgkostenAftrek(input)` — pure. Drempel = max(€ 164,
+     1,65% × toetsingsinkomen). Indicatie of er boven-drempel-aftrek is.
+   - Géén exact bedrag in EUR pretenderen voor het uiteindelijke voordeel
+     (hangt van marginale tarief af) — alleen "aftrekbaar boven drempel".
 b. **UI** `/zorgkosten-check`:
    - Server `app/zorgkosten-check/page.tsx` (flag `ZORGKOSTEN_CHECK_ENABLED`).
-   - `ZorgkostenCheckClient.tsx`: vragenlijst + **uitgebreide checklist
-     veelvergeten posten** met JA/NEE per item (uit `V29_DATA_2026.md`
-     wel/niet-lijst).
+   - `ZorgkostenCheckClient.tsx`: vragenlijst (inkomen + partner + per-categorie
+     bedragen) → indicatie + **uitgebreide checklist veelvergeten posten**
+     (alternatieve geneeswijzen op doktersrecept, fysio buiten basisverzekering,
+     vervoer i.v.m. ziekte, dieet op doktersrecept, hulpmiddelen, etc.) met
+     JA/NEE per item ("kan ik dit aftrekken?").
+   - Disclaimer: indicatie, geen exact bedrag, eindcontrole bij aangifte zelf.
 c. **Tests** `tests/zorgkosten.test.ts`:
-   - Drempel-formule (1,65% met min € 166)
+   - Drempel-formule correct (1,65% met min € 164)
    - Aftrek boven/onder drempel
-   - AOW-verhoging-pad
-   - Checklist-volledigheid (assert alle posten uit data-file vermeld)
-d. **Feature-flag**: `ZORGKOSTEN_CHECK_ENABLED`.
+   - Checklist-volledigheid (assert dat alle posten uit `V29_DATA_2026.md`
+     vermeld zijn)
+d. **Feature-flag**: `ZORGKOSTEN_CHECK_ENABLED` (default false).
 e. Commit: `feat(zorgkosten): aangifte-helper indicatie + checklist (sourced)`.
 
 ---
 
-## DEEL 4 — Plus her-scan cron (echte loop) + telecom-naar-Plus reframe
+## DEEL 4 — "Vind al je geld"-hub (bindende landing)
 
-**Dit is het accuracy-mechanisme dat Plus van "vage belofte" naar "concrete
-events" tilt — én herstelt de fee-integriteit voor telecom.**
-
-a. **Plus her-scan engine** `lib/plus-rescan.ts`:
-   - `runRescanForUser(userId)` — pure-genoeg functie: leest user-Plus-prefs
-     (laatst opgegeven check-inputs) → roept de pure check-engines aan
-     (`estimateBenefits`, `estimateBox3Restitution`,
-     `estimateZorgkostenAftrek`, spookabonnement-scan) → vergelijkt met
-     vorige run → **delta**: nieuwe of veranderde vondsten.
-   - `formatRescanFindings(delta)` → e-mail-/notification-tekst (Nederlands,
-     concreet: "Deze maand vonden we 2 nieuwe items voor je: €X mogelijk + €Y
-     mogelijk").
-b. **Prisma**: voeg `PlusRescan`-model toe: `{ id, userId, runAt,
-   findingsJson, notifiedAt? }`. Migrate.
-c. **Cron-route** `app/api/cron/plus-rescan/route.ts`:
-   - Vereist `Authorization: Bearer ${CRON_SECRET}` (zoals andere cron-routes).
-   - Loopt door alle Plus-users (`status: ACTIVE`).
-   - Per user: `runRescanForUser` → push e-mail via Resend bij niet-lege delta.
-   - Gated door `PLUS_RESCAN_CRON_ENABLED` flag.
-d. **vercel.json**: voeg cron-entry toe, maandelijks (1e van de maand 09:00 NL):
-   ```json
-   { "crons": [{ "path": "/api/cron/plus-rescan", "schedule": "0 7 1 * *" }] }
-   ```
-   (07:00 UTC = 09:00 NL zomertijd). Géén effect bij flag uit.
-e. **Plus-page UI** (`app/plus/page.tsx`): voeg expliciet de **5 her-scan-pijlers**
-   toe: toeslagen + box 3 + zorgkosten + NS auto-claim + spookabonnementen. Concreet,
-   geen marketing-speak.
-f. **Telecom-reframe** (fee-integriteit):
-   - Update `lib/category-strategy.ts`: zet TELECOM op `fee: false` (was
-     `true` in V27, maar V27 belscript-flow betekent klant doet zelf →
-     NCNP onethisch). Update bijbehorende tests.
-   - Telecom wordt **Plus-pijler #6**: "elk jaar genereren we een nieuw
-     belscript voor je retentie-call". Update `app/plus/page.tsx`.
-   - Update `tests/category-strategy.test.ts`: TELECOM → `fee: false`.
-   - **Migratie-veiligheid**: check `lib/payments.ts` `shouldChargeVerifiedFee`
-     — bestaande lopende telecom-onderhandelingen mogen niet ineens een fee
-     krijgen die ze in V27 wél kregen. Geen retro-actief. (Realistisch geen
-     issue want geen bevestigde TELECOM-fee tot nu toe.)
-g. **Tests** `tests/plus-rescan.test.ts`:
-   - `runRescanForUser` met nieuwe vondsten → niet-lege delta
-   - Idem zonder veranderingen → lege delta, geen notificatie
-   - Cron-route: zonder secret → 401; met secret + flag uit → 503; met flag aan
-     + ACTIVE users → roept rescan voor elk
-h. **Feature-flag**: `PLUS_RESCAN_CRON_ENABLED`.
-i. Commit: `feat(plus): real rescan cron + telecom-as-Plus-pillar (fee integrity)`.
+a. **Page** `app/vind-al-je-geld/page.tsx` (server, flag `MONEYFINDER_HUB_ENABLED`):
+   - Hero: "Vind al je geld — alles op één plek"
+   - Tegels per check (alleen tonen als de bijbehorende flag aan staat):
+     - Toeslagen + gemeente → `/geld-check`
+     - Box 3-rechtsherstel → `/box3-check`
+     - Zorgkostenaftrek → `/zorgkosten-check`
+     - Vluchtclaim (EU261) → `/vluchtclaim` (achter `CLAIMS`)
+     - NS-vertraging → `/ns-check`
+     - Spookabonnementen → `/spookabonnementen`
+   - Plus-pitch onderaan ("één abonnement = elke maand opnieuw checken")
+b. **Update Hero + dashboard tile**: secundaire link naar `/vind-al-je-geld`
+   wanneer `MONEYFINDER_HUB_ENABLED=true`. Bestaande links blijven werken.
+c. **Update `lib/plus.ts`**: positioneer Plus expliciet als "her-check-engine"
+   over alle 6 modules.
+d. **Tests**:
+   - `tests/vind-al-je-geld.test.tsx`: tegels alleen tonen bij actieve flag
+   - Geen tegel zichtbaar wanneer ouder-flag uit (regression-guard)
+e. **Feature-flag**: `MONEYFINDER_HUB_ENABLED` (default false).
+f. Commit: `feat(hub): vind-al-je-geld central landing + Plus positioning`.
 
 ---
 
-## DEEL 5 — "Vind al je geld"-hub + standaard PostCheckCta-component
-
-a. **PostCheckCta-component** `components/PostCheckCta.tsx`:
-   - Props: `{ vondstCents: number | null, vondstLabel: string, naarOnderhandel?:
-     boolean, naarPlus?: boolean }`.
-   - Rendert na een check-resultaat: **expliciete Plus-CTA** ("wil je dat we dit
-     élke maand opnieuw checken? Plus = €4,99/mnd") + optioneel
-     onderhandel-CTA ("we vonden €X — laat ons ook je vaste lasten verlagen").
-   - `track("plus_cta_clicked", { fromCheck: <string> })` op klik.
-b. **Integratie**:
-   - Voeg `<PostCheckCta>` toe onderaan de results-section van: `GeldCheckClient`,
-   `Box3CheckClient`, `NsCheckClient`, `ZorgkostenCheckClient`, `VluchtclaimClient`,
-   `app/spookabonnementen/page.tsx`. Hetzelfde component, consistente boodschap.
-c. **Hub-page** `app/vind-al-je-geld/page.tsx` (server, flag `MONEYFINDER_HUB_ENABLED`):
-   - Hero: "Vind al je geld — alles op één plek".
-   - Tegels (alleen tonen als bijbehorende flag aan staat): toeslagen +
-     gemeente → `/geld-check` · Box 3 → `/box3-check` · zorgkosten →
-     `/zorgkosten-check` · vluchtclaim → `/vluchtclaim` (achter `CLAIMS`) ·
-     NS → `/ns-check` · spookabonnementen → `/spookabonnementen`.
-   - Plus-pitch onderaan met de **6 her-scan-pijlers**.
-d. **Update Hero + dashboard tile**: secundaire link naar `/vind-al-je-geld`
-   wanneer `MONEYFINDER_HUB_ENABLED=true`. Bestaande links blijven.
-e. **Tests**:
-   - `tests/post-check-cta.test.tsx`: rendert correcte tekst per `fromCheck`,
-     track-call op klik.
-   - `tests/vind-al-je-geld.test.tsx`: tegels alleen tonen bij actieve flag;
-     regression-guard wanneer ouder-flag uit.
-f. **Feature-flag**: `MONEYFINDER_HUB_ENABLED`.
-g. Commit: `feat(hub): vind-al-je-geld + PostCheckCta everywhere (conversion accuracy)`.
-
----
-
-## DEEL 6 — Rapport + finale gate
+## DEEL 5 — Rapport + finale gate
 
 a. `npm test` + `npx tsc --noEmit` + **`npm run build` (EXIT 0)** + e2e groen.
-b. `V29_REPORT.md`: per feature de **revenue-conclusie** (uit guardrail 5 + 6),
-   gebruikte bronnen + peildatum, accuracy-boost-mechanismen (proof-back,
-   her-scan cron, telecom-reframe, PostCheckCta), wat WEL en NIET gebouwd is,
-   en de eigenaar-stappen:
+b. `V29_REPORT.md`: per feature de **revenue-conclusie** (uit guardrail 5), de
+   gebruikte bronnen + peildatum, wat er WEL en NIET gebouwd is (auto-claim NS =
+   positionering, geen achtergrond-job), en de eigenaar-stappen:
    - `FEATURE_BOX3_CHECK_ENABLED=true` na privacy/disclaimer-review
    - `FEATURE_NS_CHECK_ENABLED=true` na review NS-voorwaarden-tekst
    - `FEATURE_ZORGKOSTEN_CHECK_ENABLED=true` na review aftrek-disclaimer
-   - `FEATURE_MONEYFINDER_HUB_ENABLED=true` als laatste
-   - `FEATURE_PLUS_RESCAN_CRON_ENABLED=true` ná KYC + eerste Plus-users
-   - `CRON_SECRET` in Vercel env zetten
+   - `FEATURE_MONEYFINDER_HUB_ENABLED=true` als laatste (overzicht-pagina)
    - Stripe-side: nieuwe Plus-positionering vergt geen prijswijziging
-c. Commit: `docs(v29): high-accuracy money-finder stack verified`.
+c. Commit: `docs(v29): money-finder expansion V29 verified (sources + peildatum)`.
 
 ---
 
-## Done-criteria (accuracy-versie)
+## Done-criteria
 
-- [ ] `docs/V29_DATA_2026.md` — al klaar (DEEL 0 skip)
-- [ ] **Box 3-check + proof-back NCNP-loop**: gefaseerd model (gratis < € 500,
-      NCNP 25% ≥ € 500 HARD in code), auto-fee-charge via proof-upload
-- [ ] **NS-check**: gratis + brief + reminder
-- [ ] **Zorgkosten-check**: indicatie + uitgebreide checklist, geen exact bedrag
-- [ ] **Plus her-scan cron**: werkende maandelijkse rescan over alle 5 checks +
-      Resend-notificatie · flag-gated · cron-secret-gated
-- [ ] **Telecom-reframe**: `category-strategy` TELECOM → `fee: false`; wordt
-      Plus-pijler #6 (belscripten)
-- [ ] **PostCheckCta-component**: hergebruikt in álle 6 check-flows
-- [ ] **Vind-al-je-geld-hub**: tegels alleen bij actieve flags
-- [ ] Privacy: check-data client-side + `ph-no-capture`; uitzondering Claim-record
-      (vereist voor fee) — gemotiveerd in V29_REPORT.md
+- [ ] `docs/V29_DATA_2026.md` — alle forfaits/drempels/bedragen sourced met
+      `// bron:` + peildatum, geen aggregator-cijfers
+- [ ] Box 3-check: gefaseerd revenue-model (gratis < € 500, NCNP 25% ≥ € 500)
+- [ ] NS-check: gratis + Plus-positionering ("auto-claim"-pijler)
+- [ ] Zorgkosten-check: indicatie + uitgebreide checklist, geen exact bedrag
+- [ ] Vind-al-je-geld-hub: tegels alleen bij actieve flags
+- [ ] Privacy: élke check **client-side**, géén opslag, `ph-no-capture` op
+      gevoelige inputs, analytics zonder PII
 - [ ] Flags allemaal default UIT
 - [ ] Géén providergeld, géén hyp/verz, géén gehallucineerde cijfers
 - [ ] `npm test` + `npx tsc --noEmit` + **`npm run build` (EXIT 0)** + e2e groen
-- [ ] `V29_REPORT.md` met bronnen + peildatums + accuracy-boost-uitleg + eigenaar-stappen
+- [ ] `V29_REPORT.md` met bronnen + peildatums + eigenaar-stappen
 
 ## Eindrapportage
 
 ```
-MONEYFINDER_EXPANSION_V29 — Final report (high-accuracy stack)
-DEEL 0 ✓ 46aaec4 — V29_DATA_2026.md (al gedaan, sourced)
-DEEL 1 ✓ <hash> — Box 3-rechtsherstel + proof-back NCNP-loop (deterministic fee)
-DEEL 2 ✓ <hash> — NS Geld-Terug check + brief + reminder
+MONEYFINDER_EXPANSION_V29 — Final report
+DEEL 0 ✓ <hash> — V29_DATA_2026.md (sourced)
+DEEL 1 ✓ <hash> — Box 3-rechtsherstel (gefaseerd revenue)
+DEEL 2 ✓ <hash> — NS Geld-Terug + Plus auto-claim positionering
 DEEL 3 ✓ <hash> — Zorgkostenaftrek (indicatie + checklist)
-DEEL 4 ✓ <hash> — Plus her-scan cron (echte loop) + telecom-naar-Plus reframe
-DEEL 5 ✓ <hash> — Vind-al-je-geld hub + PostCheckCta (conversion accuracy)
-DEEL 6 ✓ <hash> — V29_REPORT.md
+DEEL 4 ✓ <hash> — Vind-al-je-geld hub
+DEEL 5 ✓ <hash> — V29_REPORT.md
 ```
 
-**Na deze sprint is élke revenue-stream code-deterministisch:** Box 3 + vluchtclaim
-NCNP triggeren via proof-back (geen handmatige collect), Plus levert maandelijks
-concrete vondsten via cron (geen vage belofte), telecom is herframed als
-Plus-pijler (geen valse NCNP-trigger), en élke gratis check stuurt expliciet
-naar Plus + onderhandeling (meetbare conversie). Géén providergeld, géén
-hyp/verz, alles sourced, alles flag-gated.
+**Drie nieuwe consumer-aligned features die directe (Box 3) + indirecte (NS + Zorgkosten
+via Plus) revenue brengen, alles sourced, indicatie-only, client-side, en flag-gated tot
+eigenaar de privacy/disclaimer per feature heeft gereviewed.**

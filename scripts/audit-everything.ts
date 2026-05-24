@@ -100,6 +100,9 @@ const API_PROBES: ApiProbe[] = [
   { path: "/api/inbound/whatsapp", method: "POST", body: {}, expectJson: true, okStatuses: [401, 503] },
   // v28 vluchtclaim check — flag-gated (CLAIMS); 404 als flag uit, anders 400 op bad input.
   { path: "/api/vluchtclaim/check", method: "POST", body: {}, expectJson: true, okStatuses: [400, 404] },
+  // v30 Box 3 proof-back loop — flag-gated (BOX3_CHECK_ENABLED); 404 uit, anders 400/401.
+  { path: "/api/box3/claim", method: "POST", body: {}, expectJson: true, okStatuses: [400, 401, 404] },
+  { path: "/api/box3/proof-back", method: "POST", body: {}, expectJson: true, okStatuses: [400, 401, 404] },
 ];
 
 type Row = {
