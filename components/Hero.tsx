@@ -10,6 +10,7 @@ import { isEnabled } from "@/lib/feature-flags";
 export default function Hero() {
   const geldCheckOn = isEnabled("GELD_CHECK_ENABLED");
   const claimsOn = isEnabled("CLAIMS");
+  const hubOn = isEnabled("MONEYFINDER_HUB_ENABLED");
   const showBranches = geldCheckOn || claimsOn;
 
   return (
@@ -62,6 +63,17 @@ export default function Hero() {
             Bekijk hoe het werkt (30 sec) →
           </Link>
         </p>
+        {hubOn ? (
+          <p className="mt-2">
+            <Link
+              href="/vind-al-je-geld"
+              data-testid="hero-link-hub"
+              className="text-sm font-medium text-brand-700 underline decoration-dotted underline-offset-4 hover:text-brand-800"
+            >
+              Of bekijk alle checks op één plek: vind al je geld →
+            </Link>
+          </p>
+        ) : null}
 
         {showBranches ? (
           <section
