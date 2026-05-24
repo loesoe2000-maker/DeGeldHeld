@@ -30,7 +30,22 @@ export type AnalyticsEvent =
   // v28 funnel — kruisverwijzing van de geld-check naar de rekeningen-flow
   | "geld_check_to_onderhandel"
   // v28 EU261 vluchtclaim (achter FEATURE_CLAIMS) — geen PII
-  | "vluchtclaim_checked";
+  | "vluchtclaim_checked"
+  // v29 Box 3-rechtsherstel (achter FEATURE_BOX3_CHECK_ENABLED) — geen PII
+  | "box3_check_started"
+  | "box3_results_viewed"
+  | "box3_ncnp_chosen"
+  | "box3_diy_chosen"
+  // v29 NS Geld-Terug bij vertraging (achter FEATURE_NS_CHECK_ENABLED)
+  | "ns_check_started"
+  | "ns_results_viewed"
+  | "ns_reminder_set"
+  // v29 Zorgkostenaftrek (achter FEATURE_ZORGKOSTEN_CHECK_ENABLED)
+  | "zorgkosten_check_started"
+  | "zorgkosten_results_viewed"
+  // v29 vind-al-je-geld hub (achter FEATURE_MONEYFINDER_HUB_ENABLED)
+  | "moneyfinder_hub_view"
+  | "moneyfinder_hub_tile_clicked";
 
 /** Only non-PII primitives. provider/category are business categoricals, not PII. */
 export type AnalyticsProps = Record<string, string | number | boolean | null | undefined>;

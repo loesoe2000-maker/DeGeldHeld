@@ -52,6 +52,24 @@ const FLAG_DEFAULTS = {
   //   2. juridische check op de volmacht/claim-brief is afgerond
   // De pure berekening (lib/eu261.ts) staat los en is altijd testbaar.
   CLAIMS: false,
+  // Off by default — v29 Box 3-rechtsherstel check + brief-helper (Wet
+  // tegenbewijsregeling, juli 2025). Pure indicatie + DIY-brief; NCNP-aanbod
+  // alléén bij verwachte teruggave ≥ € 500 (guardrail). Flip aan na
+  // privacy/disclaimer-review eigenaar.
+  BOX3_CHECK_ENABLED: false,
+  // Off by default — v29 NS Geld-Terug bij Vertraging check + brief.
+  // Pure indicatie + DIY; auto-claim is een Plus-positionering (geen
+  // achtergrond-job in deze sprint). Flip aan na review NS-voorwaarden-tekst.
+  NS_CHECK_ENABLED: false,
+  // Off by default — v29 zorgkostenaftrek indicatie + checklist veelvergeten
+  // posten. Drempel-formule sourced uit Belastingdienst. Géén exact
+  // belastingvoordeel in EUR (hangt af van marginaal tarief). Flip aan na
+  // review aftrek-disclaimer.
+  ZORGKOSTEN_CHECK_ENABLED: false,
+  // Off by default — v29 centrale "vind al je geld"-hub die toeslagen/Box 3/
+  // zorgkosten/vluchtclaim/NS/spookabonnementen bij elkaar brengt. Tegels
+  // verschijnen alleen als hun eigen flag aan staat (geen lege/dode UI).
+  MONEYFINDER_HUB_ENABLED: false,
 } as const;
 
 export type FeatureFlag = keyof typeof FLAG_DEFAULTS;
