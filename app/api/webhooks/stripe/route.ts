@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createHash } from "node:crypto";
 import { prisma } from "@/lib/db";
 import {
   verifyAndParseWebhook,
@@ -17,6 +18,36 @@ import { notifyOwner } from "@/lib/owner-alerts";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+/** SHA-256 hash van de Stripe payload — voor idempotency-audit. */
+function payloadHash(body: string): string {
+  return createHash("sha256").update(body).digest("hex");
+}
+
+/** Beste-poging audit-row; mag de webhook-flow NOOIT breken. */
+async function logWebhookEvent(opts: {
+  eventId: string;
+  type: string;
+  outcome: "duplicate" | "ok" | "handler-failed" | "signature-failed";
+  payloadHash: string;
+  resolvedRef?: string | null;
+  errorMessage?: string | null;
+}): Promise<void> {
+  try {
+    await prisma.stripeWebhookEvent.create({
+      data: {
+        stripeEventId: opts.eventId,
+        type: opts.type,
+        outcome: opts.outcome,
+        payloadHash: opts.payloadHash,
+        resolvedRef: opts.resolvedRef ?? null,
+        errorMessage: opts.errorMessage ?? null,
+      },
+    });
+  } catch {
+    /* best-effort — audit-log breekt de webhook nooit */
+  }
+}
 
 export async function POST(req: NextRequest) {
   const secret = process.env.STRIPE_WEBHOOK_SECRET ?? "";
@@ -37,8 +68,18 @@ export async function POST(req: NextRequest) {
 
   const sig = req.headers.get("stripe-signature") ?? "";
   const body = await req.text();
+  const hash = payloadHash(body);
   const verified = verifyAndParseWebhook(body, sig, secret);
   if (!verified.ok) {
+    // v36 audit-trail: signature-fail laten we óók noteren (Stripe spoofing-
+    // pogingen / config-fout). eventId onbekend → gebruik hash-prefix.
+    void logWebhookEvent({
+      eventId: `sig-fail:${hash.slice(0, 24)}`,
+      type: "unknown",
+      outcome: "signature-failed",
+      payloadHash: hash,
+      errorMessage: verified.error,
+    });
     // Bad/forged signature → 400. Stripe does not retry a 400.
     return NextResponse.json({ error: verified.error }, { status: 400 });
   }
@@ -53,6 +94,12 @@ export async function POST(req: NextRequest) {
     });
   } catch {
     // Unique-constraint violation → already processed → ack + skip.
+    void logWebhookEvent({
+      eventId: event.eventId,
+      type: event.type,
+      outcome: "duplicate",
+      payloadHash: hash,
+    });
     return NextResponse.json({ ok: true, duplicate: event.eventId });
   }
 
@@ -69,6 +116,14 @@ export async function POST(req: NextRequest) {
     Sentry.captureException(e, {
       tags: { module: "stripe-webhook", eventType: event.type, eventId: event.eventId },
     });
+    // v36 audit + owner-alert.
+    void logWebhookEvent({
+      eventId: event.eventId,
+      type: event.type,
+      outcome: "handler-failed",
+      payloadHash: hash,
+      errorMessage: (e as Error).message,
+    });
     // v36 — owner-alert: webhook-processing fail = potentieel verloren state-
     // transition (Stripe retries 3 dgn, daarna stop). Owner moet kunnen reageren.
     void notifyOwner("stripe-webhook-error", {
@@ -83,6 +138,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "processing failed" }, { status: 500 });
   }
 
+  // v36 — happy-path audit. resolvedRef = de business-entity die hierdoor
+  // veranderde (negotiationId / billId / customerId). Owner kan zo per
+  // referentie traceren welk event-pad ze raakte.
+  const ref =
+    event.negotiationId ??
+    event.billId ??
+    event.subscriptionId ??
+    event.customerId ??
+    null;
+  void logWebhookEvent({
+    eventId: event.eventId,
+    type: event.type,
+    outcome: "ok",
+    payloadHash: hash,
+    resolvedRef: ref,
+  });
   return NextResponse.json({ ok: true, type: event.type });
 }
 
