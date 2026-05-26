@@ -24,6 +24,8 @@
 | `APP_URL` | Vercel | Used by sitemap, OG cards, mailers. Default `https://degeldheld.com`. | yes |
 | `APP_NAME` | Vercel (optional) | Default `DeGeldHeld`. | optional |
 | `ADMIN_EMAILS` | Vercel | Comma-separated list of allowed `/admin/*` emails. | yes for admin |
+| `OWNER_EMAIL` | Vercel | Target voor `lib/owner-alerts` (cron/claim/webhook/ocr fail-paths). Leeg → alerts no-op. | recommended |
+| `ADMIN_REVIEW_EMAIL` | Vercel (optional) | Override van OWNER_EMAIL voor Box 3 proof-back FAILED-mail. Default `hallo@degeldheld.com`. | optional |
 
 ## Migration flow
 
@@ -644,3 +646,177 @@ See `MANUAL_SETUP_REQUIRED.md §13` for the Cloudflare free-tier
 walkthrough + verification curl. Without `TURNSTILE_SECRET_KEY`
 the gate skips (graceful fallback per user spec); set the secret
 to activate it.
+
+---
+
+## v36 — basis-versterking ops (admin, alerts, backup, recovery)
+
+### Owner-alerts (lib/owner-alerts.ts)
+
+Vier event-types triggeren mail naar `OWNER_EMAIL`:
+
+| Event | Wanneer | Default dedup |
+|---|---|---|
+| `cron-failed` | Cron-run finished met errors > 0 | 1× per cron-job per dag |
+| `claim-failed` | Box 3 proof-back FAILED-outcome | 1× per claimId per 60 min |
+| `stripe-webhook-error` | Webhook handler-exception (Stripe retries 3 dgn) | 1× per eventId per 60 min |
+| `ocr-failed` | pdfjs empty / extraction-throw op proof-upload | 1× per claimId per 60 min |
+
+Configuratie:
+- `OWNER_EMAIL` env var op Vercel → mail-target. Niet gezet → alerts no-op.
+- Géén bypass-flag nodig: dedup-cache (60 min TTL) voorkomt mail-stormen.
+- In-process cache; bij meerdere serverless-instances kan dezelfde alert
+  in theorie 2× komen. Acceptabel — beter dubbel dan stilte.
+
+Productie-set:
+```bash
+# In Vercel → Settings → Environment Variables → Production:
+OWNER_EMAIL=hallo@degeldheld.com
+```
+
+Reset / test:
+```ts
+import { resetOwnerAlertDedup } from "@/lib/owner-alerts";
+resetOwnerAlertDedup();
+```
+
+### /admin/claims handmatige fee-charge (DEEL 1)
+
+Owner-flow voor V35-claim-types (Box3 / Huurcommissie / Energie):
+
+1. Sessie inloggen met een email uit `ADMIN_EMAILS`.
+2. Open `/admin/claims` — lijst van alle 3 claim-types (top 100, recent first).
+3. Klik **Charge fee € X** op een claim met status `UITSPRAAK` of
+   `PROOF_RECEIVED` én ingevuld werkelijke-bedrag.
+4. Confirmatie-dialog → `POST /api/admin/claims/charge` → Stripe
+   off-session charge via `chargeFeeOffSession` (user moet card+mandaat
+   hebben).
+5. Bij succes: claim → `CHARGED` + `feeCents` + `stripePaymentIntentId`,
+   `AdminAction` ok=true geschreven.
+6. Bij fail: 502 met reason ("card_declined" / "no_card" / ...),
+   `AdminAction` ok=false met errorMessage.
+
+Audit-trail (alle acties bewaard 7 jr, bewaarplicht financiële admin):
+```sql
+SELECT "createdAt", "adminEmail", "action", "targetType", "targetId", "ok", "errorMessage"
+  FROM "AdminAction"
+ ORDER BY "createdAt" DESC
+ LIMIT 50;
+```
+
+### Stripe webhook audit (DEEL 5)
+
+`StripeWebhookEvent` registreert élke inkomende webhook met outcome.
+Geen Stripe-dashboard nodig om te zien of een event ooit binnenkwam.
+
+| Outcome | Betekenis |
+|---|---|
+| `ok` | Nieuw event, handler succeed; `resolvedRef` = business-entity |
+| `duplicate` | Stripe-retry; idempotency-lock blokkeerde verwerking |
+| `handler-failed` | Exception in `handleEvent`; Stripe retries 3 dgn |
+| `signature-failed` | Bad signature; `stripeEventId` = "sig-fail:<hash-prefix>" |
+
+Owner-queries:
+```sql
+-- Welke events kwamen vandaag binnen?
+SELECT "type", "outcome", COUNT(*)
+  FROM "StripeWebhookEvent"
+ WHERE "receivedAt" > NOW() - INTERVAL '24 hours'
+ GROUP BY "type", "outcome";
+
+-- Lijst van laatste handler-failures (voor debug).
+SELECT "receivedAt", "type", "stripeEventId", "errorMessage"
+  FROM "StripeWebhookEvent"
+ WHERE "outcome" = 'handler-failed'
+ ORDER BY "receivedAt" DESC
+ LIMIT 20;
+
+-- Detect mogelijke spoofing (signature-failed pattern).
+SELECT DATE_TRUNC('hour', "receivedAt"), COUNT(*)
+  FROM "StripeWebhookEvent"
+ WHERE "outcome" = 'signature-failed'
+ GROUP BY 1 ORDER BY 1 DESC LIMIT 24;
+```
+
+### Neon cold-start workarounds
+
+Neon Free tier scale-to-zero → eerste hit na ~5 min idle kan 500/slow zijn.
+
+**Opties (in volgorde van impact + kosten):**
+
+1. **Niets doen** (huidige stand): acceptabel zolang Plus/relay/check-flows
+   géén user-cron in de kritieke 5-min-window hebben. Smoke-tests waarschuwen
+   bij echte degradatie.
+2. **Vercel cron warmup**: voeg een nieuwe `/api/cron/db-warmup` toe die
+   elke 4 min een lichte `SELECT 1` doet via Prisma. ~360 queries/dag,
+   binnen Neon Free-quota.
+3. **Upgrade Neon Free → Launch** (€19/mnd): always-on. Doe dit pas wanneer
+   paying-users-count ≥ 10 (CLAUDE.md-regel).
+4. **Pooler-only routing**: zorg dat `DATABASE_URL` de pooler-string is
+   (PgBouncer); `DIRECT_URL` alléén voor `prisma migrate`. Verkleint
+   cold-start-impact want pooler-connectie blijft sneller warm.
+
+**Detectie**: prod-smoke (`npm run smoke:v34`) faalt op 500-responses;
+Sentry alert op DB-time-outs.
+
+### Backup procedure
+
+**Neon automatische backups**:
+- **Branch-based**: Neon maakt elke push een branch automatisch (point-in-
+  time recovery beschikbaar voor laatste 7 dagen Free / 30 dagen Launch).
+- **Restore**: Neon dashboard → Branches → kies tijdstip → Restore as new
+  branch → swap DATABASE_URL in Vercel als rollback.
+
+**Handmatige backup (extra zekerheid vóór risky migrations)**:
+```bash
+# Vereist: pg_dump v15+ lokaal + DIRECT_URL met password.
+pg_dump $DIRECT_URL --no-owner --no-acl --clean --if-exists \
+  > backup-$(date +%Y%m%d-%H%M).sql
+
+# Restore lokaal voor test:
+psql $LOCAL_DATABASE_URL < backup-20260526-2200.sql
+```
+
+**Schedule**: vóór élke `prisma migrate deploy` met nieuwe NOT NULL
+column / drop-column / data-migratie. Voor pure additieve schema-changes
+(nieuwe tabel / nullable kolom) is automatische branch-backup genoeg.
+
+**Disaster recovery test**: minimaal 1× per kwartaal owner doet een
+restore-from-branch in Neon-dashboard tegen een test-branch om te
+verifiëren dat het pad werkt.
+
+### Admin-rotation
+
+`ADMIN_EMAILS` is een comma-separated list in Vercel env-vars. Wijzigen
+vereist Vercel-redeploy (env-var-evaluatie is build-time).
+
+**Rotatie-protocol**:
+1. Vóór de wijziging: snapshot `AdminAction`-audit-log (`SELECT * FROM
+   "AdminAction" WHERE "adminEmail" = '<oude>'`) om te verifiëren wat de
+   verwijderde admin recent heeft gedaan.
+2. Wijzig env-var: Vercel → Settings → Environment Variables →
+   `ADMIN_EMAILS` → edit → Save.
+3. Trigger redeploy (Deployments → laatste → Redeploy zonder cache).
+4. Verifieer: nieuwe admin logt in → kan `/admin/claims` openen; oude
+   admin (indien aanwezig) krijgt 404 op admin-routes.
+5. Documenteer in deze RUNBOOK met datum + reden (audit-trail buiten DB).
+
+**Géén delegated admin**: enige admin-laag is `ADMIN_EMAILS` env-var.
+Géén DB-flag op User of role-based-access — bewust simpel gehouden tot
+team > 1 persoon.
+
+### GDPR cycle (v36 uitbreiding op V20)
+
+`GET /api/account/export` (Art. 20) dekt nu álle V29-V35-modellen:
+Bill / Negotiation / Payment / Waitlist / Referral / Session +
+Box3Claim / HuurServicekostenClaim / EnergieEindafrekeningClaim /
+PlusRescan.
+
+`POST /api/account/delete` (Art. 17) scrubt vrije-tekst-velden + storage-
+URLs op de claim-modellen, behoudt financial-record-velden (chargedAt,
+feeCents, stripePaymentIntentId, werkelijke-bedragen) voor bewaarplicht.
+PlusRescan wordt hard-delete (findingsJson kan provider-namen bevatten).
+
+Vercel Blob: storage-URL → null verbreekt de logische link. Daadwerkelijke
+Blob-bytes-deletes lopen via een aparte job zodra Vercel Blob is
+geconfigureerd (V36-stub: uitspraakStorageUrl is altijd null tot dan).
