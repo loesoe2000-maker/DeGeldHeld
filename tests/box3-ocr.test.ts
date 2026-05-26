@@ -182,3 +182,118 @@ describe("Box 3 OCR — negative case B: bedrag onder € 500-gate → CHARGED m
     }
   });
 });
+
+describe("Box 3 OCR — V36 robustness variaties", () => {
+  it("multi-page: totaalbedrag op pagina 1 → pdfjs concatenates → parse vindt 'm", async () => {
+    const pdf = buildSyntheticBeschikkingPdf({
+      kind: "multi-page",
+      jaar: 2024,
+      toegekendCents: 234_500, // € 2.345,00
+    });
+    const out = await extractPdfText(pdf);
+    expect(out.ok).toBe(true);
+    expect(out.pages).toBe(2);
+    expect(out.extractedPages).toBe(2);
+    // Pagina-tagging in extractor markeert "--- page N ---".
+    expect(out.text).toContain("--- page 1 ---");
+    expect(out.text).toContain("--- page 2 ---");
+    expect(out.text).toMatch(/Toegekend bedrag/i);
+
+    const parsed = parseBeschikkingAmount(out.text);
+    expect(parsed).not.toBeNull();
+    expect(parsed!.amountCents).toBe(234_500);
+  });
+
+  it("multi-page → processProofUpload happy-path: CHARGED met 25% fee", async () => {
+    const pdf = buildSyntheticBeschikkingPdf({
+      kind: "multi-page",
+      jaar: 2024,
+      toegekendCents: 400_000, // € 4.000 → 25% = € 1.000 → gecapt op € 500
+    });
+    const out = await extractPdfText(pdf);
+    const result = await processProofUpload({
+      userId: "u_multi",
+      claimId: "c_multi",
+      pdfText: out.text,
+      charge: okCharge,
+    });
+    expect(result.kind).toBe("charged");
+    if (result.kind === "charged") {
+      expect(result.werkelijkTeruggaveCents).toBe(400_000);
+      expect(result.feeCents).toBe(50_000); // NCNP-cap
+    }
+  });
+
+  it("decimal-comma-only (geen thousands-separator): '1234,56 euro' → parse vindt bedrag", async () => {
+    const pdf = buildSyntheticBeschikkingPdf({
+      kind: "decimal-comma-only",
+      jaar: 2024,
+      toegekendCents: 123_456, // dat is "1234,56" zonder separator
+    });
+    const out = await extractPdfText(pdf);
+    expect(out.ok).toBe(true);
+    expect(out.text).toMatch(/1234,56/);
+    expect(out.text).not.toMatch(/1\.234,56/); // expliciet géén thousands-sep
+
+    const parsed = parseBeschikkingAmount(out.text);
+    expect(parsed).not.toBeNull();
+    expect(parsed!.amountCents).toBe(123_456);
+  });
+
+  it("decimal-comma-only → processProofUpload happy-path", async () => {
+    const pdf = buildSyntheticBeschikkingPdf({
+      kind: "decimal-comma-only",
+      jaar: 2024,
+      toegekendCents: 75_000, // € 750
+    });
+    const out = await extractPdfText(pdf);
+    const result = await processProofUpload({
+      userId: "u_decimal",
+      claimId: "c_decimal",
+      pdfText: out.text,
+      charge: okCharge,
+    });
+    expect(result.kind).toBe("charged");
+    if (result.kind === "charged") {
+      expect(result.werkelijkTeruggaveCents).toBe(75_000);
+      expect(result.feeCents).toBe(18_750); // 25% × € 750
+    }
+  });
+
+  it("euro-symbol (WinAnsi byte 0x80 → Unicode €): parse herkent € als prefix", async () => {
+    const pdf = buildSyntheticBeschikkingPdf({
+      kind: "euro-symbol",
+      jaar: 2024,
+      toegekendCents: 567_890, // € 5.678,90
+    });
+    const out = await extractPdfText(pdf);
+    expect(out.ok).toBe(true);
+    // pdfjs decodeert WinAnsi 0x80 naar Unicode €.
+    expect(out.text).toMatch(/€/);
+    // Tekst bevat GEEN "EUR" prefix (alleen €).
+    expect(out.text).not.toMatch(/Toegekend bedrag:\s*EUR/i);
+
+    const parsed = parseBeschikkingAmount(out.text);
+    expect(parsed).not.toBeNull();
+    expect(parsed!.amountCents).toBe(567_890);
+  });
+
+  it("euro-symbol → processProofUpload happy-path: fee gecapt op € 500", async () => {
+    const pdf = buildSyntheticBeschikkingPdf({
+      kind: "euro-symbol",
+      jaar: 2024,
+      toegekendCents: 300_000, // € 3.000 → 25% = € 750 → gecapt
+    });
+    const out = await extractPdfText(pdf);
+    const result = await processProofUpload({
+      userId: "u_euro",
+      claimId: "c_euro",
+      pdfText: out.text,
+      charge: okCharge,
+    });
+    expect(result.kind).toBe("charged");
+    if (result.kind === "charged") {
+      expect(result.feeCents).toBe(50_000); // NCNP-cap
+    }
+  });
+});
