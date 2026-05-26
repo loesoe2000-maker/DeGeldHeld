@@ -706,3 +706,55 @@ model EnergieEindafrekeningClaim {
   @@index([userId, status])
   @@index([status, createdAt])
 }
+
+// ──────────────────────────────────────────────────────────────────
+// v36 Basis-versterking: admin audit + Stripe webhook audit.
+// ──────────────────────────────────────────────────────────────────
+
+/// v36 — audit-log van elke handmatige owner-actie via /admin/*.
+/// Wie heeft welk record op welk moment veranderd? Bewaartermijn 7 jaar
+/// (financiële administratie). Géén PII anders dan adminEmail (zelf-input
+/// in ADMIN_EMAILS env; niet de eindgebruiker).
+model AdminAction {
+  id              String   @id @default(cuid())
+  adminEmail      String
+  /// charge-box3 | charge-huur | charge-energie | reverse-charge | other
+  action          String
+  /// Box3Claim | HuurServicekostenClaim | EnergieEindafrekeningClaim
+  targetType      String
+  targetId        String
+  /// Detail-payload JSON: { feeCents, paymentIntentId?, reason?, ... }
+  payloadJson     Json
+  ok              Boolean
+  errorMessage    String?  @db.Text
+  createdAt       DateTime @default(now())
+
+  @@index([adminEmail, createdAt])
+  @@index([targetType, targetId])
+  @@index([createdAt])
+}
+
+/// v36 — audit-trail per inkomende Stripe-webhook. ProcessedStripeEvent
+/// is de snelle idempotency-lock (uniek event-id, write-or-skip).
+/// StripeWebhookEvent slaat aanvullende debug-info op: parse-status,
+/// handler-uitkomst, foutmelding indien faal. Owner kan zo precies zien
+/// of een event ooit binnenkwam en hoe het verliep — los van Stripe-dashboard.
+model StripeWebhookEvent {
+  id              String   @id @default(cuid())
+  stripeEventId   String   @unique
+  type            String
+  receivedAt      DateTime @default(now())
+  /// "duplicate" | "ok" | "handler-failed" | "signature-failed"
+  outcome         String
+  /// Hash van de payload (sha256, 64 chars) zodat we kunnen detecteren of
+  /// een retry exact dezelfde payload had. Géén opslag van de payload zelf
+  /// (kan PII bevatten in metadata).
+  payloadHash     String
+  /// Handler-uitkomst-velden (negotiationId / billId / claimId, ...).
+  resolvedRef     String?
+  errorMessage    String?  @db.Text
+
+  @@index([stripeEventId])
+  @@index([type, receivedAt])
+  @@index([outcome, receivedAt])
+}

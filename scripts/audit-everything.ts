@@ -60,7 +60,7 @@ const STATIC_PAGES = [
 
 // admin-only pages are intentionally skipped from the audit since they
 // require ADMIN_EMAILS membership — listing them keeps coverage happy.
-const ADMIN_PAGES_SKIPPED = ["/admin/training"];
+const ADMIN_PAGES_SKIPPED = ["/admin/training", "/admin/claims"];
 void ADMIN_PAGES_SKIPPED;
 
 const DYNAMIC_PAGES = [
@@ -120,6 +120,8 @@ const API_PROBES: ApiProbe[] = [
   // v35 Energie-claim — flag-gated (ENERGIE_CLAIM_CHECK_ENABLED); 404 uit, anders 400/401/422.
   { path: "/api/energie-claim/claim", method: "POST", body: {}, expectJson: true, okStatuses: [400, 401, 404, 422] },
   { path: "/api/energie-claim/uitspraak", method: "POST", body: {}, expectJson: true, okStatuses: [400, 401, 404] },
+  // v36 Admin claims charge — admin-only (ADMIN_EMAILS); 401/403 zonder admin-sessie, 400/422/404 met.
+  { path: "/api/admin/claims/charge", method: "POST", body: {}, expectJson: true, okStatuses: [400, 401, 403] },
 ];
 
 type Row = {
