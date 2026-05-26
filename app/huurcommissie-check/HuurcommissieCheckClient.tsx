@@ -26,6 +26,7 @@ import {
   type HuurServicekostenResult,
 } from "@/lib/huurcommissie";
 import { track } from "@/lib/analytics";
+import PostCheckCta from "@/components/PostCheckCta";
 
 const SUPPORTED_BOEKJAREN = [2025, 2024, 2023, 2022, 2021, 2020] as const;
 
@@ -255,6 +256,13 @@ export default function HuurcommissieCheckClient() {
           input={input}
           briefOpen={briefOpen}
           setBriefOpen={setBriefOpen}
+        />
+      ) : null}
+      {result ? (
+        <PostCheckCta
+          fromCheck="huurcommissie"
+          vondstCents={result.verwachteRestitutieCents > 0 ? result.verwachteRestitutieCents : null}
+          vondstLabel="verwachte restitutie"
         />
       ) : null}
 

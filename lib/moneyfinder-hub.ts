@@ -67,6 +67,28 @@ export const HUB_TILES: ReadonlyArray<HubTile> = [
     flag: "NS_CHECK_ENABLED",
     icon: "🚆",
   },
+  // v35 Claim-Hub uitbreiding — Huurcommissie + Geschillencommissie Energie.
+  // Beide via officiële instanties (geen relay-mail), drempel € 50 voor NCNP.
+  {
+    id: "huurcommissie-check",
+    title: "Huurcommissie — bezwaar servicekosten",
+    body:
+      "Klopt je servicekosten-afrekening? Gratis indicatie op rode vlaggen + " +
+      "DIY-brief; NCNP bij ≥ € 50.",
+    href: "/huurcommissie-check",
+    flag: "HUURCOMMISSIE_CHECK_ENABLED",
+    icon: "🏠",
+  },
+  {
+    id: "energie-claim-check",
+    title: "Energie-eindafrekening-claim",
+    body:
+      "Heffingskorting ontbreekt, te-laat-afrekening of meterstand-shift? Gratis " +
+      "indicatie + DIY-klachtbrief; NCNP bij ≥ € 50.",
+    href: "/energie-claim-check",
+    flag: "ENERGIE_CLAIM_CHECK_ENABLED",
+    icon: "⚡",
+  },
   // Spookabonnementen blijft owner-scoped (eigen authentication-gate; werkt op
   // bestaande bills) en heeft geen eigen feature-flag. Hub toont 'm altijd in
   // de "ook beschikbaar"-sectie, NIET in de flag-gated grid.

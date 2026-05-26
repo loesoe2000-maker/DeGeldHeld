@@ -20,6 +20,9 @@ const SOURCES: PostCheckSource[] = [
   "zorgkosten",
   "vluchtclaim",
   "spookabonnementen",
+  // v35 Claim-Hub uitbreiding
+  "huurcommissie",
+  "energie-claim",
 ];
 
 describe("PostCheckCta — render", () => {
@@ -99,6 +102,32 @@ describe("PostCheckCta — analytics", () => {
     render(<PostCheckCta fromCheck="zorgkosten" />);
     fireEvent.click(screen.getByTestId("post-check-onderhandel"));
     expect(track).toHaveBeenCalledWith("onderhandel_cta_clicked", { fromCheck: "zorgkosten" });
+  });
+});
+
+describe("PostCheckCta — v35 huurcommissie + energie-claim sources", () => {
+  it("huurcommissie: Plus-body noemt jaarafrekening / servicekosten + Onderhandel-body cross-link werkt", () => {
+    render(<PostCheckCta fromCheck="huurcommissie" />);
+    const plus = screen.getByTestId("post-check-plus");
+    expect(plus.textContent).toMatch(/servicekosten|jaarafrekening/i);
+    const onder = screen.getByTestId("post-check-onderhandel");
+    expect(onder.textContent).toMatch(/vaste lasten|besparen|onderhandel/i);
+  });
+
+  it("energie-claim: Plus-body noemt eindafrekening / contract-jaar", () => {
+    render(<PostCheckCta fromCheck="energie-claim" />);
+    const plus = screen.getByTestId("post-check-plus");
+    expect(plus.textContent).toMatch(/eindafrekening|contract|tarief/i);
+  });
+
+  it("v35 sources fired juiste analytics-event op klik", () => {
+    render(<PostCheckCta fromCheck="huurcommissie" />);
+    fireEvent.click(screen.getByTestId("post-check-plus"));
+    expect(track).toHaveBeenCalledWith("plus_cta_clicked", { fromCheck: "huurcommissie" });
+
+    render(<PostCheckCta fromCheck="energie-claim" />);
+    fireEvent.click(screen.getAllByTestId("post-check-onderhandel")[1]);
+    expect(track).toHaveBeenCalledWith("onderhandel_cta_clicked", { fromCheck: "energie-claim" });
   });
 });
 

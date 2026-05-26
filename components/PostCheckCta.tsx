@@ -18,7 +18,10 @@ export type PostCheckSource =
   | "ns"
   | "zorgkosten"
   | "vluchtclaim"
-  | "spookabonnementen";
+  | "spookabonnementen"
+  // v35 Claim-Hub uitbreiding — beide officiële-instantie-claims (geen relay-mail).
+  | "huurcommissie"
+  | "energie-claim";
 
 export type PostCheckCtaProps = {
   fromCheck: PostCheckSource;
@@ -51,6 +54,12 @@ const PLUS_BODY: Record<PostCheckSource, string> = {
   spookabonnementen:
     "Maandelijkse her-scan op je rekeningen — Plus mailt alleen áls er nieuwe " +
     "dubbele of onbenutte abonnementen opduiken.",
+  huurcommissie:
+    "Servicekosten worden elk jaar opnieuw afgerekend. Plus seint je in januari " +
+    "wanneer de jaarafrekening verschijnt zodat je de check direct kunt doen.",
+  "energie-claim":
+    "Energieleveranciers wisselen tarieven + heffingen vaker dan je denkt. Plus " +
+    "her-checkt je eindafrekeningen automatisch elk contract-jaar.",
 };
 
 const ONDERHANDEL_BODY: Record<PostCheckSource, string> = {
@@ -73,6 +82,12 @@ const ONDERHANDEL_BODY: Record<PostCheckSource, string> = {
   spookabonnementen:
     "Voor de niet-spookabonnementen kunnen we vaak nog onderhandelen — upload " +
     "je rekening, 20% NCNP op bewezen besparing.",
+  huurcommissie:
+    "Servicekosten in orde gemaakt? Check ook of je op andere vaste lasten kunt " +
+    "besparen — upload een rekening, 20% NCNP op bewezen besparing.",
+  "energie-claim":
+    "Eindafrekening teruggehaald? Check meteen of je nieuwe tarief ook scherp staat " +
+    "— upload een rekening, 20% NCNP op bewezen besparing.",
 };
 
 export default function PostCheckCta({

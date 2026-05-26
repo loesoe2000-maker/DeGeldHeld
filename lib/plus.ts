@@ -17,7 +17,13 @@ export const PLUS_PRICE = { lowEur: 2.99, highEur: 4.99 } as const;
 
 /** De waarde-pijlers — server-component leest dit, tests locken inhoud. */
 export type PlusPillar = {
-  id: "rescan" | "hercheck" | "alerts" | "nsclaim" | "telecom_belscript";
+  id:
+    | "rescan"
+    | "hercheck"
+    | "alerts"
+    | "nsclaim"
+    | "telecom_belscript"
+    | "claim_monitor";
   title: string;
   body: string;
 };
@@ -70,6 +76,18 @@ export const PLUS_PILLARS: ReadonlyArray<PlusPillar> = [
       "elk jaar een vers retentie-belscript op maat (KPN/Vodafone/Odido/" +
       "Ziggo), met de actuele alternatieve aanbiedingen die je inzet. " +
       "Géén fee per gelukt gesprek — onderdeel van Plus.",
+  },
+  {
+    // v35 — Huurcommissie + Geschillencommissie Energie auto-monitor.
+    // Eerste implementatie = positionering-tekst, GEEN echte cron-job in V35.
+    // V36 mogelijk een agendarondgang die op een vaste datum scans aanbeveelt.
+    id: "claim_monitor",
+    title: "Huurcommissie + Energie-claim auto-monitor",
+    body:
+      "Servicekosten-jaarafrekeningen + energie-eindafrekeningen krijg je elk " +
+      "jaar opnieuw — Plus seint je rond de verwachte verzenddata zodat je de " +
+      "gratis check direct kunt doen. Géén losse fee per check; bij een NCNP-" +
+      "waardige bevinding loopt de fee identiek aan de Box 3-/standalone-flow.",
   },
 ];
 

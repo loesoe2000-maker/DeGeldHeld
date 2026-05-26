@@ -63,13 +63,16 @@ describe("plus — her-check cadence (pure)", () => {
 });
 
 describe("plus — value-propositie", () => {
-  it("heeft de 5 v30-pijlers: rescan, hercheck, alerts, nsclaim, telecom_belscript", () => {
+  it("heeft de 6 pijlers v30+v35: rescan, hercheck, alerts, nsclaim, telecom_belscript, claim_monitor", () => {
     expect(PLUS_PILLARS.map((p) => p.id)).toEqual([
       "rescan",
       "hercheck",
       "alerts",
       "nsclaim",
       "telecom_belscript",
+      // v35 — huurcommissie + energie-claim auto-monitor (positionering;
+      // GEEN echte cron-job in V35, V36 mogelijk implementation).
+      "claim_monitor",
     ]);
     for (const p of PLUS_PILLARS) {
       expect(p.title.length).toBeGreaterThan(8);

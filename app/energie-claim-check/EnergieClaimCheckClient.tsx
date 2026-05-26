@@ -31,6 +31,7 @@ import {
   type EnergieEindafrekeningResult,
 } from "@/lib/energie-claim";
 import { track } from "@/lib/analytics";
+import PostCheckCta from "@/components/PostCheckCta";
 
 const STATUS_STYLES: Record<EnergieEindafrekeningResult["status"], { pill: string; label: string; card: string }> = {
   likely: {
@@ -300,6 +301,13 @@ export default function EnergieClaimCheckClient() {
           input={input}
           briefOpen={briefOpen}
           setBriefOpen={setBriefOpen}
+        />
+      ) : null}
+      {result ? (
+        <PostCheckCta
+          fromCheck="energie-claim"
+          vondstCents={result.verwachteRestitutieCents > 0 ? result.verwachteRestitutieCents : null}
+          vondstLabel="verwachte restitutie"
         />
       ) : null}
 

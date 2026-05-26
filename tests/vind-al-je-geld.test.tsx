@@ -45,6 +45,18 @@ describe("activeHubTiles — pure flag-filter", () => {
     expect(ids).toContain("ns-check");
   });
 
+  it("HUB_TILES bevat de v35 claim-hub routes met hun eigen flag", () => {
+    const ids = HUB_TILES.map((t) => t.id);
+    expect(ids).toContain("huurcommissie-check");
+    expect(ids).toContain("energie-claim-check");
+    const huur = HUB_TILES.find((t) => t.id === "huurcommissie-check");
+    const energie = HUB_TILES.find((t) => t.id === "energie-claim-check");
+    expect(huur?.flag).toBe("HUURCOMMISSIE_CHECK_ENABLED");
+    expect(huur?.href).toBe("/huurcommissie-check");
+    expect(energie?.flag).toBe("ENERGIE_CLAIM_CHECK_ENABLED");
+    expect(energie?.href).toBe("/energie-claim-check");
+  });
+
   it("SPOOK_TILE is geen flag-gated tegel (owner-scoped)", () => {
     expect(SPOOK_TILE.id).toBe("spookabonnementen");
     expect(SPOOK_TILE.href).toBe("/spookabonnementen");
@@ -110,5 +122,27 @@ describe("/vind-al-je-geld — page render", () => {
     }
     // Plus-pitch onderaan.
     expect(screen.getByText(/Bekijk Plus/i)).toBeInTheDocument();
+  });
+
+  it("v35: HUURCOMMISSIE flag UIT → géén tegel (geen lege/dode UI)", async () => {
+    await renderHubWith({ MONEYFINDER_HUB_ENABLED: true });
+    expect(screen.queryByTestId("hub-tile-huurcommissie-check")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("hub-tile-energie-claim-check")).not.toBeInTheDocument();
+  });
+
+  it("v35: HUURCOMMISSIE + ENERGIE flags AAN → beide tegels verschijnen met juiste href", async () => {
+    await renderHubWith({
+      MONEYFINDER_HUB_ENABLED: true,
+      HUURCOMMISSIE_CHECK_ENABLED: true,
+      ENERGIE_CLAIM_CHECK_ENABLED: true,
+    });
+    expect(screen.getByTestId("hub-tile-huurcommissie-check")).toHaveAttribute(
+      "href",
+      "/huurcommissie-check",
+    );
+    expect(screen.getByTestId("hub-tile-energie-claim-check")).toHaveAttribute(
+      "href",
+      "/energie-claim-check",
+    );
   });
 });
