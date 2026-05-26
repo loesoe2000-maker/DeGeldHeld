@@ -74,6 +74,14 @@ const FLAG_DEFAULTS = {
   // owner CRON_SECRET in Vercel heeft gezet + Resend-template gereviewed +
   // KvK/KYC rond is (anders zijn er geen active Plus-users om te scannen).
   PLUS_RESCAN_CRON_ENABLED: false,
+  // Off by default — v35 Huurcommissie-bezwaar servicekosten check + DIY-brief
+  // + NCNP-claim ≥ € 50. Bron-discipline: docs/V35_DATA_2026.md. Flip aan na
+  // privacy/disclaimer-review eigenaar.
+  HUURCOMMISSIE_CHECK_ENABLED: false,
+  // Off by default — v35 Energie-eindafrekening-claim via Geschillencommissie
+  // Energie. Rode-vlag-detector + DIY-klachtbrief + NCNP-claim ≥ € 50. Flip aan
+  // na privacy/disclaimer-review + verificatie energiebelasting-vermindering 2026.
+  ENERGIE_CLAIM_CHECK_ENABLED: false,
 } as const;
 
 export type FeatureFlag = keyof typeof FLAG_DEFAULTS;

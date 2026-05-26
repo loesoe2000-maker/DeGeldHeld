@@ -77,6 +77,10 @@ model User {
   // v30: Box 3 NCNP-claims (proof-back loop) + Plus monthly rescans.
   box3Claims    Box3Claim[]
   plusRescans   PlusRescan[]
+  // v35: Claim-Hub uitbreiding — Huurcommissie + Energie-Geschillencommissie.
+  // Beide via officiële instanties (geen relay-mail). Drempel € 50, fee 20%.
+  huurServicekostenClaims   HuurServicekostenClaim[]
+  energieEindafrekeningClaims EnergieEindafrekeningClaim[]
 
   @@index([email])
 }
@@ -644,4 +648,61 @@ model PlusRescan {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, runAt])
+}
+
+// ──────────────────────────────────────────────────────────────────
+// v35 Claim-Hub uitbreiding — parallel aan Box3Claim, géén refactor.
+// Beide flows lopen via officiële instanties (Huurcommissie /
+// Geschillencommissie Energie) — geen provider-relay-mail, dus
+// onafhankelijk van het KPN-test-verdict. AVG-grondslag voor opslag:
+// art. 6 lid 1b (uitvoering NCNP-overeenkomst). V36 mogelijk
+// unificatie tot één Claim-abstractie; eerst beide types proof.
+// ──────────────────────────────────────────────────────────────────
+
+model HuurServicekostenClaim {
+  id                       String   @id @default(cuid())
+  userId                   String
+  boekjaar                 Int
+  verhuurderNaam           String?
+  verwachteRestitutieCents Int
+  /// INTENT | BEZWAAR_GESTUURD | HUURCOMMISSIE_INGEDIEND | UITSPRAAK | CHARGED | FAILED
+  status                   String
+  werkelijkeRestitutieCents Int?
+  /// URL to uploaded Huurcommissie-uitspraak (Vercel Blob / Resend).
+  uitspraakStorageUrl      String?
+  uitspraakUploadedAt      DateTime?
+  chargedAt                DateTime?
+  feeCents                 Int?
+  stripePaymentIntentId    String?
+  failureReason            String?  @db.Text
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@index([status, createdAt])
+}
+
+model EnergieEindafrekeningClaim {
+  id                       String   @id @default(cuid())
+  userId                   String
+  provider                 String
+  verwachteRestitutieCents Int
+  /// INTENT | KLACHT_GESTUURD | GESCHILLENCOMMISSIE_INGEDIEND | UITSPRAAK | CHARGED | FAILED
+  status                   String
+  werkelijkeRestitutieCents Int?
+  uitspraakStorageUrl      String?
+  uitspraakUploadedAt      DateTime?
+  chargedAt                DateTime?
+  feeCents                 Int?
+  stripePaymentIntentId    String?
+  failureReason            String?  @db.Text
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@index([status, createdAt])
 }

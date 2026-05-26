@@ -53,7 +53,19 @@ export type AnalyticsEvent =
   | "zorgkosten_results_viewed"
   // v29 vind-al-je-geld hub (achter FEATURE_MONEYFINDER_HUB_ENABLED)
   | "moneyfinder_hub_view"
-  | "moneyfinder_hub_tile_clicked";
+  | "moneyfinder_hub_tile_clicked"
+  // v35 Huurcommissie-bezwaar servicekosten (achter HUURCOMMISSIE_CHECK_ENABLED)
+  | "huurcommissie_check_started"
+  | "huurcommissie_results_viewed"
+  | "huurcommissie_ncnp_chosen"
+  | "huurcommissie_diy_chosen"
+  | "huurcommissie_uitspraak_uploaded"
+  // v35 Energie-eindafrekening-claim (achter ENERGIE_CLAIM_CHECK_ENABLED)
+  | "energie_claim_check_started"
+  | "energie_claim_results_viewed"
+  | "energie_claim_ncnp_chosen"
+  | "energie_claim_diy_chosen"
+  | "energie_claim_uitspraak_uploaded";
 
 /** Only non-PII primitives. provider/category are business categoricals, not PII. */
 export type AnalyticsProps = Record<string, string | number | boolean | null | undefined>;

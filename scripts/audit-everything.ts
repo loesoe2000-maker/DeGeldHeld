@@ -52,6 +52,9 @@ const STATIC_PAGES = [
   "/vlucht-vertraagd-vergoeding-eu261",
   "/ns-geld-terug-vertraging",
   "/zorgkostenaftrek-aangifte-2026",
+  // v35 Claim-Hub uitbreiding — Huurcommissie + Energie-Geschillencommissie.
+  // Beide flag-gated (default off) → audit verwacht 307→/ wanneer flag uit is.
+  "/huurcommissie-check",
 ];
 
 // admin-only pages are intentionally skipped from the audit since they
@@ -110,6 +113,9 @@ const API_PROBES: ApiProbe[] = [
   // v30 Box 3 proof-back loop — flag-gated (BOX3_CHECK_ENABLED); 404 uit, anders 400/401.
   { path: "/api/box3/claim", method: "POST", body: {}, expectJson: true, okStatuses: [400, 401, 404] },
   { path: "/api/box3/proof-back", method: "POST", body: {}, expectJson: true, okStatuses: [400, 401, 404] },
+  // v35 Huurcommissie-claim — flag-gated (HUURCOMMISSIE_CHECK_ENABLED); 404 uit, anders 400/401/422.
+  { path: "/api/huurcommissie/claim", method: "POST", body: {}, expectJson: true, okStatuses: [400, 401, 404, 422] },
+  { path: "/api/huurcommissie/uitspraak", method: "POST", body: {}, expectJson: true, okStatuses: [400, 401, 404] },
 ];
 
 type Row = {
