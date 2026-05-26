@@ -6,6 +6,10 @@ import { isEnabled } from "@/lib/feature-flags";
  * (rekeningen-onderhandeling) tonen we, alleen áls hun feature-flag aan staat,
  * de twee gratis instap-checks: toeslagen + (later) vluchtclaim. Geen flag aan
  * → de pagina ziet er hetzelfde uit als vóór v28 (geen lege of dode UI).
+ *
+ * v32 — fee-integriteit: fallback-copy noemt geen telecom/internet meer,
+ * want TELECOM is sinds V30 fee:false (Plus-belscript, geen 20%-NCNP). De
+ * NCNP-categorieën zijn energie / bank / software-saaS / overig abonnement.
  */
 export default function Hero() {
   const geldCheckOn = isEnabled("GELD_CHECK_ENABLED");
@@ -29,7 +33,7 @@ export default function Hero() {
             </>
           ) : (
             <>
-              Upload je telefoon-, internet- of energierekening. DeGeldHeld
+              Upload je energierekening of abonnementsfactuur. DeGeldHeld
               onderhandelt automatisch met je provider en je betaalt alleen
               <strong> 20% van wat we besparen</strong>.
             </>

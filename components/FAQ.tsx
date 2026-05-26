@@ -33,7 +33,7 @@ const items: { q: string; a: string; category?: string }[] = [
   {
     category: "Hoe het werkt",
     q: "Voor welke vaste lasten werkt het?",
-    a: "Telecom (mobiel, internet, tv), energie (stroom, gas), bankpakketten, streaming, gym, software- en opslag-abonnementen. Hypotheek en verzekering bieden we (nog) niet aan — dat zijn financiële producten waarvoor een AFM-vergunning nodig is. Water kun je niet onderhandelen (monopolie), maar we tonen wel verbruiks-bespaartips.",
+    a: "Energie (stroom, gas), bankpakketten, software-saaS en overige abonnementen — daar onderhandelen we automatisch namens jou tegen 20% no-cure-no-pay op de bewezen jaarbesparing. Telecom (mobiel, internet, tv) loopt sinds 2026 via DeGeldHeld Plus: een vers retentie-belscript per provider; jij voert zelf het gesprek (géén 20%-fee). Streaming, gym en cloud-opslag krijgen advies-tips (downgrade-tier, jaarbetaling) — géén fee. Hypotheek en verzekering bieden we (nog) niet aan — dat zijn financiële producten waarvoor een AFM-vergunning nodig is. Water kun je niet onderhandelen (monopolie), maar we tonen wel verbruiks-bespaartips.",
   },
   {
     category: "Hoe het werkt",

@@ -29,6 +29,17 @@ export default function Examples() {
           Anonieme voorbeelden van resultaten van DeGeldHeld-leden
           (zie <a href="/api/proof" className="text-brand-700 underline">/api/proof</a> voor live cijfers).
         </p>
+        <p
+          data-testid="examples-telecom-disclaimer"
+          className="mt-2 max-w-2xl text-xs text-slate-500"
+        >
+          De getoonde telecom-voorbeelden (mobiel + internet/tv) zijn historische
+          resultaten van vóór de V30-reframe. Sinds 2026 lopen telecom-besparingen via
+          een vers retentie-belscript in{" "}
+          <a href="/plus" className="underline">DeGeldHeld Plus</a> i.p.v. een
+          20%-NCNP — omdat jij zelf het retentie-gesprek voert. Energie-cases blijven
+          via de NCNP-route (20% van de bewezen jaarbesparing).
+        </p>
         <div className="mt-10 grid gap-6 sm:grid-cols-3">
           {cases.map((c) => (
             <div key={c.provider} className="rounded-xl border-2 border-brand-200 bg-brand-50 p-6">

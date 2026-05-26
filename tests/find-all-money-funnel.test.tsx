@@ -56,7 +56,9 @@ describe("Hero — vind al je geld branches", () => {
     expect(screen.queryByTestId("hero-branch-geld-check")).not.toBeInTheDocument();
     expect(screen.queryByTestId("hero-branch-vluchtclaim")).not.toBeInTheDocument();
     // Original sub-copy ("verdient niet aan…"-stijl pre-v28) is back.
-    expect(screen.getByText(/Upload je telefoon-, internet- of energierekening/i)).toBeInTheDocument();
+    // v32 fee-integriteit: fallback noemt geen telecom/internet meer
+    // (TELECOM is sinds V30 fee:false — Plus-belscript i.p.v. 20%-NCNP).
+    expect(screen.getByText(/Upload je energierekening of abonnementsfactuur/i)).toBeInTheDocument();
   });
 });
 
