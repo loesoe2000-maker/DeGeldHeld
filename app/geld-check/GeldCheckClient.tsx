@@ -198,6 +198,7 @@ export default function GeldCheckClient() {
               value={leeftijd}
               onChange={(e) => setLeeftijd(e.target.value)}
               placeholder="bv. 32"
+              data-testid="geld-leeftijd"
               className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
             />
           </label>
@@ -212,6 +213,7 @@ export default function GeldCheckClient() {
               value={inkomen}
               onChange={(e) => setInkomen(e.target.value)}
               placeholder="bv. 25.000"
+              data-testid="geld-inkomen"
               className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
             />
             <span className="mt-1 block text-xs text-slate-500">
@@ -227,6 +229,7 @@ export default function GeldCheckClient() {
               value={vermogen}
               onChange={(e) => setVermogen(e.target.value)}
               placeholder="bv. 5.000"
+              data-testid="geld-vermogen"
               className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
             />
             <span className="mt-1 block text-xs text-slate-500">
@@ -241,6 +244,7 @@ export default function GeldCheckClient() {
               value={postcode}
               onChange={(e) => setPostcode(e.target.value)}
               placeholder="bv. 1234 AB"
+              data-testid="geld-postcode"
               className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
               maxLength={7}
             />
@@ -271,6 +275,7 @@ export default function GeldCheckClient() {
                 value={huur}
                 onChange={(e) => setHuur(e.target.value)}
                 placeholder="bv. 650"
+                data-testid="geld-huur"
                 className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 sm:w-1/2"
               />
               <span className="mt-1 block text-xs text-slate-500">
@@ -297,6 +302,7 @@ export default function GeldCheckClient() {
                   max={30}
                   value={age}
                   onChange={(e) => setChildAge(i, e.target.value)}
+                  data-testid={`geld-kind-${i}`}
                   placeholder="leeftijd"
                   className="w-24 rounded-lg border border-slate-300 px-3 py-2 text-sm"
                 />
