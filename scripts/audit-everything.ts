@@ -55,6 +55,7 @@ const STATIC_PAGES = [
   // v35 Claim-Hub uitbreiding — Huurcommissie + Energie-Geschillencommissie.
   // Beide flag-gated (default off) → audit verwacht 307→/ wanneer flag uit is.
   "/huurcommissie-check",
+  "/energie-claim-check",
 ];
 
 // admin-only pages are intentionally skipped from the audit since they
@@ -116,6 +117,9 @@ const API_PROBES: ApiProbe[] = [
   // v35 Huurcommissie-claim — flag-gated (HUURCOMMISSIE_CHECK_ENABLED); 404 uit, anders 400/401/422.
   { path: "/api/huurcommissie/claim", method: "POST", body: {}, expectJson: true, okStatuses: [400, 401, 404, 422] },
   { path: "/api/huurcommissie/uitspraak", method: "POST", body: {}, expectJson: true, okStatuses: [400, 401, 404] },
+  // v35 Energie-claim — flag-gated (ENERGIE_CLAIM_CHECK_ENABLED); 404 uit, anders 400/401/422.
+  { path: "/api/energie-claim/claim", method: "POST", body: {}, expectJson: true, okStatuses: [400, 401, 404, 422] },
+  { path: "/api/energie-claim/uitspraak", method: "POST", body: {}, expectJson: true, okStatuses: [400, 401, 404] },
 ];
 
 type Row = {
