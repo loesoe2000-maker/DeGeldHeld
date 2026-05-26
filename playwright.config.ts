@@ -92,6 +92,15 @@ export default defineConfig({
       AUTH_SECRET,
       NEXTAUTH_SECRET: AUTH_SECRET,
       OUTCOME_TOKEN_SECRET,
+      // v31: V28/V29/V30-feature-flags AAN voor e2e zodat journey-v31-all-checks
+      // de nieuwe pagina's daadwerkelijk kan bezoeken. Bestaande e2e-tests
+      // breken hier niet op (Hero asserts blijven gelden — hub-link is ADDITIONAL).
+      FEATURE_GELD_CHECK_ENABLED: "true",
+      FEATURE_BOX3_CHECK_ENABLED: "true",
+      FEATURE_NS_CHECK_ENABLED: "true",
+      FEATURE_ZORGKOSTEN_CHECK_ENABLED: "true",
+      FEATURE_MONEYFINDER_HUB_ENABLED: "true",
+      FEATURE_CLAIMS: "true",
     },
   },
 });

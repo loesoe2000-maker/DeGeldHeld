@@ -30,6 +30,19 @@ const nextConfig = {
         sharp: "commonjs sharp",
       });
     }
+    // Onderdruk de bekende "Critical dependency: require function is used in a
+    // way which dependencies cannot be statically extracted" warning. Komt van
+    // `require-in-the-middle` (gebruikt door @opentelemetry/instrumentation,
+    // @sentry/node, @prisma/instrumentation). Het is een onvermijdelijke
+    // dynamic-require die élk Next.js + Sentry-project genereert; de app
+    // werkt prima. Onderdrukken = clean terminal voor development.
+    config.ignoreWarnings = [
+      ...(config.ignoreWarnings ?? []),
+      { module: /require-in-the-middle/ },
+      { module: /@opentelemetry\/instrumentation/ },
+      { module: /@sentry\/node/ },
+      { module: /@prisma\/instrumentation/ },
+    ];
     return config;
   },
   images: {
