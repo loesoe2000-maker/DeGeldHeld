@@ -45,6 +45,13 @@ const STATIC_PAGES = [
   "/ns-check",
   "/zorgkosten-check",
   "/vind-al-je-geld",
+  // v33 SEO landing pages — keyword-targeted, static, sourced uit V29_DATA + BENEFITS_DATA.
+  "/box3-rechtsherstel-aanvragen-2026",
+  "/huurtoeslag-2026-berekenen",
+  "/zorgtoeslag-2026-misgelopen",
+  "/vlucht-vertraagd-vergoeding-eu261",
+  "/ns-geld-terug-vertraging",
+  "/zorgkostenaftrek-aangifte-2026",
 ];
 
 // admin-only pages are intentionally skipped from the audit since they
