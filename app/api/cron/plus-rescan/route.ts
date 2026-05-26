@@ -15,6 +15,7 @@ import { prisma } from "@/lib/db";
 import { isEnabled } from "@/lib/feature-flags";
 import { authorizeCron, logCronEvent } from "@/lib/cron-auth";
 import { sendEmail } from "@/lib/email";
+import { notifyOwner } from "@/lib/owner-alerts";
 import * as Sentry from "@sentry/nextjs";
 import {
   runRescanForUser,
@@ -150,5 +151,14 @@ export async function GET(req: NextRequest) {
   }
 
   logCronEvent("plus-rescan", "done", { scanned, notified, errors });
+  // v36 — owner-alert wanneer cron-run errors had. Eén mail per run (dedup
+  // op job-naam + date) zodat 14 failing users niet → 14 mails uitsturen.
+  if (errors > 0) {
+    void notifyOwner("cron-failed", {
+      summary: `plus-rescan finished with ${errors} error(s)`,
+      ref: `plus-rescan:${new Date().toISOString().slice(0, 10)}`,
+      details: { scanned, notified, errors },
+    });
+  }
   return NextResponse.json({ scanned, notified, errors });
 }

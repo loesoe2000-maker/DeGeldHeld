@@ -13,6 +13,7 @@ import {
   type WebhookEvent,
 } from "@/lib/payments";
 import * as Sentry from "@sentry/nextjs";
+import { notifyOwner } from "@/lib/owner-alerts";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -67,6 +68,17 @@ export async function POST(req: NextRequest) {
     }
     Sentry.captureException(e, {
       tags: { module: "stripe-webhook", eventType: event.type, eventId: event.eventId },
+    });
+    // v36 — owner-alert: webhook-processing fail = potentieel verloren state-
+    // transition (Stripe retries 3 dgn, daarna stop). Owner moet kunnen reageren.
+    void notifyOwner("stripe-webhook-error", {
+      summary: `Stripe webhook ${event.type} processing failed`,
+      ref: event.eventId,
+      details: {
+        eventId: event.eventId,
+        eventType: event.type,
+        error: (e as Error).message,
+      },
     });
     return NextResponse.json({ error: "processing failed" }, { status: 500 });
   }

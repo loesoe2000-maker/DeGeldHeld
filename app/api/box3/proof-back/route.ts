@@ -16,6 +16,7 @@ import { extractPdfText } from "@/lib/pdf_extract";
 import { chargeFeeOffSession } from "@/lib/payments";
 import { sendEmail } from "@/lib/email";
 import * as Sentry from "@sentry/nextjs";
+import { notifyOwner } from "@/lib/owner-alerts";
 import {
   processProofUpload,
   type Box3ClaimStatus,
@@ -79,8 +80,27 @@ export async function POST(req: Request) {
   try {
     const pdf = await extractPdfText(buf);
     pdfText = pdf.text ?? "";
+    if (!pdf.ok || pdf.empty) {
+      // v36 owner-alert: PDF onleesbaar / leeg → owner krijgt direct mail.
+      void notifyOwner("ocr-failed", {
+        summary: `Box 3 proof-back PDF empty/unreadable (claim ${claim.id.slice(0, 8)})`,
+        ref: claim.id,
+        details: {
+          claimId: claim.id,
+          jaar: claim.jaar,
+          pdfPages: pdf.pages,
+          extractedPages: pdf.extractedPages,
+          passwordProtected: pdf.passwordProtected ?? false,
+        },
+      });
+    }
   } catch (e) {
     Sentry.captureException(e, { tags: { module: "box3-proof-back", stage: "pdf" } });
+    void notifyOwner("ocr-failed", {
+      summary: `Box 3 proof-back PDF extraction threw (claim ${claim.id.slice(0, 8)})`,
+      ref: claim.id,
+      details: { claimId: claim.id, error: (e as Error).message },
+    });
   }
 
   // Pure beslis-pipeline (testbaar zonder formData) + Stripe-charge bij ok.
@@ -119,6 +139,18 @@ export async function POST(req: Request) {
     } catch {
       /* never block on outbound mail */
     }
+    // v36 — owner-alert kanaal (dedup'd, throttled). Naast de ADMIN_REVIEW_EMAIL-
+    // mail krijgen we hier een uniform-geformatteerde alert via OWNER_EMAIL.
+    void notifyOwner("claim-failed", {
+      summary: `Box 3 claim FAILED: ${outcome.reason}`,
+      ref: claim.id,
+      details: {
+        claimType: "Box3Claim",
+        claimId: claim.id,
+        jaar: claim.jaar,
+        werkelijkeCents: outcome.werkelijkTeruggaveCents ?? null,
+      },
+    });
     return NextResponse.json({
       ok: false,
       status: "FAILED",
