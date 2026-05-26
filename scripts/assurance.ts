@@ -37,7 +37,7 @@ const WANT_AUDIT = argv.has("--audit");
 const WANT_JSON = argv.has("--json");
 
 type Dim = {
-  key: "COMPILE" | "UNIT" | "E2E" | "RUNTIME" | "PROD" | "MARKET";
+  key: "COMPILE" | "UNIT" | "E2E" | "RUNTIME" | "PROD" | "MARKET" | "AUDIT";
   label: string;
   pct: number; // 0..100
   numerator: number;
@@ -278,6 +278,84 @@ async function dimProd(): Promise<Dim> {
   };
 }
 
+// ─── AUDIT (V36 — owner-alerts + admin-actions + Stripe-webhook audit) ─────
+
+async function dimAudit(): Promise<Dim> {
+  const start = Date.now();
+  const checks: Array<{ name: string; present: boolean; note: string }> = [];
+
+  // 1. lib/owner-alerts.ts file aanwezig.
+  const ownerAlertsPath = join(ROOT, "lib", "owner-alerts.ts");
+  checks.push({
+    name: "lib/owner-alerts.ts",
+    present: existsSync(ownerAlertsPath),
+    note: "fail-path-mail naar OWNER_EMAIL (4 events)",
+  });
+
+  // 2. lib/admin-claims.ts file aanwezig.
+  const adminClaimsPath = join(ROOT, "lib", "admin-claims.ts");
+  checks.push({
+    name: "lib/admin-claims.ts",
+    present: existsSync(adminClaimsPath),
+    note: "handmatige fee-charge helpers per claim-type",
+  });
+
+  // 3. AdminAction Prisma model in schema.
+  const schemaPath = join(ROOT, "prisma", "schema.prisma");
+  let schemaText = "";
+  try {
+    if (existsSync(schemaPath)) schemaText = readFileSync(schemaPath, "utf8");
+  } catch {
+    // ignore
+  }
+  checks.push({
+    name: "AdminAction model",
+    present: /model\s+AdminAction\b/.test(schemaText),
+    note: "audit-log van élke handmatige owner-actie",
+  });
+
+  // 4. StripeWebhookEvent Prisma model in schema.
+  checks.push({
+    name: "StripeWebhookEvent model",
+    present: /model\s+StripeWebhookEvent\b/.test(schemaText),
+    note: "audit-trail per inkomende webhook (4 outcomes)",
+  });
+
+  // 5. OWNER_EMAIL env-var configured (kan in .env.local of process.env).
+  const envLocalPath = join(ROOT, ".env.local");
+  let ownerEmail = process.env.OWNER_EMAIL;
+  if (!ownerEmail) {
+    try {
+      if (existsSync(envLocalPath)) {
+        const txt = readFileSync(envLocalPath, "utf8");
+        const m = txt.match(/^OWNER_EMAIL\s*=\s*(.+)$/m);
+        if (m) ownerEmail = m[1].trim().replace(/^["']|["']$/g, "");
+      }
+    } catch {
+      // ignore
+    }
+  }
+  checks.push({
+    name: "OWNER_EMAIL",
+    present: typeof ownerEmail === "string" && ownerEmail.length > 0,
+    note: "anders no-op owner-alerts (RUNBOOK §v36)",
+  });
+
+  const total = checks.length;
+  const presentCount = checks.filter((c) => c.present).length;
+  const pct = total === 0 ? 0 : Math.round((presentCount / total) * 1000) / 10;
+  const lines = checks.map((c) => `${c.present ? "✓" : "✗"} ${c.name} — ${c.note}`).join("\n");
+  return {
+    key: "AUDIT",
+    label: "Audit + observability (V36 deliverables)",
+    pct,
+    numerator: presentCount,
+    denominator: total,
+    detail: `${presentCount}/${total} aanwezig\n` + lines,
+    durationMs: Date.now() - start,
+  };
+}
+
 // ─── MARKET (env-var presence + KvK/KYC + open PRs/issues) ──────────────────
 
 async function dimMarket(): Promise<Dim> {
@@ -357,14 +435,18 @@ async function dimMarket(): Promise<Dim> {
 // ─── Composite ──────────────────────────────────────────────────────────────
 
 function composite(dims: Dim[]): number {
-  // Gewichten: tech-zekerheid 80% (compile 15 + unit 25 + e2e 20 + runtime 15 + prod 5),
-  // market-zekerheid 20%. Gewichten tellen op tot 100.
+  // Gewichten v36 (110 totaal — AUDIT is additief, géén shift):
+  //   tech-gates 75 (compile 15 + unit 25 + e2e 20 + runtime 15)
+  //   prod-audit  5 (opt-in)
+  //   AUDIT      10 (v36 deliverables: owner-alerts + admin-actions + Stripe-audit)
+  //   market    20 (eigenaar-acties: KvK/KYC + secrets)
   const W: Record<Dim["key"], number> = {
     COMPILE: 15,
     UNIT: 25,
     E2E: 20,
     RUNTIME: 15,
     PROD: 5,
+    AUDIT: 10,
     MARKET: 20,
   };
   let totalWeight = 0;
@@ -428,6 +510,7 @@ async function main() {
   dims.push(await dimE2e());
   dims.push(await dimRuntime());
   dims.push(await dimProd());
+  dims.push(await dimAudit());
   dims.push(await dimMarket());
   const comp = composite(dims);
 
