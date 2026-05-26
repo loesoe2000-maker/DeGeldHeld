@@ -24,6 +24,11 @@ vi.mock("../lib/db", () => {
       fraudFlag: { updateMany: noop },
       waitlistEntry: { deleteMany: noop },
       ocrTrainingSample: { updateMany: noop },
+      // v36 — V29-V35 claim-models + PlusRescan worden óók gescrubd/deleted.
+      box3Claim: { updateMany: noop },
+      huurServicekostenClaim: { updateMany: noop },
+      energieEindafrekeningClaim: { updateMany: noop },
+      plusRescan: { deleteMany: noop },
     },
   };
 });
@@ -76,6 +81,8 @@ describe("POST /api/account/delete", () => {
     const ops = txn.mock.calls[0][0] as unknown[];
     // user + session + account + bill + negotiation + round + proof +
     // 2× whatsapp + fraudFlag + waitlist + 2× ocrTrainingSample = 13
-    expect(ops).toHaveLength(13);
+    // v36 +4: box3Claim + huurServicekostenClaim + energieEindafrekeningClaim
+    // + plusRescan-delete = 17
+    expect(ops).toHaveLength(17);
   });
 });

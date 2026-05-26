@@ -43,6 +43,11 @@ vi.mock("@/lib/db", () => {
       fraudFlag: m("fraudFlag"),
       waitlistEntry: m("waitlistEntry"),
       ocrTrainingSample: m("ocrTrainingSample"),
+      // v36 — V29-V35 claim-models + PlusRescan.
+      box3Claim: m("box3Claim"),
+      huurServicekostenClaim: m("huurServicekostenClaim"),
+      energieEindafrekeningClaim: m("energieEindafrekeningClaim"),
+      plusRescan: m("plusRescan"),
     },
   };
 });

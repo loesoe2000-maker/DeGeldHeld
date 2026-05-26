@@ -27,7 +27,20 @@ export async function GET() {
   const rl = rateLimit({ key: `export:${userId}`, max: 3, windowSec: 24 * 3600 });
   if (!rl.ok) return rateLimitResponse(rl);
 
-  const [user, bills, negotiations, payments, waitlist, referralsOwned, sessions] = await Promise.all([
+  const [
+    user,
+    bills,
+    negotiations,
+    payments,
+    waitlist,
+    referralsOwned,
+    sessions,
+    // v36: V29-V35-modellen toegevoegd aan GDPR-export (Art. 20).
+    box3Claims,
+    huurClaims,
+    energieClaims,
+    plusRescans,
+  ] = await Promise.all([
     prisma.user.findUnique({
       where: { id: userId },
       select: {
@@ -77,6 +90,74 @@ export async function GET() {
     prisma.waitlistEntry.findMany({ where: { userId } }),
     prisma.referral.findMany({ where: { ownerId: userId } }),
     prisma.session.findMany({ where: { userId }, select: { id: true, expires: true } }),
+    // v36 — V30 Box 3 NCNP-claims (proof-back loop).
+    prisma.box3Claim.findMany({
+      where: { userId },
+      select: {
+        id: true,
+        jaar: true,
+        verwachteTeruggaveCents: true,
+        status: true,
+        werkelijkTeruggaveCents: true,
+        proofStorageUrl: true,
+        proofUploadedAt: true,
+        chargedAt: true,
+        feeCents: true,
+        stripePaymentIntentId: true,
+        failureReason: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    }),
+    // v36 — V35 Huurcommissie-bezwaar servicekosten.
+    prisma.huurServicekostenClaim.findMany({
+      where: { userId },
+      select: {
+        id: true,
+        boekjaar: true,
+        verhuurderNaam: true,
+        verwachteRestitutieCents: true,
+        status: true,
+        werkelijkeRestitutieCents: true,
+        uitspraakStorageUrl: true,
+        uitspraakUploadedAt: true,
+        chargedAt: true,
+        feeCents: true,
+        stripePaymentIntentId: true,
+        failureReason: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    }),
+    // v36 — V35 Energie-eindafrekening-claim.
+    prisma.energieEindafrekeningClaim.findMany({
+      where: { userId },
+      select: {
+        id: true,
+        provider: true,
+        verwachteRestitutieCents: true,
+        status: true,
+        werkelijkeRestitutieCents: true,
+        uitspraakStorageUrl: true,
+        uitspraakUploadedAt: true,
+        chargedAt: true,
+        feeCents: true,
+        stripePaymentIntentId: true,
+        failureReason: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    }),
+    // v36 — V30 Plus maandscans (snapshot van bevindingen + notify-status).
+    prisma.plusRescan.findMany({
+      where: { userId },
+      select: {
+        id: true,
+        runAt: true,
+        findingsJson: true,
+        notifiedAt: true,
+      },
+    }),
   ]);
 
   const exportData = {
@@ -103,6 +184,11 @@ export async function GET() {
     waitlist,
     referrals: referralsOwned,
     sessions,
+    // v36 — V29-V35 toevoegingen.
+    box3Claims,
+    huurServicekostenClaims: huurClaims,
+    energieEindafrekeningClaims: energieClaims,
+    plusRescans,
   };
 
   return new NextResponse(JSON.stringify(exportData, null, 2), {

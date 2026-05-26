@@ -7,6 +7,11 @@ const payFind = vi.fn(async (): Promise<unknown[]> => []);
 const waitFind = vi.fn(async (): Promise<unknown[]> => []);
 const refFind = vi.fn(async (): Promise<unknown[]> => []);
 const sessFind = vi.fn(async (): Promise<unknown[]> => []);
+// v36 — V29-V35 modellen meegenomen in export.
+const box3Find = vi.fn(async (): Promise<unknown[]> => []);
+const huurFind = vi.fn(async (): Promise<unknown[]> => []);
+const energieFind = vi.fn(async (): Promise<unknown[]> => []);
+const plusRescanFind = vi.fn(async (): Promise<unknown[]> => []);
 
 vi.mock("../lib/db", () => ({
   prisma: {
@@ -17,6 +22,10 @@ vi.mock("../lib/db", () => ({
     waitlistEntry: { findMany: () => waitFind() },
     referral: { findMany: () => refFind() },
     session: { findMany: () => sessFind() },
+    box3Claim: { findMany: () => box3Find() },
+    huurServicekostenClaim: { findMany: () => huurFind() },
+    energieEindafrekeningClaim: { findMany: () => energieFind() },
+    plusRescan: { findMany: () => plusRescanFind() },
   },
 }));
 
@@ -34,6 +43,10 @@ describe("GET /api/account/export", () => {
     waitFind.mockReset().mockResolvedValue([]);
     refFind.mockReset().mockResolvedValue([]);
     sessFind.mockReset().mockResolvedValue([]);
+    box3Find.mockReset().mockResolvedValue([]);
+    huurFind.mockReset().mockResolvedValue([]);
+    energieFind.mockReset().mockResolvedValue([]);
+    plusRescanFind.mockReset().mockResolvedValue([]);
     mockSession.mockReset();
   });
 
@@ -51,7 +64,21 @@ describe("GET /api/account/export", () => {
     expect(r.headers.get("content-disposition")).toMatch(/attachment/);
     expect(r.headers.get("content-disposition")).toMatch(/dgh-export-user-abc/);
     const body = await r.json();
-    for (const key of ["exportedAt", "user", "bills", "negotiations", "payments", "waitlist", "referrals", "sessions"]) {
+    for (const key of [
+      "exportedAt",
+      "user",
+      "bills",
+      "negotiations",
+      "payments",
+      "waitlist",
+      "referrals",
+      "sessions",
+      // v36 — V29-V35 modellen
+      "box3Claims",
+      "huurServicekostenClaims",
+      "energieEindafrekeningClaims",
+      "plusRescans",
+    ]) {
       expect(body).toHaveProperty(key);
     }
   });

@@ -137,6 +137,43 @@ export async function POST(req: Request) {
       where: { reviewerUserId: userId },
       data: { reviewerUserId: null },
     }),
+
+    // --- v36 — V30 Box 3 + V35 Huurcommissie + V35 Energie claims ---
+    // Financiële records blijven (chargedAt, feeCents, stripePaymentIntentId,
+    // verwachte/werkelijke-bedragen) voor de bewaarplicht. Vrije-tekst-velden
+    // + storage-URLs worden gescrubd (PDF-bytes zelf staan in Vercel Blob —
+    // niet gehost in de Next.js-runtime, dus URL-null is voldoende om de link
+    // te verbreken; daadwerkelijke Blob-deletes lopen via een aparte job zodra
+    // de owner Vercel Blob configureert. Tot dan blijft de URL altijd null.)
+    prisma.box3Claim.updateMany({
+      where: byUser,
+      data: {
+        proofStorageUrl: null,
+        failureReason: null,
+      },
+    }),
+    prisma.huurServicekostenClaim.updateMany({
+      where: byUser,
+      data: {
+        verhuurderNaam: null,
+        uitspraakStorageUrl: null,
+        failureReason: null,
+      },
+    }),
+    prisma.energieEindafrekeningClaim.updateMany({
+      where: byUser,
+      data: {
+        provider: "[verwijderd]",
+        uitspraakStorageUrl: null,
+        failureReason: null,
+      },
+    }),
+
+    // --- v36 — V30 Plus maandscans ---
+    // findingsJson kan provider-namen / claim-id-koppels bevatten → verwijderen.
+    // De delta-historie (counts) is niet PII; we hard-deleten omdat een
+    // anonieme PlusRescan-snapshot geen waarde meer heeft.
+    prisma.plusRescan.deleteMany({ where: byUser }),
   ]);
 
   return NextResponse.json({ ok: true });
