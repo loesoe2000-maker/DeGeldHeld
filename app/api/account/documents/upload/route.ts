@@ -67,15 +67,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: validation.error }, { status: 400 });
   }
 
-  // Vercel Blob upload. `access: "public"` is op dit moment Vercel's enige
-  // optie — privacy door cryptografisch-random suffix in de URL. De link
-  // wordt nooit publiek getoond; alleen in de auth-gated /account/documents-
-  // page voor de eigenaar zelf.
+  // Vercel Blob upload — `access: "private"` zodat de blob alléén achter een
+  // auth-gate ge-download kan worden. De download-flow loopt via onze proxy-
+  // route (`GET /api/account/documents/[id]/file`) die ownership controleert
+  // en de bytes server-side streamt — de blob-URL zelf wordt nooit aan de
+  // client gegeven.
   const path = buildBlobPath(userId, validation.filename);
   let storageUrl: string;
   try {
     const blob = await put(path, file, {
-      access: "public",
+      access: "private",
       contentType: validation.mimeType,
       addRandomSuffix: true,
     });

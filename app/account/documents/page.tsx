@@ -119,7 +119,7 @@ export default async function DocumentsPage() {
                         </p>
                         <p className="mt-1 text-sm font-semibold text-slate-900">
                           <a
-                            href={d.storageUrl}
+                            href={`/api/account/documents/${d.id}/file`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="underline decoration-brand-300 underline-offset-4 hover:decoration-brand-600"
