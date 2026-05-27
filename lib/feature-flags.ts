@@ -90,6 +90,14 @@ const FLAG_DEFAULTS = {
   //  (c) Retention-policy is bevestigd (default: tot account-deletion of 7 jr
   //      voor fiscaal-relevante stukken zoals aangifte/beschikking)
   DOCUMENTS_VAULT_ENABLED: false,
+  // Off by default — v36 idee 2 — digitale volmacht via SES (typed name +
+  // IP-hash + timestamp). eIDAS-laagste niveau (Simple Electronic Signature).
+  // NIET geschikt voor Box 3 (DigiD-vereist via Belastingdienst); WEL voor
+  // huurcommissie + energie-claim. MAG NIET AAN voordat:
+  //  (a) Lawyer de volmacht-template heeft gereviewed
+  //  (b) Privacy-tekst is gereviewed (AVG art. 6 lid 1b)
+  //  (c) VOLMACHT_IP_HASH_SECRET env-var is gezet
+  VOLMACHT_SES_ENABLED: false,
 } as const;
 
 export type FeatureFlag = keyof typeof FLAG_DEFAULTS;

@@ -240,6 +240,36 @@ function ClaimCard({ claim }: { claim: DashboardClaim }) {
           ? ` — verrekend op ${claim.chargedAt.toLocaleDateString("nl-NL")}`
           : ""}
       </p>
+
+      {claim.supportsVolmacht && !claim.closed ? (
+        <div
+          data-testid={`claim-volmacht-${claim.id}`}
+          className="mt-4 rounded-lg border border-brand-100 bg-white p-3 text-sm"
+        >
+          {claim.hasVolmacht ? (
+            <p className="text-emerald-700">
+              <span className="font-semibold">Volmacht ondertekend</span>
+              {claim.volmachtSignedAt
+                ? ` op ${claim.volmachtSignedAt.toLocaleDateString("nl-NL")}`
+                : ""}
+              .
+            </p>
+          ) : (
+            <p className="text-slate-700">
+              <span className="font-semibold">Volmacht nog niet ondertekend.</span>{" "}
+              Zonder volmacht kunnen wij niet namens jou met je verhuurder of
+              energieleverancier corresponderen.{" "}
+              <Link
+                href={`/volmacht/${claim.type}/${claim.id}`}
+                data-testid={`claim-volmacht-sign-link-${claim.id}`}
+                className="font-semibold text-brand-700 underline hover:text-brand-800"
+              >
+                Onderteken nu →
+              </Link>
+            </p>
+          )}
+        </div>
+      ) : null}
     </li>
   );
 }

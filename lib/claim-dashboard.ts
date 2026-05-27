@@ -78,7 +78,37 @@ export type DashboardClaim = {
   hasUploadedDoc: boolean;
   chargedAt: Date | null;
   createdAt: Date;
+  /**
+   * v36 idee 2 — SES-volmacht. Box 3-claims ondersteunen GEEN SES (DigiD
+   * vereist via Belastingdienst), dus supportsVolmacht=false. Voor huur +
+   * energie is supportsVolmacht=true en geeft `hasVolmacht` aan of er al
+   * een actieve volmacht ligt.
+   */
+  supportsVolmacht: boolean;
+  hasVolmacht: boolean;
+  volmachtSignedAt: Date | null;
 };
+
+/**
+ * Subset van Volmacht-row dat de mappers nodig hebben. Letterlijk uit
+ * Prisma-row te halen — schept geen extra DB-roundtrip.
+ */
+export type VolmachtIndexRow = {
+  claimType: string;
+  claimId: string;
+  signedAt: Date;
+  revokedAt: Date | null;
+};
+
+/** Bouw een lookup-map: `${claimType}:${claimId}` → laatste actieve volmacht. */
+function buildVolmachtMap(rows: ReadonlyArray<VolmachtIndexRow>): Map<string, Date> {
+  const m = new Map<string, Date>();
+  for (const v of rows) {
+    if (v.revokedAt) continue;
+    m.set(`${v.claimType}:${v.claimId}`, v.signedAt);
+  }
+  return m;
+}
 
 // ─── Status-tekst per claim-type ────────────────────────────────────────────
 
@@ -221,12 +251,21 @@ export function mapBox3Claim(c: Box3ClaimRow): DashboardClaim {
     hasUploadedDoc: c.proofStorageUrl != null,
     chargedAt: c.chargedAt,
     createdAt: c.createdAt,
+    // Box 3 → Belastingdienst-flow vereist DigiD, géén SES.
+    supportsVolmacht: false,
+    hasVolmacht: false,
+    volmachtSignedAt: null,
   };
 }
 
-export function mapHuurClaim(c: HuurClaimRow): DashboardClaim {
+export function mapHuurClaim(
+  c: HuurClaimRow,
+  volmachtMap?: Map<string, Date>,
+): DashboardClaim {
   const st = statusText(HUUR_STATUS, c.status);
   const verhuurderSuf = c.verhuurderNaam ? ` @ ${c.verhuurderNaam}` : "";
+  const signedAt =
+    volmachtMap?.get(`HuurServicekostenClaim:${c.id}`) ?? null;
   return {
     type: "HuurServicekostenClaim",
     id: c.id,
@@ -241,11 +280,19 @@ export function mapHuurClaim(c: HuurClaimRow): DashboardClaim {
     hasUploadedDoc: c.uitspraakStorageUrl != null,
     chargedAt: c.chargedAt,
     createdAt: c.createdAt,
+    supportsVolmacht: true,
+    hasVolmacht: signedAt != null,
+    volmachtSignedAt: signedAt,
   };
 }
 
-export function mapEnergieClaim(c: EnergieClaimRow): DashboardClaim {
+export function mapEnergieClaim(
+  c: EnergieClaimRow,
+  volmachtMap?: Map<string, Date>,
+): DashboardClaim {
   const st = statusText(ENERGIE_STATUS, c.status);
+  const signedAt =
+    volmachtMap?.get(`EnergieEindafrekeningClaim:${c.id}`) ?? null;
   return {
     type: "EnergieEindafrekeningClaim",
     id: c.id,
@@ -260,6 +307,9 @@ export function mapEnergieClaim(c: EnergieClaimRow): DashboardClaim {
     hasUploadedDoc: c.uitspraakStorageUrl != null,
     chargedAt: c.chargedAt,
     createdAt: c.createdAt,
+    supportsVolmacht: true,
+    hasVolmacht: signedAt != null,
+    volmachtSignedAt: signedAt,
   };
 }
 
@@ -269,6 +319,7 @@ export type ClaimDashboardDb = {
   box3Claim: { findMany(args: unknown): Promise<Box3ClaimRow[]> };
   huurServicekostenClaim: { findMany(args: unknown): Promise<HuurClaimRow[]> };
   energieEindafrekeningClaim: { findMany(args: unknown): Promise<EnergieClaimRow[]> };
+  volmacht: { findMany(args: unknown): Promise<VolmachtIndexRow[]> };
 };
 
 /**
@@ -279,7 +330,7 @@ export async function getUserClaims(
   userId: string,
   db: ClaimDashboardDb,
 ): Promise<DashboardClaim[]> {
-  const [box3, huur, energie] = await Promise.all([
+  const [box3, huur, energie, volmachten] = await Promise.all([
     db.box3Claim.findMany({
       where: { userId },
       orderBy: { createdAt: "desc" },
@@ -292,12 +343,23 @@ export async function getUserClaims(
       where: { userId },
       orderBy: { createdAt: "desc" },
     }) as Promise<EnergieClaimRow[]>,
+    db.volmacht.findMany({
+      where: { userId },
+      select: {
+        claimType: true,
+        claimId: true,
+        signedAt: true,
+        revokedAt: true,
+      },
+    }) as Promise<VolmachtIndexRow[]>,
   ]);
+
+  const vMap = buildVolmachtMap(volmachten);
 
   const all = [
     ...box3.map(mapBox3Claim),
-    ...huur.map(mapHuurClaim),
-    ...energie.map(mapEnergieClaim),
+    ...huur.map((c) => mapHuurClaim(c, vMap)),
+    ...energie.map((c) => mapEnergieClaim(c, vMap)),
   ];
 
   // Open eerst, daarna closed. Binnen elke groep nieuwste createdAt eerst.

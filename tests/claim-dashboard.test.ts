@@ -178,11 +178,18 @@ describe("getUserClaims — aggregator", () => {
     box3: Box3ClaimRow[],
     huur: HuurClaimRow[],
     energie: EnergieClaimRow[],
+    volmachten: Array<{
+      claimType: string;
+      claimId: string;
+      signedAt: Date;
+      revokedAt: Date | null;
+    }> = [],
   ) {
     return {
       box3Claim: { findMany: async () => box3 },
       huurServicekostenClaim: { findMany: async () => huur },
       energieEindafrekeningClaim: { findMany: async () => energie },
+      volmacht: { findMany: async () => volmachten },
     };
   }
 
@@ -233,6 +240,61 @@ describe("getUserClaims — aggregator", () => {
     );
     expect(r[0]?.id).toBe("nieuw");
     expect(r[1]?.id).toBe("oud");
+  });
+
+  it("v36 idee 2 — volmacht-status komt mee in dashboard-claim", async () => {
+    const r = await getUserClaims(
+      "u1",
+      fakeDb(
+        [],
+        [H({ id: "huur1", status: "BEZWAAR_GESTUURD" })],
+        [E({ id: "energie1", status: "KLACHT_GESTUURD" })],
+        [
+          {
+            claimType: "HuurServicekostenClaim",
+            claimId: "huur1",
+            signedAt: new Date("2026-04-10"),
+            revokedAt: null,
+          },
+        ],
+      ),
+    );
+    const huur = r.find((c) => c.id === "huur1");
+    const energie = r.find((c) => c.id === "energie1");
+    expect(huur?.hasVolmacht).toBe(true);
+    expect(huur?.volmachtSignedAt?.toISOString()).toMatch(/^2026-04-10/);
+    expect(energie?.hasVolmacht).toBe(false);
+    expect(energie?.supportsVolmacht).toBe(true);
+  });
+
+  it("v36 idee 2 — Box 3 ondersteunt geen SES-volmacht", async () => {
+    const r = await getUserClaims(
+      "u1",
+      fakeDb([B({ id: "b1", status: "INTENT" })], [], []),
+    );
+    const b = r.find((c) => c.id === "b1");
+    expect(b?.supportsVolmacht).toBe(false);
+    expect(b?.hasVolmacht).toBe(false);
+  });
+
+  it("v36 idee 2 — gerevoceerde volmacht telt niet als active", async () => {
+    const r = await getUserClaims(
+      "u1",
+      fakeDb(
+        [],
+        [H({ id: "huur1", status: "INTENT" })],
+        [],
+        [
+          {
+            claimType: "HuurServicekostenClaim",
+            claimId: "huur1",
+            signedAt: new Date("2026-03-01"),
+            revokedAt: new Date("2026-04-01"),
+          },
+        ],
+      ),
+    );
+    expect(r[0]?.hasVolmacht).toBe(false);
   });
 });
 

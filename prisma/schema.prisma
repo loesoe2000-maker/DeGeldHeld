@@ -84,6 +84,10 @@ model User {
   // v36 idee 4 — document-vault. Eén keer huurcontract/aangifte/etc. uploaden,
   // hergebruiken in elke check/claim.
   documents     UserDocument[]
+  // v36 idee 2 — digitale volmacht (SES). Per claim één ondertekend mandaat
+  // met IP-hash + timestamp + accepted-text. Geldt voor huurcommissie +
+  // energie-claim (NIET Box 3 — die vereist DigiD).
+  volmachten    Volmacht[]
 
   @@index([email])
 }
@@ -797,4 +801,51 @@ model UserDocument {
 
   @@index([userId, createdAt])
   @@index([userId, kind])
+}
+
+// ──────────────────────────────────────────────────────────────────
+// v36 idee 2 — Digitale volmacht (SES — Simple Electronic Signature).
+// ──────────────────────────────────────────────────────────────────
+
+/// Eén ondertekende volmacht per claim. De klant typt zijn naam, vinkt de
+/// machtigingstekst aan, en de server slaat de exacte tekst (versioneerd) +
+/// timestamp + ge-hashte IP op. Voldoende voor eIDAS-laagste niveau (SES).
+///
+/// LET OP: deze volmacht dekt huurcommissie + energie-claim correspondence.
+/// Voor Box 3 is DigiD via de Belastingdienst vereist (geen SES toegestaan).
+///
+/// Intrekken (`revokedAt`): V37 — voor V36 alleen sign-only.
+model Volmacht {
+  id              String   @id @default(cuid())
+  userId          String
+  /// "HuurServicekostenClaim" | "EnergieEindafrekeningClaim"
+  claimType       String
+  /// FK naar de relevante claim-record (huurServicekostenClaim.id of
+  /// energieEindafrekeningClaim.id). Geen Prisma-FK omdat het polymorf is.
+  claimId         String
+  /// Zelf-ingevoerde volledige naam. SES-niveau: geen verificatie tegen
+  /// officieel ID; gebruiker bevestigt expliciet dat dit klopt.
+  fullName        String
+  /// Versie van de template-tekst (v1, v2, ...). Maakt audit makkelijker
+  /// wanneer juridische tekst wijzigt — oude volmachten bewaren hun
+  /// historische tekst.
+  templateVersion String
+  /// Exacte tekst die de gebruiker heeft geaccepteerd (audit-trail).
+  mandateText     String   @db.Text
+  signedAt        DateTime @default(now())
+  /// SHA-256 hash van het client-IP met server-side secret. We bewaren
+  /// de IP nooit plaintext (privacy by design).
+  ipHash          String
+  /// Optioneel — rauwe user-agent string voor extra audit-context.
+  userAgent       String?  @db.Text
+  /// V37 — intrekken (niet gebruikt in V36).
+  revokedAt       DateTime?
+  revokedReason   String?  @db.Text
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// Eén actieve volmacht per (claimType, claimId)-paar. Een nieuwe sign
+  /// vereist eerst dat de oude een revokedAt-stempel krijgt.
+  @@unique([claimType, claimId])
+  @@index([userId, signedAt])
 }

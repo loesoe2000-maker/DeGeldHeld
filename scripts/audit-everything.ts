@@ -108,6 +108,9 @@ const API_PROBES: ApiProbe[] = [
   // bij ingeschakelde flag, of 401 zonder session, of 503 als de flag uit
   // staat (default-off tot privacy-review).
   { path: "/api/account/documents/upload", method: "POST", body: {}, expectJson: true, okStatuses: [400, 401, 503] },
+  // v36 idee 2 — Volmacht-sign route is dynamic ([claimType]/[claimId]) en
+  // dus niet rechtstreeks via deze lijst te probe'n. Test-suite skipt dynamic
+  // segments — geen entry nodig hier.
   { path: "/api/unsubscribe", method: "GET", okStatuses: [200, 400] },
   { path: "/api/fee-setup", method: "POST", body: {}, expectJson: true, okStatuses: [401, 502] },
   { path: "/api/psd2/connect", method: "POST", body: {}, expectJson: true, okStatuses: [401, 503] },
