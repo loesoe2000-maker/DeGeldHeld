@@ -92,20 +92,35 @@ export type DashboardClaim = {
 /**
  * Subset van Volmacht-row dat de mappers nodig hebben. Letterlijk uit
  * Prisma-row te halen — schept geen extra DB-roundtrip.
+ *
+ * v36 papier-flow: alleen volmachten met een geüploade ondertekende
+ * scan (`signedDocumentUrl`) tellen als juridisch geldig — pure SES-
+ * consent zonder papier is voor Huurcommissie/Geschillencommissie niet
+ * voldoende (zie docs/MACHTIGING.md / juridische research).
  */
 export type VolmachtIndexRow = {
   claimType: string;
   claimId: string;
   signedAt: Date;
   revokedAt: Date | null;
+  signedDocumentUrl: string | null;
+  signedDocumentUploadedAt: Date | null;
 };
 
-/** Bouw een lookup-map: `${claimType}:${claimId}` → laatste actieve volmacht. */
+/**
+ * Bouw een lookup-map: `${claimType}:${claimId}` → upload-datum van de
+ * ondertekende papier-volmacht. Alleen geüploade + niet-gerevoceerde
+ * volmachten worden opgenomen.
+ */
 function buildVolmachtMap(rows: ReadonlyArray<VolmachtIndexRow>): Map<string, Date> {
   const m = new Map<string, Date>();
   for (const v of rows) {
     if (v.revokedAt) continue;
-    m.set(`${v.claimType}:${v.claimId}`, v.signedAt);
+    if (!v.signedDocumentUrl) continue;
+    m.set(
+      `${v.claimType}:${v.claimId}`,
+      v.signedDocumentUploadedAt ?? v.signedAt,
+    );
   }
   return m;
 }
@@ -350,6 +365,8 @@ export async function getUserClaims(
         claimId: true,
         signedAt: true,
         revokedAt: true,
+        signedDocumentUrl: true,
+        signedDocumentUploadedAt: true,
       },
     }) as Promise<VolmachtIndexRow[]>,
   ]);

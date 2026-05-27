@@ -248,7 +248,7 @@ function ClaimCard({ claim }: { claim: DashboardClaim }) {
         >
           {claim.hasVolmacht ? (
             <p className="text-emerald-700">
-              <span className="font-semibold">Volmacht ondertekend</span>
+              <span className="font-semibold">Ondertekende volmacht ontvangen</span>
               {claim.volmachtSignedAt
                 ? ` op ${claim.volmachtSignedAt.toLocaleDateString("nl-NL")}`
                 : ""}
@@ -257,14 +257,15 @@ function ClaimCard({ claim }: { claim: DashboardClaim }) {
           ) : (
             <p className="text-slate-700">
               <span className="font-semibold">Volmacht nog niet ondertekend.</span>{" "}
-              Zonder volmacht kunnen wij niet namens jou met je verhuurder of
-              energieleverancier corresponderen.{" "}
+              Download het PDF-formulier, onderteken met de hand en upload de
+              scan — pas dan kunnen wij namens jou corresponderen met je
+              verhuurder of energieleverancier.{" "}
               <Link
                 href={`/volmacht/${claim.type}/${claim.id}`}
                 data-testid={`claim-volmacht-sign-link-${claim.id}`}
                 className="font-semibold text-brand-700 underline hover:text-brand-800"
               >
-                Onderteken nu →
+                Start volmacht →
               </Link>
             </p>
           )}

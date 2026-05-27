@@ -838,6 +838,16 @@ model Volmacht {
   ipHash          String
   /// Optioneel — rauwe user-agent string voor extra audit-context.
   userAgent       String?  @db.Text
+  /// V36 idee 2 — papier-volmacht (klant heeft het PDF-formulier
+  /// uitgeprint, met de hand ondertekend en de scan/foto teruggeüpload).
+  /// Vereist voor Huurcommissie + Geschillencommissie Energie (zij
+  /// accepteren geen SES — zie docs/MACHTIGING.md / juridische research).
+  signedDocumentUrl       String?  @db.Text
+  signedDocumentFilename  String?
+  signedDocumentUploadedAt DateTime?
+  /// Zaak-identifier zoals op het PDF staat (boekjaar X, factuurnummer Y).
+  /// Wordt op het PDF gerenderd zodat de Huurcommissie kan koppelen.
+  zaakIdentifier  String?
   /// V37 — intrekken (niet gebruikt in V36).
   revokedAt       DateTime?
   revokedReason   String?  @db.Text

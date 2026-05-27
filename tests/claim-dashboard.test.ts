@@ -183,13 +183,22 @@ describe("getUserClaims — aggregator", () => {
       claimId: string;
       signedAt: Date;
       revokedAt: Date | null;
+      signedDocumentUrl?: string | null;
+      signedDocumentUploadedAt?: Date | null;
     }> = [],
   ) {
+    // Vul de nieuwe velden in zodat oudere test-cases (zonder paper-volmacht)
+    // automatisch "geen papier-volmacht" representeren.
+    const normalizedVolmachten = volmachten.map((v) => ({
+      ...v,
+      signedDocumentUrl: v.signedDocumentUrl ?? null,
+      signedDocumentUploadedAt: v.signedDocumentUploadedAt ?? null,
+    }));
     return {
       box3Claim: { findMany: async () => box3 },
       huurServicekostenClaim: { findMany: async () => huur },
       energieEindafrekeningClaim: { findMany: async () => energie },
-      volmacht: { findMany: async () => volmachten },
+      volmacht: { findMany: async () => normalizedVolmachten },
     };
   }
 
@@ -242,7 +251,7 @@ describe("getUserClaims — aggregator", () => {
     expect(r[1]?.id).toBe("oud");
   });
 
-  it("v36 idee 2 — volmacht-status komt mee in dashboard-claim", async () => {
+  it("v36 idee 2 — papier-volmacht (signedDocumentUrl) telt als ondertekend", async () => {
     const r = await getUserClaims(
       "u1",
       fakeDb(
@@ -255,6 +264,8 @@ describe("getUserClaims — aggregator", () => {
             claimId: "huur1",
             signedAt: new Date("2026-04-10"),
             revokedAt: null,
+            signedDocumentUrl: "https://blob/scan.pdf",
+            signedDocumentUploadedAt: new Date("2026-04-12"),
           },
         ],
       ),
@@ -262,9 +273,31 @@ describe("getUserClaims — aggregator", () => {
     const huur = r.find((c) => c.id === "huur1");
     const energie = r.find((c) => c.id === "energie1");
     expect(huur?.hasVolmacht).toBe(true);
-    expect(huur?.volmachtSignedAt?.toISOString()).toMatch(/^2026-04-10/);
+    expect(huur?.volmachtSignedAt?.toISOString()).toMatch(/^2026-04-12/);
     expect(energie?.hasVolmacht).toBe(false);
     expect(energie?.supportsVolmacht).toBe(true);
+  });
+
+  it("v36 idee 2 — SES-only volmacht (zonder papier-upload) telt NIET als ondertekend", async () => {
+    const r = await getUserClaims(
+      "u1",
+      fakeDb(
+        [],
+        [H({ id: "huur1", status: "BEZWAAR_GESTUURD" })],
+        [],
+        [
+          {
+            // SES-consent gegeven maar geen papier-volmacht geüpload.
+            claimType: "HuurServicekostenClaim",
+            claimId: "huur1",
+            signedAt: new Date("2026-04-10"),
+            revokedAt: null,
+            signedDocumentUrl: null,
+          },
+        ],
+      ),
+    );
+    expect(r[0]?.hasVolmacht).toBe(false);
   });
 
   it("v36 idee 2 — Box 3 ondersteunt geen SES-volmacht", async () => {
@@ -290,6 +323,9 @@ describe("getUserClaims — aggregator", () => {
             claimId: "huur1",
             signedAt: new Date("2026-03-01"),
             revokedAt: new Date("2026-04-01"),
+            // Wel een papier-upload, maar gerevoceerd → telt nog steeds niet.
+            signedDocumentUrl: "https://blob/scan.pdf",
+            signedDocumentUploadedAt: new Date("2026-03-02"),
           },
         ],
       ),
