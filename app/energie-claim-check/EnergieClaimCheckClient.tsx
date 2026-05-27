@@ -136,11 +136,12 @@ export default function EnergieClaimCheckClient() {
       </div>
 
       <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50/60 p-4 text-xs text-amber-900">
-        <strong>Energiebelasting-vermindering 2026:</strong> dit bedrag wordt
-        jaarlijks aangepast (was ~ € 631 in 2025). Op je eindafrekening hoort{" "}
-        <em>altijd</em> een regel "Vermindering energiebelasting € X" te staan
-        zolang je een leveringscontract had. Ontbreekt die regel of staat er
-        € 0 → directe rode vlag.
+        <strong>Energiebelasting-vermindering 2026:</strong> € 628,96 incl. btw
+        per jaar (was € 635,19 in 2025) — geverifieerd in het Belastingplan
+        2026. Op je eindafrekening hoort <em>altijd</em> een regel "Vermindering
+        energiebelasting € X" te staan zolang je een leveringscontract had,
+        naar rato van de contractperiode. Ontbreekt die regel of staat er
+        € 0 bij een vol contract-jaar → directe rode vlag.
       </div>
 
       <form onSubmit={onSubmit} className="mt-8 space-y-6 ph-no-capture">

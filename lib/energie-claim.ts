@@ -12,13 +12,15 @@
  * Elektriciteitswet/Gaswet). Niets gokken; aggregators verliezen het van
  * officiële bronnen.
  *
- * ⚠️ Energiebelasting-vermindering 2026: de V35-sprint vraagt om een
- * WebFetch-verificatie van het exacte 2026-bedrag. We hardcoderen GEEN
- * bedrag — Belastingdienst-pagina was 2025-stand ~ € 631 en wijzigt jaarlijks.
- * In plaats daarvan controleren we ALLEEN de presence-vlag
- * ("heffingskortingenAanwezig"). Dat is conservatief en eerlijk: we hoeven
- * het exacte 2026-bedrag niet te weten om te detecteren dat een hele regel
- * ontbreekt.
+ * ⚠️ Energiebelasting-vermindering 2026: GEVERIFIEERD op 2026-05-27 bij
+ * Belastingplan 2026 (Memorie van Toelichting via Rijksoverheid) = € 628,96
+ * incl. btw per jaar (€ 519,80 ex btw). Was € 635,19 in 2025. Bron-URLs zie
+ * `ENERGIEBELASTING_VERMINDERING_2026_INCL_BTW_CENTS` hieronder. Engine
+ * blijft echter conservatief op de presence-vlag-check ("heffingskortingen-
+ * Aanwezig"): we detecteren of de regel ontbreekt, niet of het pro-rata-
+ * bedrag exact klopt — dat is V36-werk (eerst meten of real-world afwijkingen
+ * vaker voorkomen). Constante is beschikbaar voor UI-uitleg en latere
+ * uitbreiding.
  *
  * Privacy: deze module bevat GEEN PII-gevoelige opslag-logica. Eerst
  * client-side rekenen; alleen bij NCNP-keuze maakt de route een
@@ -56,6 +58,25 @@ export const ENERGIE_LEVERANCIER_REACTIE_DAGEN = 30;
 export const ENERGIE_GESCHILLENCOMMISSIE_BEHANDELING_MAANDEN = 3;
 /** Wettelijke deadline leverancier voor versturen eindafrekening (art. 31 EW/GW). */
 export const ENERGIE_EINDAFREKENING_DEADLINE_DAGEN = 42; // 6 weken
+
+/**
+ * Energiebelasting-vermindering 2026 — geverifieerd 2026-05-27 bij
+ * Belastingplan 2026 / Memorie van Toelichting (de wettelijke bron). Bedrag is
+ * **inclusief btw** want zo wordt 't op de consumenten-eindafrekening getoond.
+ * In 2025 was dit € 635,19; voor 2026 een daling van € 6,23.
+ *
+ * NB: engine controleert nu alleen of de regel überhaupt op de afrekening
+ * staat (`heffingskortingenAanwezig`). Pro-rata-validatie ("bedrag op
+ * afrekening ≈ bedrag × contractmaanden / 12") komt eventueel in V36 als
+ * blijkt dat leveranciers daar fouten maken. Constante is wel beschikbaar
+ * voor UI-uitleg en latere uitbreiding.
+ *
+ * bron: Belastingplan 2026 Memorie van Toelichting (5.21 Belastingvermindering energiebelasting)
+ *   https://www.rijksfinancien.nl/belastingplan-memorie-van-toelichting/2026/d17e5425
+ * bron: Rijksoverheid — Plannen kabinet voor de energiebelasting 2026
+ *   https://www.rijksoverheid.nl/onderwerpen/belastingplan/energiebelasting
+ */
+export const ENERGIEBELASTING_VERMINDERING_2026_INCL_BTW_CENTS = 62_896; // € 628,96 / jr
 
 // ─── NCNP-gate (€ 50 = identiek aan huurcommissie) ──────────────────────────
 
