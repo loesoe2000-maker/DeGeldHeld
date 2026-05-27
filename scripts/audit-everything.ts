@@ -37,6 +37,7 @@ const STATIC_PAGES = [
   "/account",
   "/account/banks",
   "/account/claims",
+  "/account/documents",
   "/prijs",
   "/geld-check",
   "/plus",
@@ -103,6 +104,10 @@ const API_PROBES: ApiProbe[] = [
   { path: "/api/account/export", method: "GET", okStatuses: [200, 401] },
   { path: "/api/account/delete", method: "POST", body: {}, expectJson: true, okStatuses: [400, 401] },
   { path: "/api/account/prefs", method: "POST", body: {}, expectJson: true, okStatuses: [400, 401] },
+  // v36 idee 4 — document-vault upload. POST zonder body → 400 (geen file)
+  // bij ingeschakelde flag, of 401 zonder session, of 503 als de flag uit
+  // staat (default-off tot privacy-review).
+  { path: "/api/account/documents/upload", method: "POST", body: {}, expectJson: true, okStatuses: [400, 401, 503] },
   { path: "/api/unsubscribe", method: "GET", okStatuses: [200, 400] },
   { path: "/api/fee-setup", method: "POST", body: {}, expectJson: true, okStatuses: [401, 502] },
   { path: "/api/psd2/connect", method: "POST", body: {}, expectJson: true, okStatuses: [401, 503] },

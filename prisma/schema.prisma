@@ -81,6 +81,9 @@ model User {
   // Beide via officiële instanties (geen relay-mail). Drempel € 50, fee 20%.
   huurServicekostenClaims   HuurServicekostenClaim[]
   energieEindafrekeningClaims EnergieEindafrekeningClaim[]
+  // v36 idee 4 — document-vault. Eén keer huurcontract/aangifte/etc. uploaden,
+  // hergebruiken in elke check/claim.
+  documents     UserDocument[]
 
   @@index([email])
 }
@@ -757,4 +760,41 @@ model StripeWebhookEvent {
   @@index([stripeEventId])
   @@index([type, receivedAt])
   @@index([outcome, receivedAt])
+}
+
+// ──────────────────────────────────────────────────────────────────
+// v36 idee 4 — Document-vault.
+// ──────────────────────────────────────────────────────────────────
+
+/// Eén keer een huurcontract / energiecontract / loonstrook / aangifte /
+/// beschikking uploaden, hergebruiken in elke check of claim. Opslag via
+/// Vercel Blob (random-suffix URL; binnen sessie alleen owner ziet het via
+/// auth-gated /account/documents-page).
+///
+/// Bewaartermijn: tot account-deletion (AVG art. 17) of, voor fiscaal-
+/// relevante stukken (aangifte/beschikking), tot 7 jaar — gebruiker kan
+/// elk document zelf direct verwijderen via DELETE /api/account/documents/[id].
+model UserDocument {
+  id          String   @id @default(cuid())
+  userId      String
+  /// Categorie: huurcontract | energiecontract | loonstrook | aangifte |
+  /// beschikking | jaarafrekening | overig
+  kind        String
+  /// Originele bestandsnaam zoals de user hem upload'de (voor weergave).
+  filename    String
+  /// Bestandsgrootte in bytes (max 10 MB enforced in upload-route).
+  sizeBytes   Int
+  /// MIME-type (validation in upload-route: application/pdf | image/png | image/jpeg).
+  mimeType    String
+  /// Vercel Blob URL (random-suffix → niet te raden). UI toont 'm alleen
+  /// achter auth-gate /account/documents.
+  storageUrl  String   @db.Text
+  /// Optionele toelichting van de user ("2024 aangifte definitief").
+  note        String?  @db.Text
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([userId, kind])
 }

@@ -104,6 +104,23 @@ export default async function AccountPage() {
         </Link>
       </section>
 
+      <section
+        data-testid="mijn-documenten-card"
+        className="mt-8 rounded-xl border border-slate-200 bg-white p-5"
+      >
+        <h2 className="text-lg font-semibold text-slate-900">Mijn documenten</h2>
+        <p className="mt-1 text-sm text-slate-600">
+          Upload je huurcontract, aangifte, loonstrook of beschikking één keer
+          — en hergebruik ze in elke check of claim. Privaat opgeslagen.
+        </p>
+        <Link
+          href="/account/documents"
+          className="mt-3 inline-block rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+        >
+          Beheer documenten →
+        </Link>
+      </section>
+
       <section className="mt-8 rounded-xl border border-slate-200 bg-white p-5">
         <h2 className="text-lg font-semibold text-slate-900">Bank-koppelingen (PSD2)</h2>
         <p className="mt-1 text-sm text-slate-600">

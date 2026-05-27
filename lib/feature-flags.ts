@@ -82,6 +82,14 @@ const FLAG_DEFAULTS = {
   // Energie. Rode-vlag-detector + DIY-klachtbrief + NCNP-claim ≥ € 50. Flip aan
   // na privacy/disclaimer-review + verificatie energiebelasting-vermindering 2026.
   ENERGIE_CLAIM_CHECK_ENABLED: false,
+  // Off by default — v36 idee 4 — UserDocument-vault. Klant uploadt huurcontract,
+  // energiecontract, loonstrook, aangifte, beschikking één keer en kan deze
+  // hergebruiken in elke claim/check. MAG NIET AAN voordat:
+  //  (a) BLOB_READ_WRITE_TOKEN in Vercel-env staat (Vercel Blob)
+  //  (b) Privacy-tekst is gereviewed (AVG art. 6 lid 1b — uitvoering NCNP)
+  //  (c) Retention-policy is bevestigd (default: tot account-deletion of 7 jr
+  //      voor fiscaal-relevante stukken zoals aangifte/beschikking)
+  DOCUMENTS_VAULT_ENABLED: false,
 } as const;
 
 export type FeatureFlag = keyof typeof FLAG_DEFAULTS;
