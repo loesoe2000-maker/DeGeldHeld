@@ -2,23 +2,27 @@ export default function HowItWorks() {
   const stappen = [
     {
       nr: "1",
-      titel: "Upload je rekening",
-      tekst: "Maak een foto van je laatste rekening. Ons systeem leest provider, bedrag en pakket automatisch in.",
+      titel: "Kies een route",
+      tekst:
+        "Upload je rekening óf doe een gratis check: toeslagen, Box 3-rechtsherstel, NS-vertraging, zorgkosten, huurcommissie, energie-eindafrekening of vlucht.",
     },
     {
       nr: "2",
-      titel: "Wij vergelijken de markt",
-      tekst: "We checken 14+ Nederlandse providers en vinden gerichte argumenten voor jouw situatie.",
+      titel: "Wij analyseren",
+      tekst:
+        "Onze sourced engines rekenen op de officiële 2026-regels (Belastingdienst / NS / Huurcommissie / EU-261). Geen DigiD — je gegevens blijven in je browser.",
     },
     {
       nr: "3",
-      titel: "Wij schrijven de mail",
-      tekst: "Je krijgt een persoonlijke onderhandel-email die je met één klik verstuurt naar je provider.",
+      titel: "Wij leveren de brief",
+      tekst:
+        "Pre-gefilde brief of mail, klaar om in te dienen bij de Belastingdienst, Huurcommissie, Geschillencommissie of je provider. Jij blijft de regie houden.",
     },
     {
       nr: "4",
-      titel: "Je krijgt het resultaat",
-      tekst: "Bespaar je? Top — je betaalt 20% van de jaarbesparing. Bespaar je niets? Geen kosten.",
+      titel: "No cure, no pay",
+      tekst:
+        "Bij succes pakken wij een eerlijk percentage van wat je terugkrijgt. Niet bespaard / geen teruggave? Niets te betalen.",
     },
   ];
   return (

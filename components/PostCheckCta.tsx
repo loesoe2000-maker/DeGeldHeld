@@ -126,7 +126,7 @@ export default function PostCheckCta({
               🔁
             </div>
             <h3 className="mt-2 text-base font-semibold text-slate-900">
-              DeGeldHeld Plus — €2,99-€4,99/mnd
+              DeGeldHeld Plus — €4,99-€9,99/mnd
             </h3>
             <p className="mt-1 text-sm text-slate-600">{PLUS_BODY[fromCheck]}</p>
             <p className="mt-2 text-sm font-medium text-brand-700 group-hover:text-brand-800">

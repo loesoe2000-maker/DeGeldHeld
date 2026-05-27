@@ -172,7 +172,7 @@ export default function VoorwaardenPage() {
             3. Plus — abonnement
           </h2>
           <p>
-            DeGeldHeld Plus is een optioneel maandabonnement (€ 2,99 – € 4,99
+            DeGeldHeld Plus is een optioneel maandabonnement (€ 4,99 – € 9,99
             per maand, opzegbaar elk moment) dat de gratis-checks aanvult met:
           </p>
           <ul className="list-disc pl-6">

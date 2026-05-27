@@ -95,7 +95,7 @@ describe("plus — /plus pagina", () => {
     for (const p of PLUS_PILLARS) {
       expect(screen.getByTestId(`plus-pillar-${p.id}`)).toHaveTextContent(p.title);
     }
-    expect(screen.getByTestId("plus-price")).toHaveTextContent(/Vanaf € 2,99/);
+    expect(screen.getByTestId("plus-price")).toHaveTextContent(/Vanaf € 4,99/);
     const waitlist = screen.getByTestId("plus-waitlist") as HTMLAnchorElement;
     expect(waitlist.getAttribute("href")).toMatch(/^mailto:hallo@degeldheld\.com/);
   });

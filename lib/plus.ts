@@ -13,7 +13,7 @@
 export const RECHECK_CADENCE_DAYS = 90; // ~ ieder kwartaal
 
 /** Indicatieve prijsband voor de communicatie — geen live Stripe-prijs. */
-export const PLUS_PRICE = { lowEur: 2.99, highEur: 4.99 } as const;
+export const PLUS_PRICE = { lowEur: 4.99, highEur: 9.99 } as const;
 
 /** De waarde-pijlers — server-component leest dit, tests locken inhoud. */
 export type PlusPillar = {
