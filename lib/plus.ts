@@ -71,11 +71,12 @@ export const PLUS_PILLARS: ReadonlyArray<PlusPillar> = [
     id: "telecom_belscript",
     title: "Jaarlijks vers telecom-retentie-belscript",
     body:
-      "NL-telecom doet retentie via de telefoon, niet via e-mail — dus een " +
-      "20% NCNP-fee op een gesprek dat jij zelf voert is grijs. Plus levert " +
-      "elk jaar een vers retentie-belscript op maat (KPN/Vodafone/Odido/" +
-      "Ziggo), met de actuele alternatieve aanbiedingen die je inzet. " +
-      "Géén fee per gelukt gesprek — onderdeel van Plus.",
+      "Telecom-providers (KPN/Vodafone/Odido/Ziggo) reageren niet op " +
+      "onderhandel-mails — retentie loopt bij hen alléén via de telefoon. " +
+      "Daarom doen we voor telecom géén no-cure-no-pay. Plus levert elk " +
+      "jaar een vers retentie-belscript op maat: de exacte zinnen + actuele " +
+      "alternatieve aanbiedingen die je inzet bij het gesprek. Jij belt, " +
+      "wij leveren de munitie — geen losse fee, gewoon onderdeel van Plus.",
   },
   {
     // v35 — Huurcommissie + Geschillencommissie Energie auto-monitor.

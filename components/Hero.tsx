@@ -29,13 +29,13 @@ export default function Hero() {
               Vind <strong>al je geld</strong>: onderhandel je rekeningen,
               check welke <strong>toeslagen</strong> je misloopt
               {claimsOn ? <> en haal geld terug van een <strong>vertraagde vlucht</strong></> : null}.
-              Je betaalt alleen <strong>20% van wat we besparen</strong> op je rekeningen — de checks zijn gratis.
+              {" "}<strong>No cure, no pay</strong> — je betaalt alléén als we daadwerkelijk geld voor je halen. De checks zijn altijd gratis.
             </>
           ) : (
             <>
               Upload je energierekening of abonnementsfactuur. DeGeldHeld
-              onderhandelt automatisch met je provider en je betaalt alleen
-              <strong> 20% van wat we besparen</strong>.
+              onderhandelt automatisch met je provider en je betaalt{" "}
+              <strong>alléén bij succes</strong> — no cure, no pay.
             </>
           )}
         </p>

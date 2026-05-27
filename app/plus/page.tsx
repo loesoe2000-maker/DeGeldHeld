@@ -76,9 +76,9 @@ export default function PlusPage() {
       <section className="mt-10 rounded-2xl border border-slate-200 bg-white p-6">
         <h2 className="text-lg font-semibold text-slate-900">Hou me op de hoogte</h2>
         <p className="mt-1 text-sm text-slate-700">
-          Plus staat nog niet open voor aanmelding — we gaan live zodra de
-          eigenaar (Bas) zijn KvK-/KYC-stap heeft afgerond. Wil je vooraan in de
-          rij staan?
+          Plus opent binnenkort — we ronden de laatste setup-stappen af zodat
+          de maandelijkse her-scan + alerts soepel lopen. Wil je een seintje
+          zodra het zover is?
         </p>
         <a
           href="mailto:hallo@degeldheld.com?subject=DeGeldHeld%20Plus%20%E2%80%94%20wachtlijst"
