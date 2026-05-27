@@ -1,4 +1,5 @@
 import Hero from "@/components/Hero";
+import MoneyfinderHubBanner from "@/components/MoneyfinderHubBanner";
 import Problem from "@/components/Problem";
 import HowItWorks from "@/components/HowItWorks";
 import Examples from "@/components/Examples";
@@ -46,6 +47,7 @@ export default function HomePage() {
       />
       <TrackEvent event="landing_view" />
       <Hero />
+      <MoneyfinderHubBanner />
       <Problem />
       <HowItWorks />
       <Examples />

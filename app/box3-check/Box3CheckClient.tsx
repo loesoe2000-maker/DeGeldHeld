@@ -376,10 +376,66 @@ function Results({
           </h3>
           <p className="mt-1 text-sm text-slate-700">
             Bij een verwachte teruggave boven € 500 kunnen we het OWR voor je
-            opstellen tegen <strong>25%</strong> van het teruggehaalde bedrag —
-            alléén áls je geld terugkrijgt. Liever zelf doen? Hieronder staat de
-            gratis DIY-brief.
+            opstellen tegen <strong>25%</strong> van het teruggehaalde bedrag
+            (gemaximeerd op <strong>€ 500 per claim</strong>) — alléén áls je
+            geld terugkrijgt. Liever zelf doen? Hieronder staat de gratis
+            DIY-brief.
           </p>
+
+          <details className="mt-3 rounded-lg border border-brand-100 bg-brand-50/40 p-3 text-sm">
+            <summary className="cursor-pointer font-semibold text-slate-800">
+              Wat doen wij precies voor die 25%?
+            </summary>
+            <div className="mt-3 space-y-3 text-slate-700">
+              <p>
+                <strong>Wat WIJ doen:</strong>
+              </p>
+              <ul className="ml-5 list-disc space-y-1">
+                <li>
+                  <strong>Loont het?</strong> Onze engine schat vooraf of een OWR
+                  voor jouw situatie zinvol is (forfaitair vs. werkelijk
+                  rendement, sourced uit Belastingdienst-forfaits 2017-2026).
+                </li>
+                <li>
+                  <strong>Brief-helper:</strong> we leveren een pre-gefilde
+                  tekst die je in het OWR-formulier kunt plakken — geen
+                  blank-paper-stress.
+                </li>
+                <li>
+                  <strong>Deadline-bewaking:</strong> we herinneren je vóór de
+                  OWR-deadline (1 mei 2026 zelf-indiener · 1 oktober 2026 via
+                  adviseur).
+                </li>
+                <li>
+                  <strong>OCR + auto-charge:</strong> zodra je beschikking
+                  binnen is en je 'm uploadt, detecteren we automatisch het
+                  toegekende bedrag en charge'n we onze fee — alleen op het
+                  werkelijk uitbetaalde bedrag.
+                </li>
+                <li>
+                  <strong>Géén dunning:</strong> faalt de Stripe-afschrijving,
+                  dan nemen we handmatig contact op. Geen incassobureau, geen
+                  rentes.
+                </li>
+              </ul>
+              <p>
+                <strong>Wat JIJ zelf doet:</strong> je dient het OWR-formulier
+                in via MijnBelastingdienst (DigiD-login bij Belastingdienst
+                zelf — wij zien je rekening niet en raken je vermogensdata
+                nooit aan).
+              </p>
+              <p className="text-xs text-slate-600">
+                <strong>Eerlijk over de prijs:</strong> belastingadviseurs
+                rekenen € 150-500 per uur (€ 300-2.000 per box-3-zaak).
+                Specialistische no-cure-no-pay-spelers zoals EUclaim rekenen
+                31% + € 33 administratiekosten. Onze 25% met € 500-cap is onder
+                de markt — en je betaalt alléén als je werkelijk geld terug
+                krijgt. Voor grote teruggaves daalt het effectieve percentage
+                omdat de cap kickt in: bij € 5.000 teruggave is onze fee max
+                € 500 (= 10%).
+              </p>
+            </div>
+          </details>
           <button
             type="button"
             data-testid="box3-ncnp-cta"

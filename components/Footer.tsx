@@ -7,7 +7,8 @@ export default function Footer() {
         <div>
           <div className="text-xl font-bold text-white">DeGeldHeld</div>
           <p className="mt-2 text-sm">
-            Automatisch onderhandelen op je Nederlandse maandlasten.
+            Vind het geld dat je laat liggen — onderhandel je rekeningen, check
+            je toeslagen, claim wat je terug krijgt.
           </p>
         </div>
         <div>
@@ -17,16 +18,18 @@ export default function Footer() {
             <li><a href="#voorbeelden" className="hover:text-brand-300">Voorbeelden</a></li>
             <li><Link href="/faq" className="hover:text-brand-300">FAQ</Link></li>
             <li><Link href="/proof" className="hover:text-brand-300">Track record</Link></li>
+            <li><Link href="/plus" className="hover:text-brand-300">DeGeldHeld Plus</Link></li>
           </ul>
         </div>
         <div>
-          <div className="font-semibold text-white">Besparen</div>
+          <div className="font-semibold text-white">Vind je geld</div>
           <ul className="mt-2 space-y-1 text-sm">
-            <li><Link href="/telecom-besparen" className="hover:text-brand-300">Telecom besparen</Link></li>
-            <li><Link href="/energie-besparen" className="hover:text-brand-300">Energie besparen</Link></li>
-            <li><Link href="/streaming-besparen" className="hover:text-brand-300">Streaming besparen</Link></li>
-            <li><Link href="/sportschool-besparen" className="hover:text-brand-300">Sportschool besparen</Link></li>
-            <li><Link href="/onderhandelen-met-kpn" className="hover:text-brand-300">Onderhandelen met KPN</Link></li>
+            <li><Link href="/zorgtoeslag-2026-misgelopen" className="hover:text-brand-300">Toeslagen-check</Link></li>
+            <li><Link href="/box3-rechtsherstel-aanvragen-2026" className="hover:text-brand-300">Box 3-rechtsherstel</Link></li>
+            <li><Link href="/ns-geld-terug-vertraging" className="hover:text-brand-300">NS-vertraging</Link></li>
+            <li><Link href="/zorgkostenaftrek-aangifte-2026" className="hover:text-brand-300">Zorgkostenaftrek</Link></li>
+            <li><Link href="/energie-besparen" className="hover:text-brand-300">Energie-onderhandeling</Link></li>
+            <li><Link href="/vind-al-je-geld" className="font-semibold text-brand-300 hover:text-brand-200">→ Alles op één plek</Link></li>
           </ul>
         </div>
         <div>
@@ -40,7 +43,7 @@ export default function Footer() {
         </div>
       </div>
       <div className="mx-auto mt-10 max-w-5xl border-t border-slate-700 pt-6 text-xs text-slate-400">
-        © {new Date().getFullYear()} DeGeldHeld B.V. — KvK 00000000 — Geen financieel advies.
+        © {new Date().getFullYear()} DeGeldHeld — Techz B.V. — KvK 84079398 — Indicatie, geen financieel advies.
       </div>
     </footer>
   );
