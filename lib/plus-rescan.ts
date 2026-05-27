@@ -9,7 +9,18 @@
  *   { nieuw: Finding[], gewijzigd: Finding[], verdwenen: Finding[] }
  */
 
-export type RescanFindingKind = "toeslag" | "box3" | "zorgkosten" | "spookabonnement";
+/**
+ * v36 — uitbreiding naar 6 finding-kinds. `huurcommissie` + `energie_claim`
+ * dekken de V35-claim-hub zodat ook open Huurcommissie- en Geschillen-
+ * commissie-procedures meedraaien in de maandelijkse her-scan (Idee 7).
+ */
+export type RescanFindingKind =
+  | "toeslag"
+  | "box3"
+  | "zorgkosten"
+  | "spookabonnement"
+  | "huurcommissie"
+  | "energie_claim";
 
 export type RescanFinding = {
   kind: RescanFindingKind;

@@ -59,7 +59,43 @@ async function buildCurrentFindings(userId: string): Promise<RescanFinding[]> {
     });
   }
 
-  // 3) Toeslagen + zorgkosten — vergt user-input die we niet opslaan
+  // 3) v36 — Huurcommissie servicekosten-bezwaar. Open = elke status behalve
+  //    CHARGED/FAILED. Geen maandbedrag (eenmalige restitutie).
+  const openHuur = await prisma.huurServicekostenClaim.findMany({
+    where: {
+      userId,
+      status: { in: ["INTENT", "BEZWAAR_GESTUURD", "HUURCOMMISSIE_INGEDIEND", "UITSPRAAK"] },
+    },
+    select: { id: true, boekjaar: true, status: true },
+  });
+  for (const c of openHuur) {
+    findings.push({
+      kind: "huurcommissie",
+      id: `huur:${c.id}`,
+      label: `Huurcommissie ${c.boekjaar} — claim staat op ${c.status}`,
+      maandIndicatieCents: null,
+    });
+  }
+
+  // 4) v36 — Energie-eindafrekening. Open = elke status behalve CHARGED/FAILED.
+  //    Geen maandbedrag (eenmalige correctie).
+  const openEnergie = await prisma.energieEindafrekeningClaim.findMany({
+    where: {
+      userId,
+      status: { in: ["INTENT", "KLACHT_GESTUURD", "GESCHILLENCOMMISSIE_INGEDIEND", "UITSPRAAK"] },
+    },
+    select: { id: true, provider: true, status: true },
+  });
+  for (const c of openEnergie) {
+    findings.push({
+      kind: "energie_claim",
+      id: `energie:${c.id}`,
+      label: `Energie-claim @ ${c.provider} — claim staat op ${c.status}`,
+      maandIndicatieCents: null,
+    });
+  }
+
+  // 5) Toeslagen + zorgkosten — vergt user-input die we niet opslaan
   //    (privacy by design uit V29). Plus-cron noemt deze als "her-check
   //    via /geld-check + /zorgkosten-check"-reminder zonder eigen cijfers.
   //    Geen findings.push hier — de cron mailt nooit "we hebben €X

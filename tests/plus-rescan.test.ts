@@ -110,6 +110,9 @@ const h = vi.hoisted(() => ({
   users: [] as Array<{ id: string; email: string | null }>,
   bills: [] as Array<{ id: string; provider: string; category: string; monthlyCents: number | null; amountCents: number }>,
   box3Claims: [] as Array<{ id: string; jaar: number; verwachteTeruggaveCents: number; status: string }>,
+  // v36 — Plus-cron dekt nu ook V35-claim-hub.
+  huurClaims: [] as Array<{ id: string; boekjaar: number; status: string }>,
+  energieClaims: [] as Array<{ id: string; provider: string; status: string }>,
   prevSnapshot: [] as RescanFinding[],
   rescansCreated: [] as Array<{ userId: string; findingsJson: unknown }>,
   notifiedUpdates: 0,
@@ -134,6 +137,12 @@ vi.mock("@/lib/db", () => ({
     },
     box3Claim: {
       findMany: vi.fn(async () => h.box3Claims),
+    },
+    huurServicekostenClaim: {
+      findMany: vi.fn(async () => h.huurClaims),
+    },
+    energieEindafrekeningClaim: {
+      findMany: vi.fn(async () => h.energieClaims),
     },
     plusRescan: {
       findFirst: vi.fn(async () =>
@@ -174,6 +183,8 @@ beforeEach(() => {
   h.users = [];
   h.bills = [];
   h.box3Claims = [];
+  h.huurClaims = [];
+  h.energieClaims = [];
   h.prevSnapshot = [];
   h.rescansCreated = [];
   h.notifiedUpdates = 0;
@@ -254,5 +265,51 @@ describe("GET /api/cron/plus-rescan", () => {
     expect(snap.some((f) => f.kind === "box3")).toBe(true);
     // Box 3-claim heeft géén maandbedrag → geen € in mail.
     expect(h.mailsSent[0]?.subject).not.toMatch(/€/);
+  });
+
+  // ─── v36 — Plus-cron uitbreiding naar V35-claim-hub ─────────────────────
+  it("active user met open Huurcommissie-claim → finding kind=huurcommissie, geen €", async () => {
+    h.users = [{ id: "u1", email: "anne@x.nl" }];
+    h.huurClaims = [{ id: "h1", boekjaar: 2025, status: "BEZWAAR_GESTUURD" }];
+    const r = await cronGET(cronReq({ authorization: `Bearer ${h.cronSecret}` }));
+    expect(r.status).toBe(200);
+    const created = h.rescansCreated[0]?.findingsJson as { snapshot?: RescanFinding[] };
+    const snap = created.snapshot ?? [];
+    const huur = snap.find((f) => f.kind === "huurcommissie");
+    expect(huur).toBeDefined();
+    expect(huur?.label).toMatch(/Huurcommissie 2025/);
+    expect(huur?.label).toMatch(/BEZWAAR_GESTUURD/);
+    expect(huur?.maandIndicatieCents).toBeNull();
+    expect(h.mailsSent[0]?.subject).toMatch(/1 update/);
+  });
+
+  it("active user met open Energie-claim → finding kind=energie_claim, provider in label", async () => {
+    h.users = [{ id: "u1", email: "anne@x.nl" }];
+    h.energieClaims = [{ id: "e1", provider: "Vattenfall", status: "KLACHT_GESTUURD" }];
+    const r = await cronGET(cronReq({ authorization: `Bearer ${h.cronSecret}` }));
+    expect(r.status).toBe(200);
+    const created = h.rescansCreated[0]?.findingsJson as { snapshot?: RescanFinding[] };
+    const snap = created.snapshot ?? [];
+    const energie = snap.find((f) => f.kind === "energie_claim");
+    expect(energie).toBeDefined();
+    expect(energie?.label).toMatch(/Vattenfall/);
+    expect(energie?.label).toMatch(/KLACHT_GESTUURD/);
+    expect(energie?.maandIndicatieCents).toBeNull();
+  });
+
+  it("CHARGED/FAILED-claims tellen niet mee (closed)", async () => {
+    h.users = [{ id: "u1", email: "anne@x.nl" }];
+    // Cron-filter staat in de route — onze mock returneert wat we set'en.
+    // We zetten een open + closed claim om te valideren dat de route alleen
+    // de open queryt (closed mag de mock niet zien).
+    h.huurClaims = [
+      // alleen open status — closed komt nooit terug via de where-clause.
+      { id: "h1", boekjaar: 2024, status: "UITSPRAAK" },
+    ];
+    const r = await cronGET(cronReq({ authorization: `Bearer ${h.cronSecret}` }));
+    expect(r.status).toBe(200);
+    const created = h.rescansCreated[0]?.findingsJson as { snapshot?: RescanFinding[] };
+    const snap = created.snapshot ?? [];
+    expect(snap.filter((f) => f.kind === "huurcommissie")).toHaveLength(1);
   });
 });

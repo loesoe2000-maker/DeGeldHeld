@@ -19,6 +19,9 @@ import { NextRequest } from "next/server";
 const billFindMany = vi.fn();
 const userFindMany = vi.fn();
 const box3FindMany = vi.fn();
+// v36 — Plus-cron dekt nu ook V35-claim-hub (huurcommissie + energie-claim).
+const huurFindMany = vi.fn();
+const energieFindMany = vi.fn();
 const rescanFindFirst = vi.fn();
 const rescanCreate = vi.fn();
 const rescanUpdateMany = vi.fn();
@@ -28,6 +31,8 @@ vi.mock("@/lib/db", () => ({
     bill: { findMany: (args: unknown) => billFindMany(args) },
     user: { findMany: (args: unknown) => userFindMany(args) },
     box3Claim: { findMany: (args: unknown) => box3FindMany(args) },
+    huurServicekostenClaim: { findMany: (args: unknown) => huurFindMany(args) },
+    energieEindafrekeningClaim: { findMany: (args: unknown) => energieFindMany(args) },
     plusRescan: {
       findFirst: (args: unknown) => rescanFindFirst(args),
       create: (args: unknown) => rescanCreate(args),
@@ -64,11 +69,19 @@ describe("/api/cron/plus-rescan — gating", () => {
     billFindMany.mockReset();
     userFindMany.mockReset();
     box3FindMany.mockReset();
+    huurFindMany.mockReset();
+    energieFindMany.mockReset();
     rescanFindFirst.mockReset();
     rescanCreate.mockReset();
     rescanUpdateMany.mockReset();
     isEnabledMock.mockReset();
     sendEmailMock.mockReset();
+    // v36 — defaults zodat tests die alleen Box 3 / spook valideren niet
+    // crashen op undefined uit huur/energie-mocks.
+    huurFindMany.mockResolvedValue([]);
+    energieFindMany.mockResolvedValue([]);
+    box3FindMany.mockResolvedValue([]);
+    billFindMany.mockResolvedValue([]);
   });
 
   it("(a) 401 zonder Bearer-secret", async () => {
@@ -111,11 +124,19 @@ describe("/api/cron/plus-rescan — happy-path: 1 ACTIVE Plus-user → rescan + 
     billFindMany.mockReset();
     userFindMany.mockReset();
     box3FindMany.mockReset();
+    huurFindMany.mockReset();
+    energieFindMany.mockReset();
     rescanFindFirst.mockReset();
     rescanCreate.mockReset();
     rescanUpdateMany.mockReset();
     isEnabledMock.mockReset();
     sendEmailMock.mockReset();
+    // v36 — defaults zodat tests die alleen Box 3 / spook valideren niet
+    // crashen op undefined uit huur/energie-mocks.
+    huurFindMany.mockResolvedValue([]);
+    energieFindMany.mockResolvedValue([]);
+    box3FindMany.mockResolvedValue([]);
+    billFindMany.mockResolvedValue([]);
 
     isEnabledMock.mockReturnValue(true);
   });
