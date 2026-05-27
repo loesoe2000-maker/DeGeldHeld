@@ -79,62 +79,9 @@ export default function Hero() {
           </p>
         ) : null}
 
-        {showBranches ? (
-          <section
-            data-testid="hero-branches"
-            aria-labelledby="hero-branches-heading"
-            className="mt-14 grid gap-4 text-left sm:grid-cols-2"
-          >
-            <h2
-              id="hero-branches-heading"
-              className="col-span-full text-center text-sm font-semibold uppercase tracking-wider text-slate-500"
-            >
-              Of vind je geld gratis met een check
-            </h2>
-
-            {geldCheckOn ? (
-              <Link
-                href="/geld-check"
-                data-testid="hero-branch-geld-check"
-                className="group rounded-2xl border border-brand-200 bg-white p-6 shadow-sm transition hover:border-brand-400 hover:shadow-md"
-              >
-                <div className="text-2xl">💸</div>
-                <h3 className="mt-2 text-lg font-semibold text-slate-900">
-                  Toeslagen + gemeente-regelingen
-                </h3>
-                <p className="mt-1 text-sm text-slate-600">
-                  Eén vragenlijst, geen DigiD. Indicatie van zorgtoeslag,
-                  huurtoeslag, kindgebonden budget + gemeente-regelingen — op
-                  de officiële 2026-grenzen.
-                </p>
-                <p className="mt-3 text-sm font-medium text-brand-700 group-hover:text-brand-800">
-                  Doe de gratis check →
-                </p>
-              </Link>
-            ) : null}
-
-            {claimsOn ? (
-              <Link
-                href="/vluchtclaim"
-                data-testid="hero-branch-vluchtclaim"
-                className="group rounded-2xl border border-brand-200 bg-white p-6 shadow-sm transition hover:border-brand-400 hover:shadow-md"
-              >
-                <div className="text-2xl">✈️</div>
-                <h3 className="mt-2 text-lg font-semibold text-slate-900">
-                  Vluchtclaim (EU261)
-                </h3>
-                <p className="mt-1 text-sm text-slate-600">
-                  Was je vlucht vertraagd? Vul je vluchtnummer + datum in en we
-                  kijken of je recht hebt op € 250 – € 600. No cure, no pay op
-                  het teruggehaalde bedrag.
-                </p>
-                <p className="mt-3 text-sm font-medium text-brand-700 group-hover:text-brand-800">
-                  Check je vlucht →
-                </p>
-              </Link>
-            ) : null}
-          </section>
-        ) : null}
+        {/* v36 — Hero-branches strip verwijderd: MoneyfinderHubBanner direct
+            onder de Hero (zie app/page.tsx) toont 6 tegels prominenter,
+            waaronder Toeslagen + gemeente-regelingen. Hier dubbel = verwarrend. */}
       </div>
     </section>
   );

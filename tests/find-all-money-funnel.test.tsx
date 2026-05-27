@@ -18,7 +18,7 @@ beforeEach(() => {
   flagOn.CLAIMS = false;
 });
 
-describe("Hero — vind al je geld branches", () => {
+describe("Hero — vind al je geld framing", () => {
   it("keeps the headline + primary CTAs (no regression)", () => {
     render(<Hero />);
     expect(screen.getByText(/Houd je geld in/i)).toBeInTheDocument();
@@ -30,32 +30,19 @@ describe("Hero — vind al je geld branches", () => {
     expect(screen.getByRole("link", { name: /hoe het werkt/i })).toHaveAttribute("href", "/demo");
   });
 
-  it("shows the toeslagen-branch when GELD_CHECK_ENABLED is on", () => {
+  it("shows the 'vind al je geld' framing in the subtitle when GELD_CHECK_ENABLED is on", () => {
     render(<Hero />);
-    expect(screen.getByTestId("hero-branches")).toBeInTheDocument();
-    const card = screen.getByTestId("hero-branch-geld-check");
-    expect(card).toHaveAttribute("href", "/geld-check");
-    expect(card).toHaveTextContent(/Toeslagen/i);
-    // Vluchtclaim-branch verborgen zonder CLAIMS-flag.
-    expect(screen.queryByTestId("hero-branch-vluchtclaim")).not.toBeInTheDocument();
+    // De tegel-strip onder de Hero is in v36 verwijderd (zie MoneyfinderHubBanner
+    // op de homepage). De Hero-subtitel zelf bevat nog wel de "vind al je geld"-
+    // framing + no-cure-no-pay-belofte.
+    expect(screen.getByText(/al je geld/i)).toBeInTheDocument();
+    expect(screen.getByText(/no cure, no pay/i)).toBeInTheDocument();
   });
 
-  it("shows the vluchtclaim-branch when CLAIMS is on", () => {
-    flagOn.CLAIMS = true;
-    render(<Hero />);
-    const card = screen.getByTestId("hero-branch-vluchtclaim");
-    expect(card).toHaveAttribute("href", "/vluchtclaim");
-    expect(card).toHaveTextContent(/EU261|vlucht/i);
-  });
-
-  it("renders ZERO branches (and falls back to the original copy) when both flags are off", () => {
+  it("falls back to the original copy when both flags are off", () => {
     flagOn.GELD_CHECK_ENABLED = false;
     flagOn.CLAIMS = false;
     render(<Hero />);
-    expect(screen.queryByTestId("hero-branches")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("hero-branch-geld-check")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("hero-branch-vluchtclaim")).not.toBeInTheDocument();
-    // Original sub-copy ("verdient niet aan…"-stijl pre-v28) is back.
     // v32 fee-integriteit: fallback noemt geen telecom/internet meer
     // (TELECOM is sinds V30 fee:false — Plus-belscript i.p.v. 20%-NCNP).
     expect(screen.getByText(/Upload je energierekening of abonnementsfactuur/i)).toBeInTheDocument();
