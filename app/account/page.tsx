@@ -87,6 +87,23 @@ export default async function AccountPage() {
         </p>
       </section>
 
+      <section
+        data-testid="mijn-claims-card"
+        className="mt-8 rounded-xl border border-brand-200 bg-brand-50/40 p-5"
+      >
+        <h2 className="text-lg font-semibold text-slate-900">Mijn claims</h2>
+        <p className="mt-1 text-sm text-slate-600">
+          Status-overzicht van al je Box 3-, Huurcommissie- en Energie-claims
+          op één plek — inclusief de volgende stap per claim.
+        </p>
+        <Link
+          href="/account/claims"
+          className="mt-3 inline-block rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700"
+        >
+          Bekijk mijn claims →
+        </Link>
+      </section>
+
       <section className="mt-8 rounded-xl border border-slate-200 bg-white p-5">
         <h2 className="text-lg font-semibold text-slate-900">Bank-koppelingen (PSD2)</h2>
         <p className="mt-1 text-sm text-slate-600">

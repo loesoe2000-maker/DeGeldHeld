@@ -36,6 +36,7 @@ const STATIC_PAGES = [
   "/demo",
   "/account",
   "/account/banks",
+  "/account/claims",
   "/prijs",
   "/geld-check",
   "/plus",
