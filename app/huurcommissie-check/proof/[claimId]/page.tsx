@@ -31,6 +31,21 @@ export default async function HuurUitspraakPage({
   });
   if (!claim) notFound();
 
+  // v37 — kluis-documenten aanbieden als alternatief voor opnieuw uploaden.
+  const vaultDocs = isEnabled("DOCUMENTS_VAULT_ENABLED")
+    ? await prisma.userDocument.findMany({
+        where: { userId },
+        orderBy: { createdAt: "desc" },
+        select: { id: true, kind: true, filename: true, createdAt: true },
+      })
+    : [];
+  const vaultDocsProp = vaultDocs.map((d) => ({
+    id: d.id,
+    kind: d.kind,
+    filename: d.filename,
+    createdAt: d.createdAt.toISOString(),
+  }));
+
   return (
     <main className="mx-auto max-w-3xl px-6 pb-32 pt-10 sm:pt-14">
       <p className="text-sm font-semibold uppercase tracking-wide text-brand-700">
@@ -48,7 +63,7 @@ export default async function HuurUitspraakPage({
       <ClaimStateBlock claim={claim} />
 
       {claim.status === "INTENT" || claim.status === "BEZWAAR_GESTUURD" || claim.status === "HUURCOMMISSIE_INGEDIEND" ? (
-        <HuurUitspraakUpload claimId={claim.id} />
+        <HuurUitspraakUpload claimId={claim.id} vaultDocs={vaultDocsProp} />
       ) : null}
 
       <div className="mt-12 rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs leading-relaxed text-slate-600">

@@ -1,10 +1,13 @@
 /**
- * POST /api/energie-claim/uitspraak — v35 DEEL 2.
+ * POST /api/energie-claim/uitspraak — v35 DEEL 2 (v37: bewijs-opslag).
  *
  * Handmatige proof-back upload. Klant levert PDF van de Geschillencommissie-
  * uitspraak (of leverancier-bevestiging) + handmatige `werkelijkeRestitutieCents`.
  *
- * Géén OCR in V35. Géén auto-charge: owner reviewt + triggert fee handmatig.
+ * v37: de uitspraak wordt nu écht opgeslagen in Vercel Blob (private). Klant
+ * kan óf een nieuw bestand uploaden, óf een bestaand kluis-document kiezen.
+ *
+ * Géén OCR. Géén auto-charge: owner reviewt + triggert fee handmatig.
  *
  * AVG-grondslag: art. 6 lid 1b — uitvoering NCNP-overeenkomst.
  */
@@ -13,6 +16,8 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { isEnabled } from "@/lib/feature-flags";
 import { sendEmail } from "@/lib/email";
+import { uploadClaimProof } from "@/lib/claim-proof-storage";
+import { attachVaultDocAsProof } from "@/lib/claim-proof-from-vault";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -40,6 +45,8 @@ export async function POST(req: Request) {
   const claimId = String(form.get("claimId") ?? "");
   const werkelijkRaw = String(form.get("werkelijkeRestitutieCents") ?? "");
   const file = form.get("file");
+  // v37 — klant kan i.p.v. een nieuw bestand ook een kluis-document kiezen.
+  const documentId = String(form.get("documentId") ?? "");
 
   if (!claimId) {
     return NextResponse.json({ error: "claimId required" }, { status: 400 });
@@ -48,10 +55,11 @@ export async function POST(req: Request) {
   if (!Number.isInteger(werkelijk) || werkelijk < 0) {
     return NextResponse.json({ error: "invalid werkelijkeRestitutieCents" }, { status: 400 });
   }
-  if (!(file instanceof File) || file.size === 0) {
-    return NextResponse.json({ error: "file required" }, { status: 400 });
+  const hasFile = file instanceof File && file.size > 0;
+  if (!hasFile && !documentId) {
+    return NextResponse.json({ error: "file of documentId vereist" }, { status: 400 });
   }
-  if (file.size > MAX_FILE_BYTES) {
+  if (hasFile && (file as File).size > MAX_FILE_BYTES) {
     return NextResponse.json({ error: "file too large" }, { status: 413 });
   }
 
@@ -68,15 +76,45 @@ export async function POST(req: Request) {
     );
   }
 
-  // V35 stub-storage: alleen metadata. Vercel Blob = V36 eigenaar-werk.
+  // v37 — bewijs opslaan: óf nieuw bestand (Vercel Blob private, best-effort),
+  // óf gekozen kluis-document (blob copy).
+  let uitspraakStorageUrl: string | null = null;
+  if (hasFile) {
+    const f = file as File;
+    uitspraakStorageUrl = await uploadClaimProof({
+      claimType: "EnergieEindafrekeningClaim",
+      userId,
+      claimId: claim.id,
+      file: f,
+      filename: f.name || `energie-uitspraak-${claim.id}`,
+      contentType: f.type || undefined,
+    });
+  } else {
+    const attached = await attachVaultDocAsProof({
+      documentId,
+      userId,
+      claimType: "EnergieEindafrekeningClaim",
+      claimId: claim.id,
+    });
+    if (!attached.ok) {
+      return NextResponse.json({ error: attached.error }, { status: 400 });
+    }
+    uitspraakStorageUrl = attached.storageUrl;
+  }
+
   await prisma.energieEindafrekeningClaim.update({
     where: { id: claim.id },
     data: {
       status: "UITSPRAAK",
       werkelijkeRestitutieCents: werkelijk,
       uitspraakUploadedAt: new Date(),
+      ...(uitspraakStorageUrl ? { uitspraakStorageUrl } : {}),
     },
   });
+
+  const bronLabel = hasFile
+    ? `${(file as File).name} (${(file as File).size} bytes)`
+    : `uit kluis (document ${documentId.slice(0, 8)})`;
 
   try {
     const adminEmail = process.env.ADMIN_REVIEW_EMAIL ?? "hallo@degeldheld.com";
@@ -90,7 +128,7 @@ export async function POST(req: Request) {
         `Provider: ${claim.provider}\n` +
         `Verwacht: ${claim.verwachteRestitutieCents} cents\n` +
         `Werkelijk: ${werkelijk} cents\n` +
-        `Bestand: ${file.name} (${file.size} bytes)`,
+        `Bestand: ${bronLabel}`,
       html: `<p>Handmatige fee-charge nodig.</p>
 <ul>
   <li>Claim: <code>${claim.id}</code></li>
@@ -98,7 +136,7 @@ export async function POST(req: Request) {
   <li>Provider: ${claim.provider}</li>
   <li>Verwacht: ${claim.verwachteRestitutieCents} cents</li>
   <li>Werkelijk: ${werkelijk} cents</li>
-  <li>Bestand: ${file.name} (${file.size} bytes)</li>
+  <li>Bestand: ${bronLabel}</li>
 </ul>`,
     });
   } catch {

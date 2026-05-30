@@ -1,11 +1,15 @@
 /**
- * POST /api/huurcommissie/uitspraak — v35 DEEL 1.
+ * POST /api/huurcommissie/uitspraak — v35 DEEL 1 (v37: bewijs-opslag).
  *
  * Handmatige proof-back upload. Klant levert een PDF van de Huurcommissie-
  * uitspraak (of verhuurder-bevestiging) + handmatige `werkelijkeRestitutieCents`.
  *
- * Géén OCR in V35 (Huurcommissie-uitspraken komen niet als standaardformaat-PDF).
- * Géén auto-charge: owner reviewt + triggert fee-charge via admin-panel (V36).
+ * v37: de uitspraak wordt nu écht opgeslagen in Vercel Blob (private). Klant
+ * kan óf een nieuw bestand uploaden, óf een bestaand kluis-document kiezen
+ * (documentId → blob copy).
+ *
+ * Géén OCR (Huurcommissie-uitspraken komen niet als standaardformaat-PDF).
+ * Géén auto-charge: owner reviewt + triggert fee-charge via admin-panel.
  *
  * AVG-grondslag: art. 6 lid 1b — uitvoering NCNP-overeenkomst.
  */
@@ -14,6 +18,8 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { isEnabled } from "@/lib/feature-flags";
 import { sendEmail } from "@/lib/email";
+import { uploadClaimProof } from "@/lib/claim-proof-storage";
+import { attachVaultDocAsProof } from "@/lib/claim-proof-from-vault";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -41,6 +47,8 @@ export async function POST(req: Request) {
   const claimId = String(form.get("claimId") ?? "");
   const werkelijkRaw = String(form.get("werkelijkeRestitutieCents") ?? "");
   const file = form.get("file");
+  // v37 — klant kan i.p.v. een nieuw bestand ook een kluis-document kiezen.
+  const documentId = String(form.get("documentId") ?? "");
 
   if (!claimId) {
     return NextResponse.json({ error: "claimId required" }, { status: 400 });
@@ -49,10 +57,11 @@ export async function POST(req: Request) {
   if (!Number.isInteger(werkelijk) || werkelijk < 0) {
     return NextResponse.json({ error: "invalid werkelijkeRestitutieCents" }, { status: 400 });
   }
-  if (!(file instanceof File) || file.size === 0) {
-    return NextResponse.json({ error: "file required" }, { status: 400 });
+  const hasFile = file instanceof File && file.size > 0;
+  if (!hasFile && !documentId) {
+    return NextResponse.json({ error: "file of documentId vereist" }, { status: 400 });
   }
-  if (file.size > MAX_FILE_BYTES) {
+  if (hasFile && (file as File).size > MAX_FILE_BYTES) {
     return NextResponse.json({ error: "file too large" }, { status: 413 });
   }
 
@@ -70,18 +79,46 @@ export async function POST(req: Request) {
     );
   }
 
-  // V35 stub-storage: we bewaren géén bytes binnen de Next.js-runtime. Owner
-  // configureert Vercel Blob in V36 (eigenaar-werk). Voor nu noteren we alleen
-  // de upload-metadata (size + filename) zodat owner handmatig kan reviewen.
+  // v37 — bewijs opslaan: óf een nieuw bestand (Vercel Blob private,
+  // best-effort), óf een gekozen kluis-document (blob copy).
+  let uitspraakStorageUrl: string | null = null;
+  if (hasFile) {
+    const f = file as File;
+    uitspraakStorageUrl = await uploadClaimProof({
+      claimType: "HuurServicekostenClaim",
+      userId,
+      claimId: claim.id,
+      file: f,
+      filename: f.name || `huur-uitspraak-${claim.id}`,
+      contentType: f.type || undefined,
+    });
+  } else {
+    const attached = await attachVaultDocAsProof({
+      documentId,
+      userId,
+      claimType: "HuurServicekostenClaim",
+      claimId: claim.id,
+    });
+    if (!attached.ok) {
+      return NextResponse.json({ error: attached.error }, { status: 400 });
+    }
+    uitspraakStorageUrl = attached.storageUrl;
+  }
+
   await prisma.huurServicekostenClaim.update({
     where: { id: claim.id },
     data: {
       status: "UITSPRAAK",
       werkelijkeRestitutieCents: werkelijk,
       uitspraakUploadedAt: new Date(),
-      // uitspraakStorageUrl blijft null tot Vercel Blob is geconfigureerd.
+      ...(uitspraakStorageUrl ? { uitspraakStorageUrl } : {}),
     },
   });
+
+  // Bron-omschrijving voor de owner-mail, veilig voor beide paden.
+  const bronLabel = hasFile
+    ? `${(file as File).name} (${(file as File).size} bytes)`
+    : `uit kluis (document ${documentId.slice(0, 8)})`;
 
   // Owner krijgt een mail voor handmatige fee-charge review.
   try {
@@ -97,7 +134,7 @@ export async function POST(req: Request) {
         `Verhuurder: ${claim.verhuurderNaam ?? "(niet opgegeven)"}\n` +
         `Verwacht: ${claim.verwachteRestitutieCents} cents\n` +
         `Werkelijk: ${werkelijk} cents\n` +
-        `Bestand: ${file.name} (${file.size} bytes)`,
+        `Bestand: ${bronLabel}`,
       html: `<p>Handmatige fee-charge nodig.</p>
 <ul>
   <li>Claim: <code>${claim.id}</code></li>
@@ -106,7 +143,7 @@ export async function POST(req: Request) {
   <li>Verhuurder: ${claim.verhuurderNaam ?? "(niet opgegeven)"}</li>
   <li>Verwacht: ${claim.verwachteRestitutieCents} cents</li>
   <li>Werkelijk: ${werkelijk} cents</li>
-  <li>Bestand: ${file.name} (${file.size} bytes)</li>
+  <li>Bestand: ${bronLabel}</li>
 </ul>`,
     });
   } catch {
