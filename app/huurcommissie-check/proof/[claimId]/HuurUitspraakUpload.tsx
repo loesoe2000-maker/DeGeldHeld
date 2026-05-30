@@ -13,6 +13,7 @@ import { useRouter } from "next/navigation";
 import { track } from "@/lib/analytics";
 import { parseEurInput } from "@/lib/format";
 import { DOCUMENT_KIND_LABEL, type DocumentKind } from "@/lib/user-documents";
+import BedragSuggestieKnop from "@/components/BedragSuggestieKnop";
 
 const MAX_BYTES = 10 * 1024 * 1024;
 
@@ -180,6 +181,12 @@ export default function HuurUitspraakUpload({
             Mag € 0 als de Huurcommissie geen restitutie toekende. Onder € 50
             werkelijk → fee € 0 (eerlijke uitkomst).
           </span>
+          {mode === "nieuw" ? (
+            <BedragSuggestieKnop
+              file={file}
+              onApply={(euro) => setWerkelijk(euro)}
+            />
+          ) : null}
         </label>
         {error ? (
           <p role="alert" className="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-800">
