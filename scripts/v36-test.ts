@@ -106,8 +106,10 @@ const PDF_CASES: Array<{
  */
 async function extractPdfText(bytes: Uint8Array): Promise<string | null> {
   try {
-    // pdfjs-dist v5 is ESM-only; dynamische import houdt 'm uit de bundel.
-    const pdfjs = await import("pdfjs-dist");
+    // pdfjs-dist v5 is ESM-only én vereist de LEGACY build in Node
+    // (de default build verwacht browser-globals als DOMMatrix). De legacy
+    // build werkt headless voor pure text-extractie (getTextContent).
+    const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
     const doc = await pdfjs.getDocument({ data: bytes, useSystemFonts: true }).promise;
     let text = "";
     for (let i = 1; i <= doc.numPages; i++) {
@@ -281,6 +283,7 @@ type Probe = {
 const DUMMY = "clxxxxxxxxxxxxxxxxxxxxxxxx";
 const HUUR = "HuurServicekostenClaim";
 
+// Pagina's die ALTIJD 200 horen te geven (publiek; flag staat aan op prod).
 const PUBLIC_PAGES: string[] = [
   "/",
   "/huurcommissie-check",
@@ -289,8 +292,6 @@ const PUBLIC_PAGES: string[] = [
   "/geld-check",
   "/zorgkosten-check",
   "/ns-check",
-  "/vluchtclaim",
-  "/spookabonnementen",
   "/vind-al-je-geld",
   "/plus",
   "/onderhandel",
@@ -301,7 +302,20 @@ const PUBLIC_PAGES: string[] = [
   "/voorwaarden",
 ];
 
-const AUTH_PAGES: string[] = ["/account", "/account/claims", "/account/documents"];
+// Login-vereiste pagina's: server-page doet redirect("/login") → 3xx.
+// /spookabonnementen is owner-scoped (login-vereist) — hoort hier, niet bij
+// publiek.
+const AUTH_PAGES: string[] = [
+  "/account",
+  "/account/claims",
+  "/account/documents",
+  "/spookabonnementen",
+];
+
+// Flag-gated pagina's: 200 als hun feature-flag aan staat, anders 404/3xx
+// (redirect naar /). Mag NOOIT 5xx. /vluchtclaim hangt aan de CLAIMS-flag,
+// die momenteel uit staat (wacht op Aviation Edge API + jurist).
+const FLAG_GATED_PAGES: string[] = ["/vluchtclaim"];
 
 const API_GATES: Probe[] = [
   // v36 idee 4 — documents-vault
@@ -391,12 +405,47 @@ async function probeAuthPage(path: string): Promise<WebResult> {
   };
 }
 
+async function probeFlagGated(path: string): Promise<WebResult> {
+  const start = Date.now();
+  const r = await fetchWithTimeout(`${BASE}${path}`);
+  const ms = Date.now() - start;
+  if (!r) {
+    return {
+      path,
+      method: "GET",
+      status: 0,
+      ms,
+      bytes: 0,
+      assertions: [check("reachable", false, "timeout/netwerkfout")],
+      pass: false,
+    };
+  }
+  // 200 (flag aan) of 404/3xx (flag uit → notFound()/redirect). Nooit 5xx.
+  const okStatus = [200, 301, 302, 303, 307, 308, 404].includes(r.status);
+  const assertions = [
+    check("geen-5xx", r.status < 500, `status=${r.status}`),
+    check("flag-status", okStatus, `status=${r.status} (verwacht 200 of 404/3xx)`),
+  ];
+  return {
+    path,
+    method: "GET",
+    status: r.status,
+    ms,
+    bytes: 0,
+    assertions,
+    pass: assertions.every((a) => a.ok),
+  };
+}
+
 async function probeApiGate(p: Probe): Promise<WebResult> {
   const start = Date.now();
   const init: RequestInit = { method: p.method };
   if (p.method === "POST") {
-    // Lege body — we verwachten dat auth/flag-gate vóór body-parsing vuurt.
-    init.body = "";
+    // BELANGRIJK: een POST zónder body blijft hangen op Vercel (de edge wacht
+    // op een request-body die nooit komt). We sturen daarom een echte (lege)
+    // FormData mee — fetch zet dan een geldige Content-Length + boundary, en
+    // de auth/flag-gate vuurt netjes (→ 401/503) vóór de body-parse.
+    init.body = new FormData();
   }
   const r = await fetchWithTimeout(`${BASE}${p.path}`, init);
   const ms = Date.now() - start;
@@ -484,6 +533,10 @@ async function runWebPhase(): Promise<{ pass: boolean; lines: string[] }> {
   lines.push("");
   lines.push("  ── Auth-gated pagina's (verwacht login-gate, geen 5xx) ──");
   for (const path of AUTH_PAGES) emit("AUTH", await probeAuthPage(path));
+
+  lines.push("");
+  lines.push("  ── Flag-gated pagina's (200 als flag aan, anders 404/3xx; geen 5xx) ──");
+  for (const path of FLAG_GATED_PAGES) emit("FLAG", await probeFlagGated(path));
 
   lines.push("");
   lines.push("  ── V36 API-gates (verwacht 401/403/4xx/503, NOOIT 200) ──");
