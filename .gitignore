@@ -41,3 +41,6 @@ test-results/
 playwright-report/
 playwright/.cache/
 tests/screenshots/
+
+# v36-test.ts artefacten (gegenereerde test-PDFs)
+v36-test-output/
