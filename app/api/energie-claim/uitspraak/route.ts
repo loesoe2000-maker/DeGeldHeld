@@ -76,8 +76,10 @@ export async function POST(req: Request) {
     );
   }
 
-  // v37 — bewijs opslaan: óf nieuw bestand (Vercel Blob private, best-effort),
-  // óf gekozen kluis-document (blob copy).
+  // v37 — bewijs opslaan: óf nieuw bestand (Vercel Blob private), óf gekozen
+  // kluis-document (blob copy). BEIDE paden falen hard als het bewijs niet
+  // wordt bewaard: een claim mag NOOIT naar UITSPRAAK + owner-fee-mail zonder
+  // opgeslagen bewijsdocument.
   let uitspraakStorageUrl: string | null = null;
   if (hasFile) {
     const f = file as File;
@@ -89,6 +91,12 @@ export async function POST(req: Request) {
       filename: f.name || `energie-uitspraak-${claim.id}`,
       contentType: f.type || undefined,
     });
+    if (!uitspraakStorageUrl) {
+      return NextResponse.json(
+        { error: "Het bewijs kon niet worden opgeslagen. Probeer het opnieuw." },
+        { status: 502 },
+      );
+    }
   } else {
     const attached = await attachVaultDocAsProof({
       documentId,

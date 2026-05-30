@@ -78,8 +78,10 @@ export async function POST(req: Request) {
 
   const buf = Buffer.from(await file.arrayBuffer());
 
-  // v37 — bewaar de beschikking-PDF in Vercel Blob (private). Best-effort:
-  // een mislukte opslag blokkeert de OCR/charge-flow niet.
+  // v37 — bewaar de beschikking-PDF in Vercel Blob (private) VÓÓR de OCR +
+  // automatische fee-charge. Lukt opslaan niet, dan stoppen we hier (502):
+  // bij Box 3 schrijft de fee zichzelf af op basis van de OCR, dus we mogen
+  // NOOIT char-gen zonder de beschikking als bewijs bewaard te hebben.
   const proofStorageUrl = await uploadClaimProof({
     claimType: "Box3Claim",
     userId,
@@ -88,6 +90,12 @@ export async function POST(req: Request) {
     filename: file.name || `box3-beschikking-${claim.id}.pdf`,
     contentType: file.type || "application/pdf",
   });
+  if (!proofStorageUrl) {
+    return NextResponse.json(
+      { error: "Het bewijs kon niet worden opgeslagen. Probeer het opnieuw." },
+      { status: 502 },
+    );
+  }
 
   let pdfText = "";
   try {

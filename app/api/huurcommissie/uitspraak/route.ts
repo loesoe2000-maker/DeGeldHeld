@@ -79,8 +79,10 @@ export async function POST(req: Request) {
     );
   }
 
-  // v37 — bewijs opslaan: óf een nieuw bestand (Vercel Blob private,
-  // best-effort), óf een gekozen kluis-document (blob copy).
+  // v37 — bewijs opslaan: óf een nieuw bestand (Vercel Blob private), óf een
+  // gekozen kluis-document (blob copy). BEIDE paden moeten hard falen als het
+  // bewijs niet wordt bewaard: een claim mag NOOIT naar UITSPRAAK gaan +
+  // owner-fee-mail triggeren zonder opgeslagen bewijsdocument.
   let uitspraakStorageUrl: string | null = null;
   if (hasFile) {
     const f = file as File;
@@ -92,6 +94,13 @@ export async function POST(req: Request) {
       filename: f.name || `huur-uitspraak-${claim.id}`,
       contentType: f.type || undefined,
     });
+    if (!uitspraakStorageUrl) {
+      // uploadClaimProof geeft null bij elke opslag-fout. Niet stil doorzetten.
+      return NextResponse.json(
+        { error: "Het bewijs kon niet worden opgeslagen. Probeer het opnieuw." },
+        { status: 502 },
+      );
+    }
   } else {
     const attached = await attachVaultDocAsProof({
       documentId,
