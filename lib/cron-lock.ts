@@ -20,7 +20,8 @@ export type CronJobName =
   | "category-nudge"
   | "contract-radar"
   | "monthly-report"
-  | "relay-reminders";
+  | "relay-reminders"
+  | "claim-deadline-nudge";
 
 function todayUtc(): string {
   return new Date().toISOString().slice(0, 10);

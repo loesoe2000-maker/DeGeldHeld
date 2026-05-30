@@ -98,6 +98,11 @@ const FLAG_DEFAULTS = {
   //  (b) Privacy-tekst is gereviewed (AVG art. 6 lid 1b)
   //  (c) VOLMACHT_IP_HASH_SECRET env-var is gezet
   VOLMACHT_SES_ENABLED: false,
+  // Off by default — v37 — dagelijkse deadline-nudge-cron voor huur+energie
+  // claims (verstuur-je-brief / reactie-verlopen / behandeling-traag). Flip aan
+  // zodra CRON_SECRET in Vercel staat + de nudge-mailteksten gereviewd zijn.
+  // Respecteert marketingOptOut + notificationsEnabled (geen spam).
+  CLAIM_DEADLINE_NUDGE_ENABLED: false,
 } as const;
 
 export type FeatureFlag = keyof typeof FLAG_DEFAULTS;

@@ -682,6 +682,9 @@ model HuurServicekostenClaim {
   feeCents                 Int?
   stripePaymentIntentId    String?
   failureReason            String?  @db.Text
+  /// v37 — deadline-nudge idempotentie: welke nudge laatst verstuurd + wanneer.
+  lastNudgeKind            String?
+  lastNudgeAt              DateTime?
   createdAt                DateTime @default(now())
   updatedAt                DateTime @updatedAt
 
@@ -705,6 +708,9 @@ model EnergieEindafrekeningClaim {
   feeCents                 Int?
   stripePaymentIntentId    String?
   failureReason            String?  @db.Text
+  /// v37 — deadline-nudge idempotentie: welke nudge laatst verstuurd + wanneer.
+  lastNudgeKind            String?
+  lastNudgeAt              DateTime?
   createdAt                DateTime @default(now())
   updatedAt                DateTime @updatedAt
 
