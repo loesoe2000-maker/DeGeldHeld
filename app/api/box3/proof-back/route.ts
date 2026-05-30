@@ -21,6 +21,7 @@ import {
   processProofUpload,
   type Box3ClaimStatus,
 } from "@/lib/box3-claim";
+import { uploadClaimProof } from "@/lib/claim-proof-storage";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -76,6 +77,18 @@ export async function POST(req: Request) {
   }
 
   const buf = Buffer.from(await file.arrayBuffer());
+
+  // v37 — bewaar de beschikking-PDF in Vercel Blob (private). Best-effort:
+  // een mislukte opslag blokkeert de OCR/charge-flow niet.
+  const proofStorageUrl = await uploadClaimProof({
+    claimType: "Box3Claim",
+    userId,
+    claimId: claim.id,
+    file: buf,
+    filename: file.name || `box3-beschikking-${claim.id}.pdf`,
+    contentType: file.type || "application/pdf",
+  });
+
   let pdfText = "";
   try {
     const pdf = await extractPdfText(buf);
@@ -119,6 +132,7 @@ export async function POST(req: Request) {
         proofUploadedAt: new Date(),
         werkelijkTeruggaveCents: outcome.werkelijkTeruggaveCents ?? null,
         failureReason: outcome.reason,
+        ...(proofStorageUrl ? { proofStorageUrl } : {}),
       },
     });
     // Owner krijgt een mail voor handmatige review — géén stille uitkering.
@@ -168,6 +182,7 @@ export async function POST(req: Request) {
         werkelijkTeruggaveCents: outcome.werkelijkTeruggaveCents,
         chargedAt: new Date(),
         feeCents: 0,
+        ...(proofStorageUrl ? { proofStorageUrl } : {}),
       },
     });
     return NextResponse.json({
@@ -189,6 +204,7 @@ export async function POST(req: Request) {
       chargedAt: new Date(),
       feeCents: outcome.feeCents,
       stripePaymentIntentId: outcome.paymentIntentId,
+      ...(proofStorageUrl ? { proofStorageUrl } : {}),
     },
   });
   return NextResponse.json({
