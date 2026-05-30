@@ -5,12 +5,9 @@ import { parseEurInput } from "@/lib/format";
 import { DOCUMENT_KIND_LABEL, type DocumentKind } from "@/lib/user-documents";
 
 /**
- * V35 DEEL 1 — Huurcommissie-uitspraak upload (client component).
+ * V35 DEEL 2 — Energie-uitspraak upload (client component).
  * v37 — klant kan nu kiezen: nieuw bestand uploaden óf een document uit z'n
- * kluis hergebruiken (documentId).
- *
- * Markeert de claim als UITSPRAAK + stuurt het werkelijk toegekende bedrag
- * mee. De owner reviewt + chooseert de fee handmatig via /admin/claims.
+ * kluis hergebruiken (documentId). Zelfde patroon als Huur.
  */
 export type VaultDoc = {
   id: string;
@@ -19,7 +16,7 @@ export type VaultDoc = {
   createdAt: string;
 };
 
-export default function HuurUitspraakUpload({
+export default function EnergieUitspraakUpload({
   claimId,
   vaultDocs = [],
 }: {
@@ -56,7 +53,7 @@ export default function HuurUitspraakUpload({
     }
 
     setBusy(true);
-    const res = await fetch("/api/huurcommissie/uitspraak", {
+    const res = await fetch("/api/energie-claim/uitspraak", {
       method: "POST",
       body: fd,
     });
@@ -72,12 +69,8 @@ export default function HuurUitspraakUpload({
 
   if (done) {
     return (
-      <div
-        data-testid="huur-uitspraak-done"
-        className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800"
-      >
-        Uitspraak ontvangen — we verwerken je claim. Je hoort van ons zodra de
-        fee verrekend kan worden.
+      <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
+        Uitspraak ontvangen — we verwerken je claim.
       </div>
     );
   }
@@ -95,13 +88,13 @@ export default function HuurUitspraakUpload({
           inputMode="decimal"
           value={werkelijke}
           onChange={(e) => setWerkelijke(e.target.value)}
-          placeholder="bv. 150,00"
+          placeholder="bv. 120,00"
           className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
         />
       </div>
 
       {hasVault ? (
-        <div className="flex gap-2 text-sm" data-testid="huur-uitspraak-mode">
+        <div className="flex gap-2 text-sm" data-testid="energie-uitspraak-mode">
           <button
             type="button"
             onClick={() => setMode("nieuw")}
@@ -116,7 +109,7 @@ export default function HuurUitspraakUpload({
           <button
             type="button"
             onClick={() => setMode("kluis")}
-            data-testid="huur-uitspraak-kies-kluis"
+            data-testid="energie-uitspraak-kies-kluis"
             className={`rounded-lg border px-3 py-1.5 font-medium ${
               mode === "kluis"
                 ? "border-brand-500 bg-brand-50 text-brand-700"
@@ -136,7 +129,7 @@ export default function HuurUitspraakUpload({
           <select
             value={docId}
             onChange={(e) => setDocId(e.target.value)}
-            data-testid="huur-uitspraak-doc-select"
+            data-testid="energie-uitspraak-doc-select"
             className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
           >
             {vaultDocs.map((d) => (
