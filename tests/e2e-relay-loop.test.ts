@@ -88,12 +88,15 @@ beforeEach(() => {
   store.rounds = [];
   store.mailbox = [];
   store.providerAction = "counter";
+  // v37: relay is alleen voor fee-categorieën (TYPE_A_NCNP). TELECOM wordt nu
+  // hard geweigerd door de categorie-gate in relay-authorize, dus deze e2e-
+  // loop draait op ENERGIE (fee:true) — een categorie die wél mag relayen.
   store.neg = {
     id: "neg_1", billId: "bill_1", userId: "u1",
     relayToken: null, relayState: null, relayAuthorizedAt: null, relayAutoRounds: 0,
     providerEmail: null, providerThreadId: null,
-    emailSubject: "Verzoek tariefherziening KPN", emailBody: "Beste KPN, graag een lager tarief.",
-    bill: { provider: "KPN", category: "TELECOM", monthlyCents: 3000, amountCents: 3000, plan: null, customerNumber: null, country: "NL" },
+    emailSubject: "Verzoek tariefherziening Vattenfall", emailBody: "Beste Vattenfall, graag een lager tarief.",
+    bill: { provider: "Vattenfall", category: "ENERGIE", monthlyCents: 3000, amountCents: 3000, plan: null, customerNumber: null, country: "NL" },
     user: { name: "Anne", email: "anne@x.nl" },
   };
 });

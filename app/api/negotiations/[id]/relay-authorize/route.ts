@@ -14,6 +14,8 @@ import { prisma } from "@/lib/db";
 import { generateRelayToken, relayMandateText, relayAddressSanity } from "@/lib/relay";
 import { sendFirstRelayMail } from "@/lib/relay-send";
 import { isEnabled } from "@/lib/feature-flags";
+import { categoryAllowsFee } from "@/lib/category-strategy";
+import type { Category } from "@/lib/providers";
 import * as Sentry from "@sentry/nextjs";
 
 export const runtime = "nodejs";
@@ -41,10 +43,22 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   // Anti-abuse: only the owner of this negotiation can authorize a relay.
   const negotiation = await prisma.negotiation.findFirst({
     where: { id, userId },
-    include: { bill: { select: { provider: true } } },
+    include: { bill: { select: { provider: true, category: true } } },
   });
   if (!negotiation) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  // GUARDRAIL 8 (v37) — CATEGORIE-GATE. Relay-mail = no-cure-no-pay-werk, dus
+  // alleen voor categorieën waar een fee mag (TYPE_A_NCNP). TYPE_B (telecom,
+  // streaming, OV, …) en TYPE_C (water-monopolie) worden HARD geweigerd: voor
+  // telecom loopt retentie via de telefoon, niet via mail. Voorheen was dit
+  // alleen een UI-waarschuwing — een handmatig ingetypt adres kon 'm omzeilen.
+  if (!categoryAllowsFee(negotiation.bill.category as Category)) {
+    return NextResponse.json(
+      { error: "category not eligible for relay", reason: "category-no-fee" },
+      { status: 403 },
+    );
   }
 
   // GUARDRAIL 4 — KAART VERPLICHT. "Wij doen het werk" → a proven saving must

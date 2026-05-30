@@ -46,7 +46,8 @@ const ctx = { params: Promise.resolve({ id: "neg_1" }) };
 beforeEach(() => {
   h.flagOn = true;
   h.userId = "u1";
-  h.neg = { id: "neg_1", billId: "bill_1", relayToken: null, bill: { provider: "KPN" } };
+  // Default happy-path: ENERGIE = TYPE_A_NCNP (fee:true) → relay toegestaan.
+  h.neg = { id: "neg_1", billId: "bill_1", relayToken: null, bill: { provider: "Vattenfall", category: "ENERGIE" } };
   h.user = { feePaymentMethodId: "pm_123", feeMandateAcceptedAt: new Date() };
   h.updates = [];
   h.firstSends = 0;
@@ -95,13 +96,13 @@ describe("v25 relay-authorize gate", () => {
   });
 
   it("with a providerEmail → authorizes, stores it + fires the first relay mail", async () => {
-    const res = await POST(req({ providerEmail: "retentie@kpn.com" }), ctx);
+    const res = await POST(req({ providerEmail: "retentie@vattenfall.nl" }), ctx);
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.relayState).toBe("RELAY_ACTIVE");
     expect(h.updates[0].relayState).toBe("RELAY_ACTIVE");
     expect(h.updates[0].relayAuthorizedAt).toBeInstanceOf(Date);
-    expect(h.updates[0].providerEmail).toBe("retentie@kpn.com");
+    expect(h.updates[0].providerEmail).toBe("retentie@vattenfall.nl");
     expect(h.firstSends).toBe(1);
     expect(body.firstSend).toBe("sent");
   });
@@ -115,10 +116,40 @@ describe("v25 relay-authorize gate", () => {
   });
 
   it("409 (sanity) for a no-reply provider address (nothing stored/sent)", async () => {
-    const res = await POST(req({ providerEmail: "noreply@kpn.com" }), ctx);
+    const res = await POST(req({ providerEmail: "noreply@vattenfall.nl" }), ctx);
     expect(res.status).toBe(409);
     expect((await res.json()).reason).toBe("noreply");
     expect(h.updates).toHaveLength(0);
     expect(h.firstSends).toBe(0);
+  });
+
+  // v37 GUARDRAIL 8 — categorie-gate. TELECOM (TYPE_B, fee:false) mag GEEN
+  // relay-mail starten, ook niet met een geldig ingetypt adres.
+  it("403 category-no-fee for a TELECOM bill (relay hard-blocked, nothing stored/sent)", async () => {
+    h.neg = {
+      id: "neg_1",
+      billId: "bill_1",
+      relayToken: null,
+      bill: { provider: "KPN", category: "TELECOM" },
+    };
+    const res = await POST(req({ providerEmail: "retentie@kpn.com" }), ctx);
+    expect(res.status).toBe(403);
+    expect((await res.json()).reason).toBe("category-no-fee");
+    expect(h.updates).toHaveLength(0);
+    expect(h.firstSends).toBe(0);
+  });
+
+  it("403 category-no-fee for STREAMING + the gate fires before the card-check", async () => {
+    h.neg = {
+      id: "neg_1",
+      billId: "bill_1",
+      relayToken: null,
+      bill: { provider: "Netflix", category: "STREAMING" },
+    };
+    // Zelfs zonder fee-card → categorie-gate (403) vuurt eerst, niet 409.
+    h.user = { feePaymentMethodId: null, feeMandateAcceptedAt: null };
+    const res = await POST(req({ providerEmail: "retentie@netflix.com" }), ctx);
+    expect(res.status).toBe(403);
+    expect((await res.json()).reason).toBe("category-no-fee");
   });
 });
