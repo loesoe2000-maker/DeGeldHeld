@@ -153,9 +153,29 @@ export default async function ClaimDashboardPage() {
   );
 }
 
+/** Pad naar de bewijs/uitspraak-upload per claim-type. */
+function proofUploadPath(claim: DashboardClaim): string {
+  switch (claim.type) {
+    case "Box3Claim":
+      return `/box3-check/proof/${claim.id}`;
+    case "HuurServicekostenClaim":
+      return `/huurcommissie-check/proof/${claim.id}`;
+    case "EnergieEindafrekeningClaim":
+      return `/energie-claim-check/proof/${claim.id}`;
+  }
+}
+
+/** Mensvriendelijk woord voor het bewijsdocument per claim-type. */
+function bewijsLabel(claim: DashboardClaim): string {
+  return claim.type === "Box3Claim" ? "beschikking" : "uitspraak";
+}
+
 function ClaimCard({ claim }: { claim: DashboardClaim }) {
   const isClosed = claim.closed;
   const isFailed = claim.statusCode === "FAILED";
+  // Toon de upload-link zolang de claim open is + er nog geen bewijs ligt.
+  // Dit was de ontbrekende navigatie: voorheen kwam die link alleen per e-mail.
+  const toonUploadLink = !isClosed && !claim.hasUploadedDoc;
   return (
     <li
       data-testid={`claim-${claim.type}-${claim.id}`}
@@ -240,6 +260,31 @@ function ClaimCard({ claim }: { claim: DashboardClaim }) {
           ? ` — verrekend op ${claim.chargedAt.toLocaleDateString("nl-NL")}`
           : ""}
       </p>
+
+      {toonUploadLink ? (
+        <div
+          data-testid={`claim-upload-${claim.id}`}
+          className="mt-4 rounded-lg border border-brand-100 bg-brand-50/30 p-3 text-sm"
+        >
+          <p className="text-slate-700">
+            <span className="font-semibold">
+              {bewijsLabel(claim) === "beschikking"
+                ? "Beschikking binnen?"
+                : "Uitspraak binnen?"}
+            </span>{" "}
+            Upload je {bewijsLabel(claim)} zodra je 'm van{" "}
+            {claim.type === "Box3Claim" ? "de Belastingdienst" : "de instantie"}{" "}
+            hebt ontvangen — dan ronden we je claim af.{" "}
+            <Link
+              href={proofUploadPath(claim)}
+              data-testid={`claim-upload-link-${claim.id}`}
+              className="font-semibold text-brand-700 underline hover:text-brand-800"
+            >
+              Upload {bewijsLabel(claim)} →
+            </Link>
+          </p>
+        </div>
+      ) : null}
 
       {claim.supportsVolmacht && !claim.closed ? (
         <div

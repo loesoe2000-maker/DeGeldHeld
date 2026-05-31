@@ -7,6 +7,7 @@ import {
   processProofUpload,
   BOX3_NCNP_GATE_CENTS,
   BOX3_NCNP_FEE_PCT,
+  BOX3_MAX_JAAR,
   type ChargeFn,
 } from "@/lib/box3-claim";
 import { NO_CURE_NO_PAY_FEE_CAP_CENTS } from "@/lib/payments";
@@ -90,6 +91,17 @@ describe("validateClaimIntent (HARDE €500-gate)", () => {
     expect(validateClaimIntent({ jaar: 2016, verwachteTeruggaveCents: 100_000 }).ok).toBe(false);
     expect(validateClaimIntent({ jaar: 2025, verwachteTeruggaveCents: 100_000 }).ok).toBe(false);
     expect(validateClaimIntent({ jaar: "twee", verwachteTeruggaveCents: 100_000 }).ok).toBe(false);
+  });
+
+  // v37 — borgt de UI-gate: de Box3-client verbergt de NCNP-knop voor jaren
+  // boven BOX3_MAX_JAAR. Deze test koppelt die grens hard aan de API zodat een
+  // toekomstige wijziging die de twee uit elkaar laat lopen meteen opvalt.
+  it("BOX3_MAX_JAAR is de grens die client + API delen", () => {
+    expect(BOX3_MAX_JAAR).toBe(2024);
+    // ≤ MAX → ok, > MAX → afgewezen (zelfde regel die de UI gebruikt om de
+    // knop te verbergen i.p.v. de gebruiker tegen een 400 te laten lopen).
+    expect(validateClaimIntent({ jaar: BOX3_MAX_JAAR, verwachteTeruggaveCents: 100_000 }).ok).toBe(true);
+    expect(validateClaimIntent({ jaar: BOX3_MAX_JAAR + 1, verwachteTeruggaveCents: 100_000 }).ok).toBe(false);
   });
 
   it("invalid-amount bij 0 / negatief / NaN", () => {

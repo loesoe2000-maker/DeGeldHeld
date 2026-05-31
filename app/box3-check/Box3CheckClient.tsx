@@ -23,6 +23,10 @@ import {
   type Box3Input,
   type Box3Result,
 } from "@/lib/box3";
+// NCNP-aanvraag (OWR via DeGeldHeld) kan alléén voor reeds definitief
+// aangeslagen jaren (t/m BOX3_MAX_JAAR). 2025/2026 wél indicatie tonen, maar
+// géén NCNP-knop — de API zou die afwijzen met reason:invalid-jaar.
+import { BOX3_MAX_JAAR } from "@/lib/box3-claim";
 import { track } from "@/lib/analytics";
 import PostCheckCta from "@/components/PostCheckCta";
 
@@ -294,6 +298,10 @@ function Results({
     result.verwachteTeruggaveCents > 0
       ? formatEurCents(result.verwachteTeruggaveCents)
       : null;
+  // NCNP alléén voor jaren die we daadwerkelijk kunnen aanvragen (≤ MAX_JAAR).
+  // 2025/2026 zijn nog niet definitief aangeslagen → wel indicatie, geen knop.
+  const ncnpBeschikbaarVoorJaar = result.jaar <= BOX3_MAX_JAAR;
+  const jaarNogNietAanvraagbaar = result.biedNcnpAan && !ncnpBeschikbaarVoorJaar;
   const [ncnpState, setNcnpState] = useState<
     | { kind: "idle" }
     | { kind: "pending" }
@@ -366,7 +374,26 @@ function Results({
         </p>
       ) : null}
 
-      {result.biedNcnpAan ? (
+      {jaarNogNietAanvraagbaar ? (
+        <div
+          data-testid="box3-jaar-nog-niet"
+          className="mt-6 rounded-xl border border-amber-200 bg-amber-50/60 p-5"
+        >
+          <h3 className="text-lg font-semibold text-amber-900">
+            {result.jaar} kun je nog niet via ons aanvragen
+          </h3>
+          <p className="mt-1 text-sm text-amber-900">
+            Je indicatie hierboven klopt, maar belastingjaar {result.jaar} is nog
+            niet definitief aangeslagen door de Belastingdienst. Rechtsherstel
+            (OWR) vraag je pas aan ná je definitieve aanslag — wij kunnen dit
+            voor je doen vanaf belastingjaar {BOX3_MAX_JAAR} en eerder. Kom terug
+            zodra je aanslag {result.jaar} binnen is, of doe alvast de check voor
+            een eerder jaar.
+          </p>
+        </div>
+      ) : null}
+
+      {result.biedNcnpAan && ncnpBeschikbaarVoorJaar ? (
         <div
           data-testid="box3-ncnp-card"
           className="mt-6 rounded-xl border border-brand-300 bg-white p-5"
