@@ -1,5 +1,6 @@
 /**
- * scripts/v36-test.ts — v36 expansion end-to-end test.
+ * scripts/v36-test.ts — end-to-end test van de complete user-surface
+ * (v36 expansion + v37 effort-verlagers).
  *
  * Twee fases:
  *
@@ -18,8 +19,9 @@
  *   FASE 2 — "WEBSITE OP ALLE FUNCTIES" (HTTP tegen live of localhost)
  *     • Publieke routes → verwacht HTTP 200 + body
  *     • Auth-gated pages → verwacht 200/3xx (login-gate), NOOIT 5xx
- *     • De 6 V36 API-routes → verwacht een gate-status (401/403/400/405/
- *       503), NOOIT 200 (lek) en NOOIT 5xx (crash)
+ *     • API-gates v36 + v37 (documents, volmacht, suggest-bedrag,
+ *       deadline-nudge-cron, admin-proxies) → verwacht een gate-status
+ *       (401/403/400/404/405/503), NOOIT 200 (lek) en NOOIT 5xx (crash)
  *     • /api/health → 200
  *
  * Run:
@@ -326,6 +328,14 @@ const API_GATES: Probe[] = [
   { path: `/api/volmacht/${HUUR}/${DUMMY}/form`, method: "GET", kind: "api-gate", ok: [400, 401, 403, 404, 503] },
   { path: `/api/volmacht/${HUUR}/${DUMMY}/upload-signed`, method: "POST", kind: "api-gate", ok: [400, 401, 403, 404, 405, 503] },
   { path: `/api/volmacht/${HUUR}/${DUMMY}/signed-file`, method: "GET", kind: "api-gate", ok: [400, 401, 403, 404, 503] },
+  // v37 — bedrag-suggestie (read-only OCR-hulp). Anon → 401 vóór body-parse.
+  { path: "/api/claims/suggest-bedrag", method: "POST", kind: "api-gate", ok: [400, 401] },
+  // v37 — deadline-nudge-cron. Zonder CRON_SECRET-bearer → 401; flag uit → 503.
+  { path: "/api/cron/claim-deadline-nudge", method: "GET", kind: "api-gate", ok: [401, 503] },
+  // v37 — admin-proxies (bewijs + volmacht-scan). isAdmin() false → 404
+  // (bewust geen 403, bestaan niet bevestigen). Nooit 200 voor anon.
+  { path: `/api/admin/claims/Box3Claim/${DUMMY}/proof`, method: "GET", kind: "api-gate", ok: [401, 404] },
+  { path: `/api/admin/volmacht/${HUUR}/${DUMMY}/file`, method: "GET", kind: "api-gate", ok: [401, 404] },
 ];
 
 type WebResult = {
