@@ -309,10 +309,19 @@ export async function generateVolmachtPdf(
   return doc.save();
 }
 
-/** Voeg N maanden toe aan een datum, blijf binnen de Date-grenzen. */
-function addMonths(d: Date, months: number): Date {
+/**
+ * Voeg N maanden toe aan een datum, geclampt op de laatste dag van de
+ * doelmaand. Kale setMonth overschiet bij korte doelmaanden (29 feb 2024 +
+ * 12 mnd → 1 mrt 2025; 31 jan + 1 mnd → 2/3 mrt) — juridisch relevant voor
+ * de volmacht-einddatum, dus expliciet afgehandeld. Exported voor tests.
+ */
+export function addMonths(d: Date, months: number): Date {
   const r = new Date(d);
+  const dag = r.getDate();
   r.setMonth(r.getMonth() + months);
+  // Overschoten naar de volgende maand? Clamp terug naar de laatste dag van
+  // de bedoelde maand (setDate(0) = laatste dag van de vorige maand).
+  if (r.getDate() < dag) r.setDate(0);
   return r;
 }
 

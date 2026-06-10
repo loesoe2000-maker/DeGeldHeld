@@ -35,8 +35,9 @@ export default function PrivacyPage() {
 
           <h2 className="text-2xl font-semibold text-slate-900">1. Wie we zijn</h2>
           <p>
-            DeGeldHeld B.V. (verwerkingsverantwoordelijke), gevestigd in
-            Nederland, KvK 00000000. Vragen of AVG-verzoeken:{" "}
+            Techz B.V., handelend onder de naam DeGeldHeld
+            (verwerkingsverantwoordelijke), gevestigd in Nederland, KvK
+            84079398. Vragen of AVG-verzoeken:{" "}
             <a className="text-brand-700 underline" href="mailto:privacy@degeldheld.com">
               privacy@degeldheld.com
             </a>

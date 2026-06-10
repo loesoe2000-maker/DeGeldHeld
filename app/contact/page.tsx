@@ -66,7 +66,8 @@ export default function ContactPage() {
         </section>
 
         <p className="mt-10 text-xs text-slate-500">
-          DeGeldHeld B.V. — KvK 00000000 — gevestigd in Nederland.
+          DeGeldHeld is een handelsnaam van Techz B.V. — KvK 84079398 —
+          gevestigd in Nederland.
         </p>
       </main>
       <Footer />

@@ -31,7 +31,9 @@
 import { NO_CURE_NO_PAY_FEE_CAP_CENTS } from "@/lib/payments";
 
 export const ENERGIE_PEILDATUM = "2026-01-01";
-export const ENERGIE_VERIFIED_AT = "2026-05-26";
+// 2026-05-27: energiebelasting-vermindering geverifieerd bij Belastingplan
+// 2026 (zie comment hieronder + docs/V35_DATA_2026.md) — datum gelijkgetrokken.
+export const ENERGIE_VERIFIED_AT = "2026-05-27";
 
 // ─── Wettelijke termijnen + leges (EXACT uit docs/V35_DATA_2026.md) ─────────
 

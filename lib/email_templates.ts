@@ -33,7 +33,7 @@ function shell(opts: { previewText: string; bodyContent: string }): string {
           ${opts.bodyContent}
         </td></tr>
         <tr><td style="background:${SLATE_100};padding:20px 32px;font-size:12px;color:${SLATE_600};text-align:center">
-          <div>© ${new Date().getFullYear()} DeGeldHeld B.V. — KvK 00000000</div>
+          <div>© ${new Date().getFullYear()} DeGeldHeld — Techz B.V. — KvK 84079398</div>
           <div style="margin-top:4px"><a href="${APP_URL}" style="color:${SLATE_600};text-decoration:underline">degeldheld.com</a></div>
         </td></tr>
       </table>

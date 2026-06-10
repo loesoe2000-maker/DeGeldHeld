@@ -3,7 +3,8 @@
 > **CONCEPT — laat door een jurist/DPO controleren vóór productie. Dit is geen
 > juridisch advies.**
 
-Verwerkingsverantwoordelijke: **DeGeldHeld B.V.**, Nederland, KvK 00000000.
+Verwerkingsverantwoordelijke: **Techz B.V.**, handelend onder de naam
+DeGeldHeld, Nederland, KvK 84079398.
 Contact: privacy@degeldheld.com. Laatst bijgewerkt: mei 2026.
 
 Dit register is afgeleid uit de échte codebase (`prisma/schema.prisma` + de

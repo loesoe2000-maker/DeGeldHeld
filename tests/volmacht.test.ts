@@ -7,6 +7,7 @@ import {
   VOLMACHT_CLAIM_TYPES,
 } from "@/lib/volmacht";
 import { hashIp } from "@/lib/volmacht-server";
+import { addMonths } from "@/lib/volmacht-pdf";
 
 /**
  * v36 idee 2 — Pure tests voor de SES-volmacht helpers.
@@ -170,5 +171,35 @@ describe("VOLMACHT_CLAIM_TYPES — exhaustive coverage", () => {
       expect(text.length).toBeGreaterThan(100);
       expect(text).toMatch(/Anna van Houten/);
     }
+  });
+});
+
+// v37 cijfer-audit — de volmacht-einddatum (uitgifte + 12 mnd) moet ook op
+// maand-randen juridisch kloppen. Kale setMonth overschiet bij korte
+// doelmaanden; addMonths clamp't naar de laatste dag van de bedoelde maand.
+describe("addMonths — einddatum-clamp op maand-randen", () => {
+  it("29 feb 2024 (schrikkeljaar) + 12 mnd → 28 feb 2025 (niet 1 maart)", () => {
+    const r = addMonths(new Date(2024, 1, 29), 12);
+    expect([r.getFullYear(), r.getMonth(), r.getDate()]).toEqual([2025, 1, 28]);
+  });
+
+  it("31 jan 2026 + 1 mnd → 28 feb 2026 (niet 2/3 maart)", () => {
+    const r = addMonths(new Date(2026, 0, 31), 1);
+    expect([r.getFullYear(), r.getMonth(), r.getDate()]).toEqual([2026, 1, 28]);
+  });
+
+  it("31 jan 2024 + 1 mnd → 29 feb 2024 (schrikkeljaar houdt de 29e)", () => {
+    const r = addMonths(new Date(2024, 0, 31), 1);
+    expect([r.getFullYear(), r.getMonth(), r.getDate()]).toEqual([2024, 1, 29]);
+  });
+
+  it("31 aug 2026 + 1 mnd → 30 sep 2026", () => {
+    const r = addMonths(new Date(2026, 7, 31), 1);
+    expect([r.getFullYear(), r.getMonth(), r.getDate()]).toEqual([2026, 8, 30]);
+  });
+
+  it("gewone datum blijft exact: 15 jun 2026 + 12 mnd → 15 jun 2027", () => {
+    const r = addMonths(new Date(2026, 5, 15), 12);
+    expect([r.getFullYear(), r.getMonth(), r.getDate()]).toEqual([2027, 5, 15]);
   });
 });
