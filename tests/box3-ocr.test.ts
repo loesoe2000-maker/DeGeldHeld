@@ -162,7 +162,7 @@ describe("Box 3 OCR — negative case B: bedrag onder € 500-gate → CHARGED m
     }
   });
 
-  it("Stripe-charge faalt op happy-path → 'failed' bevat werkelijk + reden", async () => {
+  it("Stripe-charge faalt op happy-path → 'charge-failed' (v37: herstelbaar) bevat werkelijk + reden", async () => {
     const pdf = buildSyntheticBeschikkingPdf({
       kind: "happy",
       jaar: 2024,
@@ -175,8 +175,8 @@ describe("Box 3 OCR — negative case B: bedrag onder € 500-gate → CHARGED m
       pdfText: out.text,
       charge: failingCharge,
     });
-    expect(result.kind).toBe("failed");
-    if (result.kind === "failed") {
+    expect(result.kind).toBe("charge-failed");
+    if (result.kind === "charge-failed") {
       expect(result.reason).toMatch(/charge failed/i);
       expect(result.werkelijkTeruggaveCents).toBe(100_000);
     }

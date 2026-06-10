@@ -49,7 +49,11 @@ export default function DocumentUploadForm() {
       setError(body.error ?? "Upload mislukt.");
       return;
     }
-    setSuccess("Document opgeslagen.");
+    // v37 — eerlijke fallback: faalt of vertraagt de refresh (Neon cold-start),
+    // dan weet de gebruiker dat de upload tóch gelukt is en wat te doen.
+    setSuccess(
+      "Document opgeslagen. Staat 'ie hieronder nog niet in de lijst? Ververs dan de pagina.",
+    );
     if (fileRef.current) fileRef.current.value = "";
     setNote("");
     startTransition(() => router.refresh());

@@ -47,7 +47,12 @@ export default async function Box3ProofPage({
 
       <ClaimStateBlock claim={claim} />
 
-      {claim.status === "AWAITING_PROOF" || claim.status === "INTENT" ? (
+      {claim.status === "AWAITING_PROOF" ||
+      claim.status === "INTENT" ||
+      // v37 — charge faalde (geen kaart)? Dan mag de klant na het toevoegen
+      // van een kaart de beschikking opnieuw uploaden → charge loopt opnieuw.
+      (claim.status === "PROOF_RECEIVED" &&
+        claim.failureReason?.startsWith("charge failed")) ? (
         <Box3ProofUpload claimId={claim.id} />
       ) : null}
 
@@ -77,7 +82,11 @@ function ClaimStateBlock({ claim }: { claim: { status: string; werkelijkTeruggav
         <p className="mt-1 text-sm text-slate-700">
           Werkelijk teruggehaald:{" "}
           <strong>{formatEurCents(werkelijk)}</strong>. Onze fee:{" "}
-          <strong>{fee > 0 ? `${formatEurCents(fee)} (25%)` : "€ 0 (werkelijk < € 500)"}</strong>
+          <strong>
+            {fee > 0
+              ? `${formatEurCents(fee)} (25%)`
+              : "€ 0 — minder dan € 500 teruggekregen, dus je betaalt ons niets"}
+          </strong>
           .
         </p>
       </section>
@@ -100,6 +109,34 @@ function ClaimStateBlock({ claim }: { claim: { status: string; werkelijkTeruggav
     );
   }
   if (claim.status === "PROOF_RECEIVED") {
+    // v37 — charge faalde (meestal: geen betaalkaart op het account). De
+    // beschikking is wél gelezen; vertel de klant wat er ECHT aan de hand is
+    // + hoe het op te lossen, i.p.v. een misleidende "verwerking loopt".
+    if (claim.failureReason?.startsWith("charge failed")) {
+      return (
+        <section
+          data-testid="box3-proof-charge-failed"
+          className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-6"
+        >
+          <h2 className="text-lg font-semibold text-amber-900">
+            Beschikking ontvangen ✓ — maar de fee kon nog niet worden afgeschreven
+          </h2>
+          <p className="mt-1 text-sm text-amber-900">
+            We hebben het toegekende bedrag gelezen
+            {claim.werkelijkTeruggaveCents != null
+              ? ` (${formatEurCents(claim.werkelijkTeruggaveCents)})`
+              : ""}
+            , maar er staat geen werkende betaalkaart op je account. Voeg een
+            kaart toe via{" "}
+            <Link href="/account" className="font-semibold underline">
+              je account
+            </Link>{" "}
+            en upload de beschikking hieronder opnieuw — of doe niets, dan
+            rondt ons team 'm handmatig met je af.
+          </p>
+        </section>
+      );
+    }
     return (
       <section
         data-testid="box3-proof-received"

@@ -12,9 +12,13 @@ import { NO_CURE_NO_PAY_FEE_CAP_CENTS } from "@/lib/payments";
 export type Box3ClaimStatus =
   | "INTENT" // klant gaf intentie aan, vóór mailbevestiging
   | "AWAITING_PROOF" // mail verstuurd, wachten op beschikking-upload
-  | "PROOF_RECEIVED" // beschikking ge-OCR'd, fee-charge gestart
+  // v37: PROOF_RECEIVED dekt óók "beschikking gelezen maar charge faalde
+  // (bv. geen kaart)" — bewust NIET terminaal, zodat de klant na het
+  // toevoegen van een kaart opnieuw kan uploaden én de admin-charge-knop
+  // (chargeable voor PROOF_RECEIVED) als handmatig herstel-pad werkt.
+  | "PROOF_RECEIVED" // beschikking ge-OCR'd; fee-charge loopt of wacht op kaart
   | "CHARGED" // fee succesvol afgeschreven (of fee € 0 want < drempel)
-  | "FAILED"; // OCR kon bedrag niet lezen of charge faalde
+  | "FAILED"; // terminaal: OCR kon het bedrag niet lezen (handmatige review)
 
 /** HARDE drempel uit guardrail 5 V29: NCNP-aanbod alléén bij ≥ € 500. */
 export const BOX3_NCNP_GATE_CENTS = 50_000;
@@ -167,6 +171,10 @@ export type ProofBackOutcome =
       paymentIntentId: string | null;
     }
   | { kind: "no-fee"; werkelijkTeruggaveCents: number }
+  // v37: charge-fail is een APART kind — de beschikking is wél gelezen, alleen
+  // het afschrijven faalde (geen kaart / kaart geweigerd). De route mag dit
+  // NOOIT als terminale FAILED behandelen: de claim moet herstelbaar blijven.
+  | { kind: "charge-failed"; reason: string; werkelijkTeruggaveCents: number }
   | { kind: "failed"; reason: string; werkelijkTeruggaveCents?: number };
 
 export async function processProofUpload(opts: {
@@ -198,7 +206,7 @@ export async function processProofUpload(opts: {
     };
   }
   return {
-    kind: "failed",
+    kind: "charge-failed",
     reason: `charge failed: ${result.reason}`,
     werkelijkTeruggaveCents: decision.werkelijkTeruggaveCents,
   };

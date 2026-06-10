@@ -6,7 +6,7 @@
  * en we slaan 't op met de AVG-grondslag "uitvoering overeenkomst" — zie
  * paginavoettekst.
  */
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { track } from "@/lib/analytics";
 import { formatEurCents } from "@/lib/format";
@@ -22,6 +22,15 @@ type UploadResponse =
       paymentIntentId?: string;
       reden?: string;
     }
+  // v37 — charge faalde maar beschikking is gelezen: herstelbaar (kaart
+  // toevoegen + opnieuw uploaden, of owner rondt handmatig af).
+  | {
+      ok: false;
+      status: "PROOF_RECEIVED";
+      reason: "charge-failed";
+      detail?: string;
+      werkelijkTeruggaveCents?: number;
+    }
   | { ok: false; status: "FAILED"; reason: string; werkelijkTeruggaveCents?: number };
 
 export default function Box3ProofUpload({ claimId }: { claimId: string }) {
@@ -30,6 +39,9 @@ export default function Box3ProofUpload({ claimId }: { claimId: string }) {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<UploadResponse | null>(null);
+  // v37 — refresh via transition i.p.v. setTimeout: de pagina-status boven
+  // dit formulier ververst direct mee, zonder 800ms-race.
+  const [isRefreshing, startTransition] = useTransition();
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -64,8 +76,8 @@ export default function Box3ProofUpload({ claimId }: { claimId: string }) {
       } else if (!data.ok) {
         track("box3_proof_failed", { reason: data.reason });
       }
-      // Force-revalidate de page state-block.
-      setTimeout(() => router.refresh(), 800);
+      // Force-revalidate de page state-block — direct, geen 800ms-race.
+      startTransition(() => router.refresh());
     } catch {
       setError("Netwerkfout — probeer het opnieuw.");
     } finally {
@@ -98,11 +110,11 @@ export default function Box3ProofUpload({ claimId }: { claimId: string }) {
         ) : null}
         <button
           type="submit"
-          disabled={pending}
+          disabled={pending || isRefreshing}
           data-testid="box3-proof-submit"
           className="rounded-lg bg-brand-600 px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-brand-700 disabled:opacity-40"
         >
-          {pending ? "Bezig met verwerken…" : "Upload + verwerk"}
+          {pending || isRefreshing ? "Bezig met verwerken…" : "Upload + verwerk"}
         </button>
       </form>
 
@@ -110,7 +122,11 @@ export default function Box3ProofUpload({ claimId }: { claimId: string }) {
         <div
           data-testid="box3-proof-result"
           className={`mt-6 rounded-xl border p-4 text-sm ${
-            result.ok ? "border-brand-200 bg-brand-50 text-brand-900" : "border-rose-200 bg-rose-50 text-rose-900"
+            result.ok
+              ? "border-brand-200 bg-brand-50 text-brand-900"
+              : result.status === "PROOF_RECEIVED"
+                ? "border-amber-200 bg-amber-50 text-amber-900"
+                : "border-rose-200 bg-rose-50 text-rose-900"
           }`}
         >
           {result.ok && result.status === "CHARGED" ? (
@@ -119,12 +135,33 @@ export default function Box3ProofUpload({ claimId }: { claimId: string }) {
                 Klaar ✓ — fee:{" "}
                 {result.feeCents > 0
                   ? `${formatEurCents(result.feeCents)} (25%)`
-                  : "€ 0 (werkelijk < € 500)"}
+                  : "€ 0 — minder dan € 500 teruggekregen, dus je betaalt ons niets"}
               </p>
               <p className="mt-1">
                 Werkelijk teruggehaald:{" "}
                 <strong>{formatEurCents(result.werkelijkTeruggaveCents)}</strong>.
                 {result.reden ? <> {result.reden}</> : null}
+              </p>
+            </>
+          ) : !result.ok && result.status === "PROOF_RECEIVED" ? (
+            <>
+              <p className="font-semibold">
+                Beschikking ontvangen ✓ — maar de fee kon niet worden afgeschreven
+              </p>
+              <p className="mt-1">
+                {result.werkelijkTeruggaveCents != null ? (
+                  <>
+                    We lazen{" "}
+                    <strong>{formatEurCents(result.werkelijkTeruggaveCents)}</strong>{" "}
+                    toegekend.{" "}
+                  </>
+                ) : null}
+                Er staat geen werkende betaalkaart op je account. Voeg een kaart
+                toe via{" "}
+                <a href="/account" className="font-semibold underline">
+                  je account
+                </a>{" "}
+                en upload opnieuw — of ons team rondt 'm handmatig met je af.
               </p>
             </>
           ) : (

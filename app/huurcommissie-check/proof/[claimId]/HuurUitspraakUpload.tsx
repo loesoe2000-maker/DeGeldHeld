@@ -8,7 +8,7 @@
  * Géén OCR (Huurcommissie-uitspraken komen niet als standaardformaat). Géén
  * auto-charge: owner reviewt + triggert fee handmatig.
  */
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { track } from "@/lib/analytics";
 import { parseEurInput } from "@/lib/format";
@@ -45,6 +45,8 @@ export default function HuurUitspraakUpload({
   const hasVault = vaultDocs.length > 0;
   const [mode, setMode] = useState<"nieuw" | "kluis">("nieuw");
   const [docId, setDocId] = useState<string>(vaultDocs[0]?.id ?? "");
+  // v37 — refresh via transition i.p.v. setTimeout (geen 800ms-race).
+  const [isRefreshing, startTransition] = useTransition();
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -88,7 +90,7 @@ export default function HuurUitspraakUpload({
       const r = await fetch("/api/huurcommissie/uitspraak", { method: "POST", body: form });
       const data = (await r.json()) as UploadResponse;
       setResult(data);
-      setTimeout(() => router.refresh(), 800);
+      startTransition(() => router.refresh());
     } catch {
       setError("Netwerkfout — probeer het opnieuw.");
     } finally {
@@ -195,11 +197,11 @@ export default function HuurUitspraakUpload({
         ) : null}
         <button
           type="submit"
-          disabled={pending}
+          disabled={pending || isRefreshing}
           data-testid="huur-proof-submit"
           className="rounded-lg bg-brand-600 px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-brand-700 disabled:opacity-40"
         >
-          {pending ? "Bezig met uploaden…" : "Upload + indienen"}
+          {pending || isRefreshing ? "Bezig met uploaden…" : "Upload + indienen"}
         </button>
       </form>
 
@@ -212,7 +214,16 @@ export default function HuurUitspraakUpload({
               : "border-rose-200 bg-rose-50 text-rose-900"
           }`}
         >
-          {result.ok ? (
+          {result.ok && result.werkelijkeRestitutieCents === 0 ? (
+            <>
+              <p className="font-semibold">Afwijzing verwerkt ✓</p>
+              <p className="mt-1">
+                De Huurcommissie kende geen restitutie toe. Onze fee is € 0
+                (no cure, no pay) — wij sluiten je claim verder netjes af, je
+                hoeft niets meer te doen.
+              </p>
+            </>
+          ) : result.ok ? (
             <>
               <p className="font-semibold">Uitspraak ontvangen ✓</p>
               <p className="mt-1">

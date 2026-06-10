@@ -122,18 +122,37 @@ function ClaimStateBlock({
     );
   }
   if (claim.status === "UITSPRAAK") {
+    // v37 — een afwijzing (€ 0) is geen "review nodig" maar een nette
+    // afsluiting: fee € 0, klant hoeft niets te doen.
+    const isAfwijzing = claim.werkelijkeRestitutieCents === 0;
     return (
       <section
         data-testid="huur-proof-received"
-        className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-6"
+        className={`mt-6 rounded-2xl border p-6 ${
+          isAfwijzing ? "border-slate-200 bg-white" : "border-amber-200 bg-amber-50"
+        }`}
       >
-        <h2 className="text-lg font-semibold text-amber-900">
-          Uitspraak ontvangen — handmatige review
+        <h2
+          className={`text-lg font-semibold ${
+            isAfwijzing ? "text-slate-900" : "text-amber-900"
+          }`}
+        >
+          {isAfwijzing
+            ? "Afwijzing ontvangen — fee € 0"
+            : "Uitspraak ontvangen — handmatige review"}
         </h2>
-        <p className="mt-1 text-sm text-amber-900">
-          We hebben je uitspraak ontvangen. Iemand van ons reviewt 'm en
-          schrijft de no-cure-no-pay-fee binnen 1-2 werkdagen af (alléén áls
-          werkelijk teruggehaald ≥ € 50).
+        <p
+          className={`mt-1 text-sm ${
+            isAfwijzing ? "text-slate-700" : "text-amber-900"
+          }`}
+        >
+          {isAfwijzing
+            ? "De Huurcommissie kende geen restitutie toe. No cure, no pay: " +
+              "onze fee is € 0. Wij sluiten je claim verder netjes af — je " +
+              "hoeft niets meer te doen."
+            : "We hebben je uitspraak ontvangen. Iemand van ons reviewt 'm en " +
+              "schrijft de no-cure-no-pay-fee binnen 1-2 werkdagen af (alléén " +
+              "áls werkelijk teruggehaald ≥ € 50)."}
         </p>
       </section>
     );

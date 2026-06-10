@@ -228,18 +228,23 @@ describe("processProofUpload — end-to-end pipeline", () => {
     expect(called).toBe(0);
   });
 
-  it("Stripe-charge faalt → 'failed' met reason + werkelijkTeruggaveCents bewaard", async () => {
+  // v37 — charge-fail is een APART, niet-terminaal kind. Vóór deze fix werd
+  // dit 'failed' → de route zette de claim op FAILED (terminaal, 409 op elke
+  // retry) terwijl de klant alleen een kaart hoefde toe te voegen.
+  it("Stripe-charge faalt → 'charge-failed' (herstelbaar) met reason + werkelijk bewaard", async () => {
     const r = await processProofUpload({
       userId: "u1",
       claimId: "c1",
       pdfText: "Toegekend bedrag € 800,00",
       charge: failingCharge,
     });
-    expect(r.kind).toBe("failed");
-    if (r.kind === "failed") {
+    expect(r.kind).toBe("charge-failed");
+    if (r.kind === "charge-failed") {
       expect(r.reason).toMatch(/card_declined/);
       expect(r.werkelijkTeruggaveCents).toBe(80_000);
     }
+    // Borg: charge-fail mag NOOIT samenvallen met de terminale parse-fail.
+    expect(r.kind).not.toBe("failed");
   });
 
   it("lege PDF-tekst → 'failed' (parse-fail)", async () => {

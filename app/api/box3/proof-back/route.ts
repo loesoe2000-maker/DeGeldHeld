@@ -132,6 +132,67 @@ export async function POST(req: Request) {
     charge: chargeFeeOffSession,
   });
 
+  // v37 — charge-fail is NIET terminaal. De beschikking is gelezen; alleen het
+  // afschrijven faalde (meestal: geen kaart/mandaat op het account). Status
+  // blijft PROOF_RECEIVED zodat (a) de klant na het toevoegen van een kaart
+  // opnieuw kan uploaden (PROOF_RECEIVED zit niet in het 409-blok), en (b) de
+  // owner 'm handmatig kan afronden via /admin/claims (PROOF_RECEIVED is daar
+  // chargeable). Vóór deze fix werd dit FAILED → permanent gebrickte claim.
+  if (outcome.kind === "charge-failed") {
+    await prisma.box3Claim.update({
+      where: { id: claim.id },
+      data: {
+        status: "PROOF_RECEIVED" satisfies Box3ClaimStatus,
+        proofUploadedAt: new Date(),
+        werkelijkTeruggaveCents: outcome.werkelijkTeruggaveCents,
+        failureReason: outcome.reason,
+        ...(proofStorageUrl ? { proofStorageUrl } : {}),
+      },
+    });
+    try {
+      const adminEmail = process.env.ADMIN_REVIEW_EMAIL ?? "hallo@degeldheld.com";
+      await sendEmail({
+        to: adminEmail,
+        subject: `Box 3 charge gefaald — claim ${claim.id} (beschikking wél gelezen)`,
+        text:
+          `Fee-charge faalde, claim staat op PROOF_RECEIVED (herstelbaar).\n` +
+          `Claim: ${claim.id}\nUser: ${userId}\nJaar: ${claim.jaar}\n` +
+          `Werkelijk: ${outcome.werkelijkTeruggaveCents} cents\n` +
+          `Reden: ${outcome.reason}\n` +
+          `Herstel: klant voegt kaart toe + uploadt opnieuw, óf charge handmatig via /admin/claims.`,
+        html: `<p>Fee-charge faalde — claim blijft <strong>PROOF_RECEIVED</strong> (herstelbaar).</p>
+<ul>
+  <li>Claim: <code>${claim.id}</code></li>
+  <li>User: <code>${userId}</code></li>
+  <li>Jaar: ${claim.jaar}</li>
+  <li>Werkelijk: ${outcome.werkelijkTeruggaveCents} cents</li>
+  <li>Reden: ${outcome.reason}</li>
+</ul>
+<p>Herstel: klant voegt kaart toe + uploadt opnieuw, óf charge handmatig via /admin/claims.</p>`,
+      });
+    } catch {
+      /* never block on outbound mail */
+    }
+    void notifyOwner("claim-failed", {
+      summary: `Box 3 charge gefaald (herstelbaar): ${outcome.reason}`,
+      ref: claim.id,
+      details: {
+        claimType: "Box3Claim",
+        claimId: claim.id,
+        jaar: claim.jaar,
+        werkelijkeCents: outcome.werkelijkTeruggaveCents,
+        herstelbaar: true,
+      },
+    });
+    return NextResponse.json({
+      ok: false,
+      status: "PROOF_RECEIVED",
+      reason: "charge-failed",
+      detail: outcome.reason,
+      werkelijkTeruggaveCents: outcome.werkelijkTeruggaveCents,
+    });
+  }
+
   if (outcome.kind === "failed") {
     await prisma.box3Claim.update({
       where: { id: claim.id },
