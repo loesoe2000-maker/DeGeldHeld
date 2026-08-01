@@ -58,6 +58,9 @@ const STATIC_PAGES = [
   // Beide flag-gated (default off) → audit verwacht 307→/ wanneer flag uit is.
   "/huurcommissie-check",
   "/energie-claim-check",
+  // v38 uitbreiding A — Engelstalige landing voor internationals. Flag-gated
+  // (EN_LANDING_ENABLED, default off) → 307→/ wanneer uit.
+  "/en",
 ];
 
 // admin-only pages are intentionally skipped from the audit since they

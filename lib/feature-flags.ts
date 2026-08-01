@@ -103,6 +103,13 @@ const FLAG_DEFAULTS = {
   // zodra CRON_SECRET in Vercel staat + de nudge-mailteksten gereviewd zijn.
   // Respecteert marketingOptOut + notificationsEnabled (geen spam).
   CLAIM_DEADLINE_NUDGE_ENABLED: false,
+  // Off by default — v38 uitbreiding A — Engelstalige landingspagina /en voor
+  // internationals/expats in Nederland. Zelfde NL-product (euro's, NL-recht,
+  // dezelfde checks) — alleen de intro/uitleg in het Engels; de checks zelf +
+  // de officiële brieven blijven Nederlands (Belastingdienst/Huurcommissie
+  // accepteren geen Engels). Flip aan zodra de copy is gereviewd + de
+  // expat-doelgroep-positionering staat.
+  EN_LANDING_ENABLED: false,
 } as const;
 
 export type FeatureFlag = keyof typeof FLAG_DEFAULTS;

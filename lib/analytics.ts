@@ -54,6 +54,8 @@ export type AnalyticsEvent =
   // v29 vind-al-je-geld hub (achter FEATURE_MONEYFINDER_HUB_ENABLED)
   | "moneyfinder_hub_view"
   | "moneyfinder_hub_tile_clicked"
+  // v38 uitbreiding A — Engelstalige landing voor internationals (EN_LANDING_ENABLED)
+  | "en_landing_view"
   // v35 Huurcommissie-bezwaar servicekosten (achter HUURCOMMISSIE_CHECK_ENABLED)
   | "huurcommissie_check_started"
   | "huurcommissie_results_viewed"
