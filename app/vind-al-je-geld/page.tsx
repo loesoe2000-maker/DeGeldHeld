@@ -6,10 +6,28 @@ import TrackEvent from "@/components/TrackEvent";
 
 export const dynamic = "force-dynamic";
 export const metadata = {
-  title: "Vind al je geld — DeGeldHeld",
+  // Géén "— DeGeldHeld" in de title: het layout-template "%s · DeGeldHeld"
+  // plakt het merk er al achter (dubbel merk stond live in de <title>).
+  title: "Vind al je geld",
   description:
     "Alle DeGeldHeld-checks op één plek: toeslagen + Box 3 + zorgkosten + " +
     "vluchtclaim + NS-vertraging + spookabonnementen.",
+  // Eigen openGraph-blok: zonder dit erfde deze pagina de og:title/description
+  // van de homepage ("upload je rekening…") — de verkeerde propositie voor wie
+  // deze link deelt. App Router vervangt het parent-blok, dus alles expliciet.
+  openGraph: {
+    type: "website",
+    locale: "nl_NL",
+    url: "/vind-al-je-geld",
+    siteName: "DeGeldHeld",
+    title: "Vind al je geld — alle checks op één plek",
+    description:
+      "Toeslagen, Box 3-rechtsherstel, zorgkosten, huurcommissie, energie, " +
+      "NS-vertraging en spookabonnementen — gratis checks, no cure no pay.",
+    images: [
+      { url: "/api/og?title=Vind%20al%20je%20geld", width: 1200, height: 630 },
+    ],
+  },
 };
 
 /**

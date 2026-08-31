@@ -11,11 +11,13 @@ describe("components/CounterUp", () => {
 
   it("animates to final value", async () => {
     render(<CounterUp value={500} durationMs={50} />);
+    // Ruime timeout: onder volle-suite-load kan jsdom's rAF traag ticken
+    // (flakete op 1000ms terwijl de test geïsoleerd altijd slaagt).
     await waitFor(
       () => {
         expect(screen.getByText("500")).toBeInTheDocument();
       },
-      { timeout: 1000 },
+      { timeout: 3000 },
     );
   });
 

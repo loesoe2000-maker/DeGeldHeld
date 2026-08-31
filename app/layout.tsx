@@ -6,7 +6,11 @@ import LegalFooter from "@/components/LegalFooter";
 import PostHogProvider from "@/components/PostHogProvider";
 import { Analytics } from "@vercel/analytics/react";
 
-const APP_URL = process.env.APP_URL ?? "https://degeldheld.com";
+// www is het canonieke domein op prod (apex 307-redirect → www). De fallback
+// MOET www zijn: anders wijzen og:url/og:image naar de apex en moet LinkedIns
+// image-fetcher een redirect volgen — die haakt daar stilletjes op af en
+// rendert dan een kale kaart zonder afbeelding.
+const APP_URL = process.env.APP_URL ?? "https://www.degeldheld.com";
 
 export const metadata: Metadata = {
   metadataBase: new URL(APP_URL),

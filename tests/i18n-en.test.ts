@@ -3,17 +3,18 @@ import {
   EN_HERO,
   EN_TILES,
   EN_HOW_IT_WORKS,
+  EN_FEE_NOTE,
   EN_TRUST,
 } from "@/lib/i18n-en";
+import { FLAG_DEFAULTS } from "@/lib/feature-flags";
 
 /**
- * v38 uitbreiding A — Engelstalige landing-copy. Borgt dat de tegels naar
- * BESTAANDE NL-check-routes wijzen (geen dode links) en dat de eerlijke
- * kernpunten in de copy staan (NL-paperwork + KvK + no cure no pay).
+ * v38 uitbreiding A — Engelstalige landing-copy. Borgt naast structuur ook
+ * de launch-review-bevindingen (elke test hieronder was eerst een echte fout
+ * of overclaim in de copy — laat ze niet terugkomen).
  */
 
-// De routes die op prod bestaan (uit de app/-structuur). De EN-tegels mogen
-// alleen hiernaar linken — anders 404 voor een internationale bezoeker.
+// De routes die op prod bestaan. De EN-tegels mogen alleen hiernaar linken.
 const BESTAANDE_CHECK_ROUTES = new Set([
   "/box3-check",
   "/huurcommissie-check",
@@ -23,6 +24,18 @@ const BESTAANDE_CHECK_ROUTES = new Set([
   "/ns-check",
   "/vluchtclaim",
 ]);
+
+/** Alle publieke EN-copy aan elkaar, voor overclaim-checks. */
+function alleCopy(): string {
+  return [
+    EN_HERO.title,
+    EN_HERO.subtitle,
+    ...EN_TILES.map((t) => `${t.title} ${t.body}`),
+    ...EN_HOW_IT_WORKS.map((s) => `${s.title} ${s.body}`),
+    EN_FEE_NOTE,
+    EN_TRUST.disclaimer,
+  ].join(" ");
+}
 
 describe("EN landing copy — structuur", () => {
   it("hero heeft titel + subtitle + twee CTA's", () => {
@@ -45,6 +58,15 @@ describe("EN landing copy — structuur", () => {
     }
   });
 
+  it("elke tegel draagt een geldige feature-flag (page filtert dooie tegels weg)", () => {
+    for (const t of EN_TILES) {
+      expect(
+        Object.prototype.hasOwnProperty.call(FLAG_DEFAULTS, t.flag),
+        `EN-tegel "${t.title}" heeft onbekende flag ${t.flag}`,
+      ).toBe(true);
+    }
+  });
+
   it("how-it-works heeft 4 genummerde stappen", () => {
     expect(EN_HOW_IT_WORKS).toHaveLength(4);
     expect(EN_HOW_IT_WORKS.map((s) => s.n)).toEqual(["1", "2", "3", "4"]);
@@ -52,21 +74,48 @@ describe("EN landing copy — structuur", () => {
 });
 
 describe("EN landing copy — eerlijkheid + juridische correctheid", () => {
+  it("Box 3: Hoge Raad-arresten gedateerd op juni 2024, NIET als 2025-uitspraak", () => {
+    const box3 = EN_TILES.find((t) => t.href === "/box3-check");
+    expect(box3).toBeDefined();
+    expect(box3?.body).toMatch(/June 2024/);
+    // De launch-review vond letterlijk "the 2025 Supreme Court ruling" — fout.
+    expect(alleCopy()).not.toMatch(/2025 Supreme Court/i);
+  });
+
+  it("geen 'we handle the paperwork/complaint'-overclaim — wij bereiden voor, klant dient in", () => {
+    expect(alleCopy()).not.toMatch(/we handle the (dutch )?paperwork/i);
+    expect(alleCopy()).not.toMatch(/we handle the complaint/i);
+    expect(alleCopy().toLowerCase()).toMatch(/you submit/);
+  });
+
+  it("geen absoluut 'you pay nothing' — wel de eerlijke no-cure-formulering", () => {
+    expect(alleCopy()).not.toMatch(/you pay nothing/i);
+    expect(alleCopy()).toMatch(/owe us nothing/i);
+  });
+
+  it("fee is concreet: 20% + Box 3 25% + cap € 500 (niet 'a fair percentage')", () => {
+    const stap4 = EN_HOW_IT_WORKS[3];
+    expect(stap4.body).toMatch(/20%/);
+    expect(stap4.body).toMatch(/25%/);
+    expect(stap4.body).toMatch(/€\s?500/);
+    expect(alleCopy()).not.toMatch(/a fair percentage/i);
+  });
+
+  it("fee-noot noemt de voorgeschoten leges (€ 25 / € 27,50 + € 52,50) + gratis onder drempel", () => {
+    expect(EN_FEE_NOTE).toMatch(/€\s?25(?![.,]\d)/);
+    expect(EN_FEE_NOTE).toMatch(/€\s?27\.50/);
+    expect(EN_FEE_NOTE).toMatch(/€\s?52\.50/);
+    expect(EN_FEE_NOTE.toLowerCase()).toMatch(/advance|yourself/);
+    expect(EN_FEE_NOTE).toMatch(/€\s?0/);
+  });
+
   it("noemt expliciet dat de officiële filings Nederlands zijn", () => {
-    const alleTekst = [
-      EN_HERO.subtitle,
-      ...EN_HOW_IT_WORKS.map((s) => s.body),
-      EN_TRUST.disclaimer,
-    ]
-      .join(" ")
-      .toLowerCase();
-    expect(alleTekst).toMatch(/dutch/);
+    expect(alleCopy().toLowerCase()).toMatch(/dutch/);
   });
 
   it("disclaimer noemt Techz B.V. + het juiste KvK-nummer", () => {
     expect(EN_TRUST.disclaimer).toMatch(/Techz B\.V\./);
     expect(EN_TRUST.disclaimer).toMatch(/84079398/);
-    // Nooit het oude placeholder-KvK.
     expect(EN_TRUST.disclaimer).not.toMatch(/00000000/);
   });
 
@@ -74,8 +123,7 @@ describe("EN landing copy — eerlijkheid + juridische correctheid", () => {
     expect(EN_TRUST.disclaimer.toLowerCase()).toMatch(/not financial|not.*advice/);
   });
 
-  it("no-cure-no-pay staat in de how-it-works", () => {
-    const joined = EN_HOW_IT_WORKS.map((s) => `${s.title} ${s.body}`).join(" ").toLowerCase();
-    expect(joined).toMatch(/no cure, no pay|pay nothing/);
+  it("geen kwantitatieve doelgroep-claims zonder bron ('often left unclaimed')", () => {
+    expect(alleCopy()).not.toMatch(/often left unclaimed/i);
   });
 });

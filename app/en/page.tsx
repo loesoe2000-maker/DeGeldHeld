@@ -5,6 +5,7 @@ import {
   EN_HERO,
   EN_TILES,
   EN_HOW_IT_WORKS,
+  EN_FEE_NOTE,
   EN_TRUST,
 } from "@/lib/i18n-en";
 import TrackEvent from "@/components/TrackEvent";
@@ -15,9 +16,10 @@ export const metadata = {
   description:
     "For internationals in the Netherlands: reclaim Box 3 tax, rent service-cost " +
     "refunds, energy corrections and missed allowances. Free check, no cure no pay.",
-  // Bewust index:false zolang de flag/copy niet gereviewd is — geen halve
-  // Engelse pagina in Google tijdens de proof-of-concept-fase.
-  robots: { index: false, follow: false },
+  // Bewust index:false zolang de EN-lancering niet af is (soft launch via
+  // directe link; LinkedIn heeft geen Google-indexering nodig). follow:true
+  // WÉL: anders blokkeren we zonder reden linkwaarde naar de NL-checks.
+  robots: { index: false, follow: true },
 };
 
 /**
@@ -29,6 +31,11 @@ export const metadata = {
  */
 export default function EnglishLandingPage() {
   if (!isEnabled("EN_LANDING_ENABLED")) redirect("/");
+
+  // Toon alléén tegels waarvan de doel-check-flag aan staat: een tegel naar
+  // een uitgezette check zou stil doodlopen op een redirect naar de
+  // Nederlandse homepage — precies wat een Engelstalige bezoeker niet snapt.
+  const tiles = EN_TILES.filter((t) => isEnabled(t.flag));
 
   return (
     <main className="mx-auto max-w-4xl px-6 pb-32 pt-10 sm:pt-16">
@@ -65,7 +72,7 @@ export default function EnglishLandingPage() {
       <section id="claims" className="mt-14 scroll-mt-8">
         <h2 className="text-2xl font-bold text-slate-900">What you can claim</h2>
         <div className="mt-6 grid gap-4 sm:grid-cols-2">
-          {EN_TILES.map((t) => (
+          {tiles.map((t) => (
             <Link
               key={t.href}
               href={t.href}
@@ -85,6 +92,18 @@ export default function EnglishLandingPage() {
             </Link>
           ))}
         </div>
+        {tiles.length === 0 ? (
+          <p
+            data-testid="en-tiles-empty"
+            className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-5 text-sm text-slate-600"
+          >
+            The checks are being rolled out — email{" "}
+            <a className="underline" href="mailto:hallo@degeldheld.com">
+              hallo@degeldheld.com
+            </a>{" "}
+            and we'll let you know the moment they open.
+          </p>
+        ) : null}
         <p className="mt-4 text-sm text-slate-500">
           The checks themselves are in Dutch — but they need no DigiD and take a
           minute. Prefer help in English? Email{" "}
@@ -116,14 +135,22 @@ export default function EnglishLandingPage() {
         </ol>
       </section>
 
+      {/* Eerlijke kosten-noot — hoort direct onder no-cure-no-pay */}
+      <p
+        data-testid="en-fee-note"
+        className="mt-6 rounded-xl border border-amber-200 bg-amber-50/60 p-5 text-sm leading-relaxed text-amber-900"
+      >
+        {EN_FEE_NOTE}
+      </p>
+
       {/* Trust / disclaimer */}
-      <section className="mt-16 rounded-xl border border-slate-200 bg-slate-50 p-5 text-xs leading-relaxed text-slate-600">
+      <section className="mt-10 rounded-xl border border-slate-200 bg-slate-50 p-5 text-xs leading-relaxed text-slate-600">
         {EN_TRUST.disclaimer}
       </section>
 
       <div className="mt-10 text-center text-sm text-slate-500">
         <Link href="/" className="underline">
-          Bekijk de Nederlandse site →
+          View the Dutch site →
         </Link>
       </div>
     </main>

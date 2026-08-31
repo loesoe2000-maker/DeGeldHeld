@@ -8,10 +8,21 @@ export const metadata = {
   title: "Track record",
   description:
     "Bekijk hoeveel DeGeldHeld voor klanten heeft bespaard — totale besparing, slaagkans en gemiddelde besparing per onderhandeling, transparant per periode.",
+  // LET OP (App Router): een eigen openGraph-blok VERVANGT het hele parent-
+  // blok uit app/layout.tsx — het merge't niet diep. Zonder images/url/
+  // siteName hieronder deelt /proof op LinkedIn als kale kaart zonder
+  // afbeelding (live gebeurd; gefixt in v38).
   openGraph: {
+    type: "website",
+    locale: "nl_NL",
+    url: "/proof",
+    siteName: "DeGeldHeld",
     title: "DeGeldHeld track record — transparante besparing per maand",
     description:
       "Live cijfers: totale besparing, slaagpercentage en gemiddelde besparing per onderhandeling.",
+    images: [
+      { url: "/api/og?title=Track%20record", width: 1200, height: 630 },
+    ],
   },
 };
 

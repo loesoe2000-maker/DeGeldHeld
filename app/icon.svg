@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- v38 — favicon: brand-groen (zelfde #059669 als de site) met €-teken.
+       Next.js App Router serveert app/icon.svg automatisch als site-icoon;
+       vóór deze fix gaf /favicon.ico een 404 (kale browser-tab bij delen). -->
+  <rect width="64" height="64" rx="14" fill="#059669"/>
+  <text x="32" y="45" font-family="system-ui, -apple-system, sans-serif" font-size="38" font-weight="700" fill="#ffffff" text-anchor="middle">€</text>
+</svg>
