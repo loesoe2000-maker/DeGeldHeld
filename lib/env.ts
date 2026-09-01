@@ -7,8 +7,11 @@ const schema = z.object({
   RESEND_API_KEY: z.string().min(1),
   EMAIL_FROM: z.string().min(1),
   GROQ_API_KEY: z.string().min(1),
-  GROQ_VISION_MODEL: z.string().default("meta-llama/llama-4-scout-17b-16e-instruct"),
-  GROQ_TEXT_MODEL: z.string().default("llama-3.3-70b-versatile"),
+  // Sept 2026: Groq schrapte het hele Llama-aanbod uit dit tier (llama-3.3
+  // en llama-4-scout bestaan niet meer — elke call faalde). qwen3.8-27b is
+  // live getest: json_object-mode én image_url-input werken.
+  GROQ_VISION_MODEL: z.string().default("qwen/qwen3.8-27b"),
+  GROQ_TEXT_MODEL: z.string().default("qwen/qwen3.8-27b"),
   STRIPE_SECRET_KEY: z.string().min(1),
   // STRIPE_WEBHOOK_SECRET wordt alleen door /api/webhooks/stripe gebruikt.
   // Optional zodat het ontbreken niet de hele app-health degradeert; de

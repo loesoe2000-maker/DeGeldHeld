@@ -69,7 +69,9 @@ describe("env", () => {
   it("provides sensible defaults for optional fields", () => {
     delete process.env.GROQ_VISION_MODEL;
     const env = loadEnv();
-    // v7 free-tier vision-capable model: scout
-    expect(env.GROQ_VISION_MODEL).toMatch(/scout|vision/);
+    // Sept 2026: Groq schrapte alle Llama-modellen; qwen3.8 is het geteste
+    // vision-capable default (zie lib/env.ts + tests/ocr-cascade.test.ts).
+    expect(env.GROQ_VISION_MODEL).toMatch(/qwen3\.8/);
+    expect(env.GROQ_VISION_MODEL).not.toMatch(/llama/);
   });
 });

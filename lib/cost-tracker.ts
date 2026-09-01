@@ -16,8 +16,8 @@
 import * as Sentry from "@sentry/nextjs";
 
 /** Public pricing snapshots (per-million tokens, cents). Indicative. */
-export const GROQ_TEXT_COST_PER_MTOK_CENTS = 60; // llama-3.3-70b-versatile blended
-export const GROQ_VISION_COST_PER_MTOK_CENTS = 110; // llama-4-scout blended
+export const GROQ_TEXT_COST_PER_MTOK_CENTS = 60; // qwen3.8-27b — indicatief, tarief checken in Groq-console
+export const GROQ_VISION_COST_PER_MTOK_CENTS = 110; // qwen3.8-27b vision — indicatief, idem
 
 export type GroqCall = {
   kind: "text" | "vision";

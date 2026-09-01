@@ -17,8 +17,8 @@ import { primaryFromLegacy, type PrimaryCategory } from "@/lib/categories";
 import { ocrCache } from "@/lib/llm_cache";
 import { extractPdfText } from "@/lib/pdf_extract";
 
-// Groq free-tier text model (only allowed for non-vision):
-const TEXT_MODEL = "llama-3.3-70b-versatile";
+// Groq tekstmodel — naam via env, default gelijk aan lib/env.ts (sept 2026):
+const TEXT_MODEL = process.env.GROQ_TEXT_MODEL ?? "qwen/qwen3.8-27b";
 
 export type OcrResult = {
   ok: boolean;
@@ -131,12 +131,13 @@ Voorbeeld JSON output (KPN met eenmalige post):
 Voorbeeld JSON output (Eneco stroom+gas):
 {"provider":"Eneco","monthly_subscription_eur":140.00,"total_eur":140.00,"one_time_items":[],"plan":"HollandseWind","period":"mei 2026","customer_number":"33344","language":"nl","primary_category":"ENERGIE","sub_type":"stroom+gas","confidence":0.93}`;
 
-// Groq free-tier whitelist (mei 2026):
-//   - vision: meta-llama/llama-4-scout-17b-16e-instruct
-//   - text:   llama-3.3-70b-versatile
+// Groq-aanbod sept 2026: het hele Llama-assortiment is geschrapt.
+// qwen3.8-27b accepteert image_url-input + json_object (live getest);
+// gpt-oss/compound bestaan ook maar staan project-level geblokkeerd tot
+// de owner ze in de Groq-console aanzet.
 // Override with GROQ_VISION_MODEL env var if a paid tier becomes available.
 export const VISION_MODELS = [
-  "meta-llama/llama-4-scout-17b-16e-instruct",
+  "qwen/qwen3.8-27b",
 ];
 
 const apiKey = process.env.GROQ_API_KEY ?? "";

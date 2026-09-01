@@ -6,13 +6,13 @@
  * implement Twilio (industry standard) and fall back to a shared-secret
  * compare for 360dialog when WHATSAPP_PROVIDER=360.
  *
- * AI counter generation reuses the Groq text model (llama-3.3-70b-versatile).
+ * AI counter generation reuses the Groq text model (GROQ_TEXT_MODEL).
  */
 
 import crypto from "crypto";
 import Groq from "groq-sdk";
 
-const TEXT_MODEL = "llama-3.3-70b-versatile";
+const TEXT_MODEL = process.env.GROQ_TEXT_MODEL ?? "qwen/qwen3.8-27b";
 
 export function isWhatsAppEnabled(): boolean {
   // Honors legacy WHATSAPP_ENABLED + new FEATURE_WHATSAPP_ENABLED

@@ -27,7 +27,7 @@ export type RoundAnalysis = {
 };
 
 const apiKey = process.env.GROQ_API_KEY ?? "";
-const textModel = process.env.GROQ_TEXT_MODEL ?? "llama-3.3-70b-versatile";
+const textModel = process.env.GROQ_TEXT_MODEL ?? "qwen/qwen3.8-27b";
 
 let _client: Groq | null = null;
 function client(): Groq {

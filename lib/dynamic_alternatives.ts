@@ -15,7 +15,7 @@ function apiKey(): string {
   return process.env.GROQ_API_KEY ?? "";
 }
 function textModel(): string {
-  return process.env.GROQ_TEXT_MODEL ?? "llama-3.3-70b-versatile";
+  return process.env.GROQ_TEXT_MODEL ?? "qwen/qwen3.8-27b";
 }
 
 let _client: Groq | null = null;

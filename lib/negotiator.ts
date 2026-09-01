@@ -1,5 +1,5 @@
 /**
- * Onderhandel-email generator via Groq llama-3.1.
+ * Onderhandel-email generator via Groq (tekstmodel uit GROQ_TEXT_MODEL).
  *
  * v3 upgrades:
  *  - 5 strategieën (was 3): RETENTIE_DREIG, SWITCH_CLAIM, LOYALTY,
@@ -75,8 +75,8 @@ export type NegotiatorOutput = {
 };
 
 const apiKey = process.env.GROQ_API_KEY ?? "";
-// Groq deprecated llama-3.1-70b-versatile in 2025. Use the current text model.
-const textModel = process.env.GROQ_TEXT_MODEL ?? "llama-3.3-70b-versatile";
+// Default gelijk houden aan lib/env.ts — Groq schrapte alle Llama-modellen (sept 2026).
+const textModel = process.env.GROQ_TEXT_MODEL ?? "qwen/qwen3.8-27b";
 
 let _client: Groq | null = null;
 function client(): Groq {

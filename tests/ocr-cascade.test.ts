@@ -2,13 +2,13 @@ import { describe, it, expect } from "vitest";
 import { extractBill, VISION_MODELS } from "../lib/ocr";
 
 describe("ocr/VISION_MODELS cascade order", () => {
-  it("uses llama-4-scout (free-tier whitelisted)", () => {
-    expect(VISION_MODELS[0]).toMatch(/llama-4-scout/);
+  it("uses qwen3.8 (huidige Groq-lineup, sept 2026)", () => {
+    expect(VISION_MODELS[0]).toMatch(/qwen3\.8/);
   });
 
-  it("single model — no maverick (not on free tier)", () => {
+  it("single model — geen llama meer (Groq schrapte het hele aanbod)", () => {
     expect(VISION_MODELS).toHaveLength(1);
-    expect(VISION_MODELS.join(",")).not.toMatch(/maverick/);
+    expect(VISION_MODELS.join(",")).not.toMatch(/llama/);
   });
 });
 
