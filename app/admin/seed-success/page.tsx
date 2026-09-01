@@ -15,7 +15,9 @@ export default async function SeedSuccessPage() {
         Voeg een historische onderhandeling toe aan /proof. Alleen gebruiken
         voor cases die je <strong>écht</strong> hebt uitgevoerd voor iemand
         (vrienden, familie). Geen fictie — we markeren elk record met
-        ADMIN_SEEDED voor latere transparantie.
+        ADMIN_SEEDED voor latere transparantie. Ook <strong>mislukte</strong>{" "}
+        echte pogingen invoeren: die maken het slagingspercentage eerlijk
+        (100% gelooft niemand).
       </p>
 
       <div className="mt-6 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">

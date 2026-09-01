@@ -16,6 +16,7 @@ const COUNTRIES = ["NL", "BE", "DE", "FR", "UK", "US", "ES", "IT"];
 export default function SeedSuccessForm() {
   const [provider, setProvider] = useState("KPN");
   const [category, setCategory] = useState("TELECOM");
+  const [outcome, setOutcome] = useState<"SUCCESS" | "FAILED">("SUCCESS");
   const [country, setCountry] = useState("NL");
   const [beforeEur, setBeforeEur] = useState("42");
   const [afterEur, setAfterEur] = useState("32");
@@ -42,6 +43,7 @@ export default function SeedSuccessForm() {
           customerYears: Number(customerYears),
           daysAgo: Number(daysAgo),
           note: note || undefined,
+          outcome,
         }),
       });
       const data = (await r.json()) as { ok?: boolean; error?: string; yearlySavingCents?: number };
@@ -50,7 +52,10 @@ export default function SeedSuccessForm() {
       } else {
         setResult({
           ok: true,
-          message: `Toegevoegd. Jaarbesparing: €${((data.yearlySavingCents ?? 0) / 100).toFixed(0)}. Refresh /proof.`,
+          message:
+            outcome === "SUCCESS"
+              ? `Toegevoegd. Jaarbesparing: €${((data.yearlySavingCents ?? 0) / 100).toFixed(0)}. Refresh /proof.`
+              : "Toegevoegd als mislukte poging — telt mee in het slagingspercentage, niet in het totaal. Refresh /proof.",
         });
         // Reset alleen note + amounts
         setNote("");
@@ -93,6 +98,17 @@ export default function SeedSuccessForm() {
         </Field>
       </Row>
 
+      <Field label="Uitkomst">
+        <select
+          value={outcome}
+          onChange={(e) => setOutcome(e.target.value as "SUCCESS" | "FAILED")}
+          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+        >
+          <option value="SUCCESS">Gelukt — besparing binnengehaald</option>
+          <option value="FAILED">Niet gelukt — telt mee in het slagingspercentage</option>
+        </select>
+      </Field>
+
       <Row>
         <Field label="Land">
           <select
@@ -131,7 +147,7 @@ export default function SeedSuccessForm() {
             className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
           />
         </Field>
-        <Field label="Nieuw maandbedrag (€)">
+        <Field label={outcome === "SUCCESS" ? "Nieuw maandbedrag (€)" : "Doel-maandbedrag (€, niet gehaald)"}>
           <input
             type="number"
             min={0}
@@ -166,10 +182,16 @@ export default function SeedSuccessForm() {
         />
       </Field>
 
-      {beforeEur && afterEur && Number(afterEur) < Number(beforeEur) && (
+      {beforeEur && afterEur && Number(afterEur) < Number(beforeEur) && outcome === "SUCCESS" && (
         <div className="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-900">
           Bespaart: <strong>€{((Number(beforeEur) - Number(afterEur)) * 12).toFixed(0)}/jaar</strong>{" "}
           (€{(Number(beforeEur) - Number(afterEur)).toFixed(2)}/mnd)
+        </div>
+      )}
+      {beforeEur && afterEur && Number(afterEur) < Number(beforeEur) && outcome === "FAILED" && (
+        <div className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900">
+          Doel was <strong>€{((Number(beforeEur) - Number(afterEur)) * 12).toFixed(0)}/jaar</strong> — niet
+          gelukt. Telt mee in het slagingspercentage (eerlijk track record), niet in het bespaarde totaal.
         </div>
       )}
 
@@ -178,7 +200,7 @@ export default function SeedSuccessForm() {
         disabled={pending}
         className="rounded-lg bg-brand-600 px-6 py-3 font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
       >
-        {pending ? "Toevoegen…" : "Voeg toe aan /proof"}
+        {pending ? "Toevoegen…" : outcome === "SUCCESS" ? "Voeg toe aan /proof" : "Voeg mislukte poging toe"}
       </button>
 
       {result && (

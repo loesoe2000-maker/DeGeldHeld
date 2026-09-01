@@ -6,6 +6,11 @@
  * die je écht hebt gedaan (vrienden/familie pre-DeGeldHeld) — niet om
  * cijfers te vervalsen.
  *
+ * Ook MISLUKTE echte pogingen horen erin (outcome: "FAILED"): die tellen
+ * mee in het slagingspercentage maar niet in het bespaarde totaal. Een
+ * track record zonder mislukkingen is ongeloofwaardig — eerlijkheid is
+ * hier het product.
+ *
  * Gemarkeerd als adminSeeded via reasoning-prefix zodat we ze later
  * kunnen filteren van organic data.
  */
@@ -36,6 +41,7 @@ const Body = z.object({
   customerYears: z.number().int().min(0).max(50).default(3),
   note: z.string().max(200).optional(),
   daysAgo: z.number().int().min(0).max(365).default(0),
+  outcome: z.enum(["SUCCESS", "FAILED"]).default("SUCCESS"),
 });
 
 export async function POST(req: NextRequest) {
@@ -60,6 +66,7 @@ export async function POST(req: NextRequest) {
     customerYears,
     note,
     daysAgo,
+    outcome,
   } = parsed.data;
 
   if (afterMonthlyCents >= beforeMonthlyCents) {
@@ -104,12 +111,19 @@ export async function POST(req: NextRequest) {
     data: {
       userId: user.id,
       billId: bill.id,
-      state: "SUCCESS",
+      state: outcome,
       strategy: "RETENTIE_DREIG",
+      // expected = waar de poging op mikte; actual alléén bij succes —
+      // zo telt FAILED mee in het slagingspercentage, niet in het totaal.
       expectedSavingsCents: yearlySaving,
-      actualSavingsCents: yearlySaving,
+      actualSavingsCents: outcome === "SUCCESS" ? yearlySaving : null,
       confidence: 0.9,
-      reasoning: `ADMIN_SEEDED — ${customerYears}j klant. ${note ?? "Historische case, offline uitgevoerd."}`,
+      reasoning: `ADMIN_SEEDED — ${customerYears}j klant. ${
+        note ??
+        (outcome === "SUCCESS"
+          ? "Historische case, offline uitgevoerd."
+          : "Historische poging, offline uitgevoerd — niet gelukt.")
+      }`,
       createdAt,
       updatedAt: createdAt,
     },
@@ -119,6 +133,7 @@ export async function POST(req: NextRequest) {
     ok: true,
     billId: bill.id,
     negotiationId: negotiation.id,
+    outcome,
     yearlySavingCents: yearlySaving,
   });
 }
