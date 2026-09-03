@@ -129,13 +129,23 @@ const SHORT_ACCEPT_RE =
   /^(ja+[,!\s]*)?(gelukt|akkoord|prima|top|deal|geregeld|is geregeld|done|sorted)[.!\s]*$/i;
 
 function detectOfferedCents(text: string): number | null {
-  // Catch the first €/£/EUR amount; ignore reference amounts like "from €30"
-  const m = /(?:€|EUR|£|GBP)\s*([0-9]{1,4}(?:[.,][0-9]{2}))|([0-9]{1,4}(?:[.,][0-9]{2}))\s*(?:euro|EUR|€|£|pound)/i.exec(text);
-  if (!m) return null;
-  const numStr = (m[1] ?? m[2] ?? "").replace(",", ".");
-  const n = Number(numStr);
-  if (!Number.isFinite(n)) return null;
-  return Math.round(n * 100);
+  // v39: scan álle bedragen (g), sla referentie-bedragen over ("in plaats
+  // van €30,00 betaalt u €22,50" → 22,50, niet de oude prijs) en accepteer
+  // ook hele euro's ("€5 korting", "25 euro"). De oude versie eiste twee
+  // decimalen en pakte de eerste match — dan werd het referentiebedrag het
+  // "aanbod" en bleef een aanbod zonder centen onzichtbaar.
+  const AMOUNT_RE =
+    /(?:€|EUR|£|GBP)\s*([0-9]{1,4}(?:[.,][0-9]{1,2})?)(?![0-9])|([0-9]{1,4}(?:[.,][0-9]{1,2})?)(?![0-9])\s*(?:euro|eur|€|£|pound)/gi;
+  const REF_BEFORE_RE = /(?:from|instead of|von|statt|bisher|in plaats van|i\.?p\.?v\.?|was|voorheen)\s*(?:€|EUR|£|GBP)?\s*$/i;
+  let last: number | null = null;
+  for (const m of text.matchAll(AMOUNT_RE)) {
+    const numStr = (m[1] ?? m[2] ?? "").replace(",", ".");
+    const before = text.slice(Math.max(0, (m.index ?? 0) - 24), m.index ?? 0);
+    if (REF_BEFORE_RE.test(before)) continue;
+    const cents = Math.round(Number(numStr) * 100);
+    if (Number.isFinite(cents) && cents > 0) last = cents;
+  }
+  return last;
 }
 
 export function fallbackAnalysis(response: string): RoundAnalysis {

@@ -45,6 +45,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  // v39 closed-guard: het outcome-token is 30 dagen geldig — een oude tab of
+  // follow-up-mail mag een afgerekende uitkomst niet terugdraaien (FEE_PAID →
+  // AWAITING zou een geïnde fee zonder administratie achterlaten, en een
+  // her-post kon actualSavingsCents wissen). "Afgerekend" = er staat een
+  // bedrag, óf een fee-/succes-state. Een legacy auto-gesloten ACCEPTED
+  // zónder bedrag mag juist WÉL alsnog bevestigd worden (unbrick, zie
+  // /uitkomst-pagina die dezelfde definitie hanteert).
+  const settled =
+    existing.actualSavingsCents != null ||
+    ["FEE_PAID", "BILLED_PENDING_PAYMENT", "BILLED_OVERDUE", "SUCCESS", "BILLED"].includes(
+      existing.state,
+    );
+  if (settled) {
+    return NextResponse.json({ error: "Uitkomst is al vastgelegd." }, { status: 409 });
+  }
+
   // v11: when proof-flow is enabled, a SUCCESS_SAVED claim parks the
   // negotiation in SUCCESS_UNVERIFIED until the user uploads a proof
   // (via /api/outcome/[id]/proof or via the bewijs@ webhook).
@@ -60,10 +76,12 @@ export async function POST(req: NextRequest) {
     data: {
       state,
       closedAt,
-      actualSavingsCents:
-        outcome === "SUCCESS_SAVED" && !proofGateOn
-          ? actualSavingsCents ?? null
-          : null,
+      // Alleen schrijven als er echt een nieuwe waarde is — andere outcomes
+      // laten een eerder vastgelegd bedrag met rust (belt & braces naast de
+      // closed-guard hierboven).
+      ...(outcome === "SUCCESS_SAVED" && !proofGateOn
+        ? { actualSavingsCents: actualSavingsCents ?? null }
+        : {}),
     },
   });
   return NextResponse.json({ ok: true, state: updated.state });

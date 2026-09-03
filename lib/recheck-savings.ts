@@ -22,7 +22,11 @@ export function isDueForRecheck(
   // ACCEPTED = multi-round-succes: zonder recheck nooit bewijs → nooit fee.
   const eligibleStates = ["EMAIL_SENT", "COUNTER_SENT", "SUCCESS_UNVERIFIED", "ACCEPTED"];
   if (!eligibleStates.includes(neg.state)) return false;
-  const anchor = neg.emailSentAt ?? neg.closedAt;
+  // Anker op de SLUITING als die er is: een multi-round-deal wordt vaak pas
+  // weken ná de eerste mail geaccepteerd — ankeren op emailSentAt liet het
+  // 28-35-dagen-venster dan al verstreken zijn op het moment van acceptatie,
+  // waardoor ACCEPTED nooit een bewijs-verzoek kreeg → nooit fee.
+  const anchor = neg.closedAt ?? neg.emailSentAt;
   if (!anchor) return false;
   const ageDays = (now.getTime() - anchor.getTime()) / (24 * 60 * 60 * 1000);
   return ageDays >= RECHECK_WINDOW_DAYS.min && ageDays <= RECHECK_WINDOW_DAYS.max;

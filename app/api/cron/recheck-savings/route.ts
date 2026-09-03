@@ -41,12 +41,15 @@ export async function GET(req: NextRequest) {
       where: {
         state: { in: ["EMAIL_SENT", "COUNTER_SENT", "SUCCESS_UNVERIFIED", "ACCEPTED"] },
         proofVerifiedAt: null,
+        // Spiegel van isDueForRecheck: closedAt wint als anker (multi-round
+        // sluit weken na de eerste mail), emailSentAt alleen zolang er geen
+        // sluiting is.
         OR: [
-          { emailSentAt: { gte: lower, lte: upper } },
+          { closedAt: { gte: lower, lte: upper } },
           {
             AND: [
-              { emailSentAt: null },
-              { closedAt: { gte: lower, lte: upper } },
+              { closedAt: null },
+              { emailSentAt: { gte: lower, lte: upper } },
             ],
           },
         ],

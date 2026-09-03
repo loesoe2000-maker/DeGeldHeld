@@ -16,12 +16,20 @@
  * Belastingdienst-woorden.
  */
 
-/** Parse NL-bedrag "1.234,56" → 123456 cent. Strikt: komma = decimaal. */
+/**
+ * Parse NL-bedrag positioneel → centen. Een afsluitende [.,] + 2 cijfers is
+ * DECIMAAL (ook "300.00" — OCR leest komma's geregeld als punt), een
+ * separator + 3 cijfers is duizendtal. Blind separators strippen (de oude
+ * implementatie) las "300.00" als 30000 → €30.000: bedrag ×100.
+ * "1.234,56"→123456 · "1234.56"→123456 · "300.00"→30000 · "1.234"→123400.
+ */
 export function parseNlEur(s: string): number | null {
-  const stripped = s.replace(/[.\s ]/g, "");
-  const num = Number(stripped.replace(",", "."));
-  if (!Number.isFinite(num) || num <= 0) return null;
-  return Math.round(num * 100);
+  const compact = s.replace(/\s+/g, "");
+  const m = /^(\d{1,3}(?:[.,]\d{3})*|\d+)(?:[.,](\d{2}))?$/.exec(compact);
+  if (!m) return null;
+  const cents = Number(m[1].replace(/[.,]/g, "")) * 100 + Number(m[2] ?? "0");
+  if (!Number.isFinite(cents) || cents <= 0) return null;
+  return cents;
 }
 
 export type BedragSuggestie = {
@@ -41,18 +49,18 @@ export type BedragSuggestie = {
  */
 const HIGH_PATTERNS: RegExp[] = [
   // huur: "terug te betalen", "te restitueren", "terugbetaling van"
-  /(?:terug\s*te\s*betalen|te\s*restitueren|terugbetaling(?:\s*van)?|restitutie(?:\s*van)?)[^\d€]{0,30}€?\s*([0-9]{1,3}(?:[.\s][0-9]{3})*(?:,[0-9]{2})?)/i,
+  /(?:terug\s*te\s*betalen|te\s*restitueren|terugbetaling(?:\s*van)?|restitutie(?:\s*van)?)[^\d€]{0,30}€?\s*([0-9]{1,3}(?:[.\s][0-9]{3})+(?:,[0-9]{2})?|[0-9]+(?:[.,][0-9]{2})?)(?![0-9])/i,
   // huur/energie: "te veel (in rekening) gebracht/betaald ... € X"
-  /(?:te\s*veel(?:\s*(?:in\s*rekening\s*gebracht|betaald))?)[^\d€]{0,30}€?\s*([0-9]{1,3}(?:[.\s][0-9]{3})*(?:,[0-9]{2})?)/i,
+  /(?:te\s*veel(?:\s*(?:in\s*rekening\s*gebracht|betaald))?)[^\d€]{0,30}€?\s*([0-9]{1,3}(?:[.\s][0-9]{3})+(?:,[0-9]{2})?|[0-9]+(?:[.,][0-9]{2})?)(?![0-9])/i,
   // energie: "te verrekenen", "tegoed", "wordt verrekend met ... € X"
-  /(?:te\s*verrekenen|tegoed(?:\s*van)?|wordt\s*verrekend[^\d€]{0,20})[^\d€]{0,20}€?\s*([0-9]{1,3}(?:[.\s][0-9]{3})*(?:,[0-9]{2})?)/i,
+  /(?:te\s*verrekenen|tegoed(?:\s*van)?|wordt\s*verrekend[^\d€]{0,20})[^\d€]{0,20}€?\s*([0-9]{1,3}(?:[.\s][0-9]{3})+(?:,[0-9]{2})?|[0-9]+(?:[.,][0-9]{2})?)(?![0-9])/i,
   // generiek: "een bedrag van € X" vlak na een toewijzing
-  /(?:toegewezen|toekomt|vastgesteld\s*op)[^\d€]{0,30}€?\s*([0-9]{1,3}(?:[.\s][0-9]{3})*(?:,[0-9]{2})?)/i,
+  /(?:toegewezen|toekomt|vastgesteld\s*op)[^\d€]{0,30}€?\s*([0-9]{1,3}(?:[.\s][0-9]{3})+(?:,[0-9]{2})?|[0-9]+(?:[.,][0-9]{2})?)(?![0-9])/i,
 ];
 
 // Laatste redmiddel: élk € bedrag (laagste vertrouwen).
 const LOW_PATTERN =
-  /€\s*([0-9]{1,3}(?:[.\s][0-9]{3})*(?:,[0-9]{2})?)/i;
+  /€\s*([0-9]{1,3}(?:[.\s][0-9]{3})+(?:,[0-9]{2})?|[0-9]+(?:[.,][0-9]{2})?)(?![0-9])/i;
 
 /**
  * Zoek een restitutie-bedrag in de tekst van een uitspraak/afrekening.

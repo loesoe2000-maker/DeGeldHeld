@@ -131,11 +131,10 @@ describe("api/negotiations/outcome POST", () => {
     expect(mockUpdate).not.toHaveBeenCalled();
   });
 
-  it("does not set actualSavings when outcome is failure", async () => {
+  it("laat actualSavings met rust bij failure-outcome (v39: veld alleen schrijven bij succes)", async () => {
     mockUpdate.mockResolvedValue({ state: "FAILED" });
     await POST(req({ negotiationId: "n1", outcome: "FAILED_NO_DEAL", actualSavingsCents: 100 }) as never);
-    expect(mockUpdate).toHaveBeenCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ actualSavingsCents: null }) }),
-    );
+    const data = (mockUpdate.mock.calls[0]?.[0] as { data: Record<string, unknown> }).data;
+    expect("actualSavingsCents" in data).toBe(false);
   });
 });

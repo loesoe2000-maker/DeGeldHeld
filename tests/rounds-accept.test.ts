@@ -81,3 +81,15 @@ describe("classificatie mag nooit auto-sluiten (blocker-fix v39)", () => {
     expect(route).toMatch(/OCR_\|PDF_\|HEIC_\|NORMALIZE_/);
   });
 });
+
+describe("detectie van het aangeboden bedrag (via fallbackAnalysis)", () => {
+  it("slaat het referentiebedrag over: 'in plaats van €30,00 … nieuwe prijs €22,50' → 2250 + accept (25%)", () => {
+    const r = fallbackAnalysis("In plaats van €30,00 is uw nieuwe prijs €22,50 per maand.");
+    expect(r.offeredCents).toBe(2250);
+    expect(r.action).toBe("accept");
+  });
+  it("hele euro's zonder centen tellen mee: 'korting van €5'", () => {
+    const r = fallbackAnalysis("Wij kunnen u een korting van €5 per maand aanbieden.");
+    expect(r.offeredCents).toBe(500);
+  });
+});

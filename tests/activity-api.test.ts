@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { SUCCESS_STATES } from "@/lib/savings";
 
 const findMany = vi.fn<(args: unknown) => Promise<unknown[]>>(async () => []);
 
@@ -59,13 +60,13 @@ describe("/api/activity — v15 DEEL 4", () => {
     expect(r.headers.get("cache-control")).toMatch(/stale-while-revalidate=60/);
   });
 
-  it("filters by state in {SUCCESS, BILLED, ACCEPTED}", async () => {
+  it("filtert op de gedeelde SUCCESS_STATES (v39: incl. FEE_PAID/BILLED_*)", async () => {
     findMany.mockResolvedValue([]);
     await GET();
     const args = findMany.mock.calls[0]?.[0] as {
       where: { state: { in: string[] } };
     };
-    expect(args.where.state.in).toEqual(["SUCCESS", "BILLED", "ACCEPTED"]);
+    expect(args.where.state.in).toEqual([...SUCCESS_STATES]);
   });
 
   it("filters to last 7 days (createdAt >= cutoff)", async () => {

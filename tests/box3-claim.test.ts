@@ -298,3 +298,18 @@ describe("POST /api/box3/claim", () => {
     expect(h.mails[0].to).toBe("anne@x.nl");
   });
 });
+
+describe("parseBeschikkingAmount — v39 blocker-vectoren (bedrag ×100)", () => {
+  it("'Toegekend bedrag € 300.00' (OCR-punt-decimaal) → €300, NIET €30.000", () => {
+    expect(parseBeschikkingAmount("Toegekend bedrag € 300.00")?.amountCents).toBe(30000);
+  });
+  it("'toegekend € 1.234' (duizendtal zonder centen) → €1.234, geen backtrack naar €1,23", () => {
+    expect(parseBeschikkingAmount("toegekend € 1.234")?.amountCents).toBe(123400);
+  });
+  it("'teruggave 2024' (jaartal zonder decimalen) matcht NIET — liever handmatige review", () => {
+    expect(parseBeschikkingAmount("teruggave 2024")).toBeNull();
+  });
+  it("'vermindering box 3: € 1.234,56' blijft gewoon werken", () => {
+    expect(parseBeschikkingAmount("vermindering box 3: € 1.234,56")?.amountCents).toBe(123456);
+  });
+});

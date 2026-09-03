@@ -10,6 +10,7 @@
  */
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { SUCCESS_STATES } from "@/lib/savings";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -21,7 +22,7 @@ export async function GET() {
   const cutoff = new Date(Date.now() - LOOKBACK_DAYS * 24 * 60 * 60 * 1000);
   const rows = await prisma.negotiation.findMany({
     where: {
-      state: { in: ["SUCCESS", "BILLED", "ACCEPTED"] },
+      state: { in: [...SUCCESS_STATES] },
       createdAt: { gte: cutoff },
       actualSavingsCents: { not: null, gt: 0 },
     },

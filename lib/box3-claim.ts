@@ -7,6 +7,7 @@
  */
 
 import { NO_CURE_NO_PAY_FEE_CAP_CENTS } from "@/lib/payments";
+import { parseNlEur } from "@/lib/uitspraak-bedrag";
 
 /** Statussen die een Box3Claim doorloopt — string in DB voor flexibiliteit. */
 export type Box3ClaimStatus =
@@ -86,22 +87,27 @@ export type ParsedBeschikking = {
   matchedPhrase: string;
 };
 
+// Capture: gegroepeerde duizendtallen mét optionele decimalen ("1.234" en
+// "1.234,56" — de oude variant backtrackte "1.234" naar "1.23" = €123), óf
+// een kale reeks MET verplichte decimalen (jaartallen/refnummers zonder
+// centen blijven zo buiten schot; liever FAILED → handmatige review dan een
+// gok op een geldbedrag). (?![0-9]) voorkomt half afgekapte reeksen.
 const BESCHIKKING_PATTERNS: RegExp[] = [
   // "toegekend bedrag € 1.234,56" / "Toegekend: EUR 1234,56"
-  /(?:toegekend\s*bedrag|toegekend|teruggave)[^0-9€]{0,40}(?:€|EUR)?\s*([0-9]{1,3}(?:[.,\s][0-9]{3})*(?:[,.][0-9]{2})|[0-9]+(?:[,.][0-9]{2}))/i,
+  /(?:toegekend\s*bedrag|toegekend|teruggave)[^0-9€]{0,40}(?:€|EUR)?\s*([0-9]{1,3}(?:[.,\s][0-9]{3})+(?:[,.][0-9]{2})?|[0-9]+(?:[,.][0-9]{2}))(?![0-9])/i,
   // "u krijgt … terug" / "uit te betalen aan u: €"
-  /(?:uit\s*te\s*betalen|u\s*krijgt[^0-9]{0,30}terug)[^0-9€]{0,40}(?:€|EUR)?\s*([0-9]{1,3}(?:[.,\s][0-9]{3})*(?:[,.][0-9]{2})|[0-9]+(?:[,.][0-9]{2}))/i,
+  /(?:uit\s*te\s*betalen|u\s*krijgt[^0-9]{0,30}terug)[^0-9€]{0,40}(?:€|EUR)?\s*([0-9]{1,3}(?:[.,\s][0-9]{3})+(?:[,.][0-9]{2})?|[0-9]+(?:[,.][0-9]{2}))(?![0-9])/i,
   // "vermindering box 3: € 1.234,56"
-  /(?:vermindering\s*box\s*3|vermindering\s*op\s*box\s*3)[^0-9€]{0,40}(?:€|EUR)?\s*([0-9]{1,3}(?:[.,\s][0-9]{3})*(?:[,.][0-9]{2})|[0-9]+(?:[,.][0-9]{2}))/i,
+  /(?:vermindering\s*box\s*3|vermindering\s*op\s*box\s*3)[^0-9€]{0,40}(?:€|EUR)?\s*([0-9]{1,3}(?:[.,\s][0-9]{3})+(?:[,.][0-9]{2})?|[0-9]+(?:[,.][0-9]{2}))(?![0-9])/i,
 ];
 
 function parseNlEurAmount(s: string): number | null {
-  // Strip thousands-separators (punt of dunne spatie). Komma blijft = decimaal.
-  const stripped = s.replace(/[.\s ]/g, "");
-  // Vervang komma door punt zodat Number() het pakt.
-  const num = Number(stripped.replace(",", "."));
-  if (!Number.isFinite(num) || num <= 0) return null;
-  return Math.round(num * 100);
+  // v39 BLOCKER-fix: positioneel parsen i.p.v. blind punten strippen. De oude
+  // versie las "300.00" (OCR die de komma als punt leest) als €30.000 — en
+  // dit getal voedt chargeFeeOffSession: bedrag ×100 → onterechte LIVE
+  // Stripe-charge. parseNlEur beslist per positie: [.,]+2 cijfers aan het
+  // eind = decimaal, separator+3 cijfers = duizendtal.
+  return parseNlEur(s);
 }
 
 export function parseBeschikkingAmount(text: string): ParsedBeschikking | null {

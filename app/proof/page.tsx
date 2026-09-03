@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { SUCCESS_STATES, isSuccessState } from "@/lib/savings";
 import CounterUp from "@/components/CounterUp";
 import Footer from "@/components/Footer";
 import Link from "next/link";
@@ -80,7 +81,7 @@ async function loadStats(period: Period, basis: Basis, country: string | null, c
   }
 
   const successWhere: Record<string, unknown> = {
-    state: { in: ["SUCCESS", "BILLED", "ACCEPTED"] },
+    state: { in: [...SUCCESS_STATES] },
   };
   if (cutoff) successWhere.createdAt = { gte: cutoff };
   if (Object.keys(billWhere).length > 0) successWhere.bill = billWhere;
@@ -204,7 +205,7 @@ async function loadMailQuality() {
   const thumbsDown = recent.filter((r) => r.userRating === -1).length;
   const mailUsed = recent.filter((r) => r.mailUsed).length;
   const responded = recent.filter((r) => r.providerResponded === true).length;
-  const success = recent.filter((r) => r.state === "SUCCESS" || r.state === "BILLED" || r.state === "ACCEPTED").length;
+  const success = recent.filter((r) => isSuccessState(r.state)).length;
 
   type Bucket = { name: string; total: number; success: number };
   const byStrategy = new Map<string, Bucket>();
@@ -214,11 +215,11 @@ async function loadMailQuality() {
     const p = r.bill.provider;
     const sb = byStrategy.get(s) ?? { name: s, total: 0, success: 0 };
     sb.total++;
-    if (r.state === "SUCCESS" || r.state === "BILLED" || r.state === "ACCEPTED") sb.success++;
+    if (isSuccessState(r.state)) sb.success++;
     byStrategy.set(s, sb);
     const pb = byProvider.get(p) ?? { name: p, total: 0, success: 0 };
     pb.total++;
-    if (r.state === "SUCCESS" || r.state === "BILLED" || r.state === "ACCEPTED") pb.success++;
+    if (isSuccessState(r.state)) pb.success++;
     byProvider.set(p, pb);
   }
 

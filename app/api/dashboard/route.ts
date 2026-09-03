@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { isOpenState, isClosedState } from "@/lib/savings";
+import { isOpenState, isClosedState, isSuccessState } from "@/lib/savings";
 import { allCategories } from "@/lib/providers";
 
 export const runtime = "nodejs";
@@ -40,7 +40,9 @@ function buildPayload(negotiations: Array<{
 
   for (const n of negotiations) {
     if (isClosedState(n.state as never)) {
-      if (n.state === "SUCCESS" || n.state === "BILLED" || n.state === "ACCEPTED") {
+      // v39: FEE_PAID/BILLED_* zijn successen — de betalende klant zag zijn
+      // geverifieerde win voorheen als "gefaald" in de failed-tak belanden.
+      if (isSuccessState(n.state as never)) {
         completed += 1;
         totalSavedCents += n.actualSavingsCents ?? 0;
       } else {

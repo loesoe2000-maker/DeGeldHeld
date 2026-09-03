@@ -19,6 +19,7 @@
  */
 
 import { prisma } from "@/lib/db";
+import { SUCCESS_STATES } from "@/lib/savings";
 
 export type ValueBreakdown = {
   baseValue: number;
@@ -90,14 +91,14 @@ export async function gatherTraction(): Promise<TractionMetrics> {
   const mrrCents = recentPaid.reduce((a, p) => a + p.amountCents, 0);
   const arrCents = mrrCents * 12;
 
-  // Geslaagde onderhandelingen = state in {SUCCESS, BILLED, ACCEPTED}
+  // Geslaagde onderhandelingen = gedeelde SUCCESS_STATES (v39)
   const successfulNegotiations = await prisma.negotiation.count({
-    where: { state: { in: ["SUCCESS", "BILLED", "ACCEPTED"] } },
+    where: { state: { in: [...SUCCESS_STATES] } },
   });
 
   // Totaal bespaard (voor display, niet voor valuation direct)
   const successRows = await prisma.negotiation.findMany({
-    where: { state: { in: ["SUCCESS", "BILLED", "ACCEPTED"] } },
+    where: { state: { in: [...SUCCESS_STATES] } },
     select: { actualSavingsCents: true, expectedSavingsCents: true },
   });
   const totalSavedCents = successRows.reduce(

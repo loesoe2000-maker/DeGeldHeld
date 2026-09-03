@@ -81,3 +81,35 @@ describe("suggestUitspraakBedrag — high wint van losse bedragen", () => {
     expect(r?.confidence).toBe("high");
   });
 });
+
+describe("parseNlEur — positioneel (v39 blocker-fix: geen ×100 meer)", () => {
+  it("decimalen met punt ('300.00' — OCR las komma als punt) → €300, NIET €30.000", () => {
+    expect(parseNlEur("300.00")).toBe(30000);
+  });
+  it("duizendtal + decimalen in beide conventies", () => {
+    expect(parseNlEur("1.234,56")).toBe(123456);
+    expect(parseNlEur("1234.56")).toBe(123456);
+    expect(parseNlEur("1234,56")).toBe(123456);
+  });
+  it("kaal duizendtal '1.234' → €1.234 (geen backtrack naar €1,23)", () => {
+    expect(parseNlEur("1.234")).toBe(123400);
+  });
+  it("ongesepareerd '1500' → €1.500 (werd €150 door {1,3}-capture)", () => {
+    expect(parseNlEur("1500")).toBe(150000);
+  });
+  it("rommel en nul blijven null", () => {
+    expect(parseNlEur("abc")).toBeNull();
+    expect(parseNlEur("0")).toBeNull();
+  });
+});
+
+describe("suggestUitspraakBedrag — ongesepareerde bedragen (v39)", () => {
+  it("'terug te betalen € 1500' → €1.500 suggestie (werd €150)", () => {
+    const s = suggestUitspraakBedrag("De verhuurder dient terug te betalen € 1500 aan huurder.");
+    expect(s?.cents).toBe(150000);
+  });
+  it("'€ 12500' via LOW-patroon → €12.500 (werd €125)", () => {
+    const s = suggestUitspraakBedrag("Het bedrag € 12500 wordt verrekend.");
+    expect(s?.cents).toBe(1250000);
+  });
+});
