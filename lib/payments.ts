@@ -482,15 +482,24 @@ export async function chargeFeeOffSession(opts: {
     return { ok: false, reason: "no customer on file" };
   }
   try {
-    const pi = await client().paymentIntents.create({
-      amount: opts.feeCents,
-      currency: "eur",
-      customer: customerId,
-      payment_method: user.feePaymentMethodId,
-      off_session: true,
-      confirm: true,
-      metadata: { negotiationId: opts.negotiationId, kind: "auto-fee" },
-    });
+    // Idempotency: recordProof en de admin-charge zijn check-then-act; twee
+    // gelijktijdige triggers mogen nooit twee charges worden. Key per
+    // negotiation+bedrag+kaart+dag: een dubbele poging dezelfde dag wordt door
+    // Stripe gededupliceerd, een echte retry na kaartwissel/dag later mag wél.
+    const day = new Date().toISOString().slice(0, 10);
+    const idempotencyKey = `auto-fee-${opts.negotiationId}-${opts.feeCents}-${user.feePaymentMethodId}-${day}`;
+    const pi = await client().paymentIntents.create(
+      {
+        amount: opts.feeCents,
+        currency: "eur",
+        customer: customerId,
+        payment_method: user.feePaymentMethodId,
+        off_session: true,
+        confirm: true,
+        metadata: { negotiationId: opts.negotiationId, kind: "auto-fee" },
+      },
+      { idempotencyKey },
+    );
     if (pi.status === "succeeded") {
       return { ok: true, paymentIntentId: pi.id };
     }

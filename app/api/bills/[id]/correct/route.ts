@@ -8,6 +8,7 @@
  *
  * Body: { provider?: string, monthlyCents?: number, category?: string }
  */
+import { findProvider } from "@/lib/providers";
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
@@ -59,7 +60,8 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   const corrected: string[] = [];
 
   if (provider != null) {
-    data.provider = provider;
+    // Canonicaliseer ("kpn"/"ENECO" → "KPN"/"Eneco"); onbekende naam blijft zoals ingevoerd.
+    data.provider = findProvider(provider)?.canonical ?? provider;
     corrected.push("provider");
   }
   if (monthlyCents != null) {

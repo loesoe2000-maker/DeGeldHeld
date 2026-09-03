@@ -19,6 +19,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { isAdmin } from "@/lib/admin_auth";
 import { prisma } from "@/lib/db";
+import { findProvider } from "@/lib/providers";
 
 const ALLOWED_CATEGORIES = [
   "TELECOM",
@@ -76,6 +77,8 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // "kpn"/"ENECO" → "KPN"/"Eneco": anders splitsen /proof-lijstjes per schrijfwijze.
+  const providerName = findProvider(provider)?.canonical ?? provider.trim();
   const monthlySaving = beforeMonthlyCents - afterMonthlyCents;
   const yearlySaving = monthlySaving * 12;
   const createdAt = new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000);
@@ -83,7 +86,9 @@ export async function POST(req: NextRequest) {
   // Maak een anonieme user voor deze historische case. Email per case
   // uniek zodat we niet bij dezelfde user accumuleren.
   const anonId = `seed-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-  const user = await prisma.user.create({
+  // Eén transactie: nooit een halve seed (user zonder bill/negotiation).
+  const { bill, negotiation } = await prisma.$transaction(async (tx) => {
+  const user = await tx.user.create({
     data: {
       email: `${anonId}@seed.degeldheld.com`,
       name: "Geanonimiseerd",
@@ -93,10 +98,10 @@ export async function POST(req: NextRequest) {
     },
   });
 
-  const bill = await prisma.bill.create({
+  const bill = await tx.bill.create({
     data: {
       userId: user.id,
-      provider,
+      provider: providerName,
       category,
       country,
       amountCents: beforeMonthlyCents,
@@ -107,7 +112,7 @@ export async function POST(req: NextRequest) {
     },
   });
 
-  const negotiation = await prisma.negotiation.create({
+  const negotiation = await tx.negotiation.create({
     data: {
       userId: user.id,
       billId: bill.id,
@@ -127,6 +132,9 @@ export async function POST(req: NextRequest) {
       createdAt,
       updatedAt: createdAt,
     },
+  });
+
+  return { bill, negotiation };
   });
 
   return NextResponse.json({

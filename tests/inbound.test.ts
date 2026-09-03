@@ -15,6 +15,7 @@ const h = vi.hoisted(() => ({
   userFor: null as { id: string; email: string } | null,
   negotiation: null as Record<string, unknown> | null,
   recordProof: vi.fn(async (_a?: unknown) => ({ proofId: "p1", verdict: { verdict: "verified" } })),
+  outcomeProofCreate: vi.fn(async (a: { data: Record<string, unknown> }) => ({ id: "p1", ...a.data })),
   billCreate: vi.fn(async (a: { data: Record<string, unknown> }) => ({ id: "b1", provider: a.data.provider, amountCents: a.data.amountCents })),
   billFindUnique: vi.fn(async (): Promise<unknown> => null),
   sendEmail: vi.fn(async (_a?: unknown) => ({ id: "noop", skipped: true })),
@@ -44,6 +45,7 @@ vi.mock("@/lib/inbound", () => ({
 vi.mock("@/lib/db", () => ({
   prisma: {
     negotiation: { findFirst: vi.fn(async () => h.negotiation) },
+    outcomeProof: { create: (a: { data: Record<string, unknown> }) => h.outcomeProofCreate(a) },
     bill: {
       findUnique: () => h.billFindUnique(),
       count: vi.fn(async () => 0),
@@ -132,7 +134,7 @@ describe("canonical /api/inbound handler", () => {
     expect((await res.json()).routed).toBe("proof");
   });
 
-  it("bewijs@ without token → proof-by-from fallback (recordProof)", async () => {
+  it("bewijs@ without token → handmatige review, GEEN auto-recordProof (From is spoofbaar)", async () => {
     h.dispatchResult = { kind: "unknown" };
     h.email = email({ to: ["bewijs@degeldheld.com"], text: "nieuw bedrag €29,95" });
     h.negotiation = {
@@ -142,7 +144,15 @@ describe("canonical /api/inbound handler", () => {
     };
     const res = await handleInbound(makeReq(event({ to: ["bewijs@degeldheld.com"] })));
     expect(res.status).toBe(200);
-    expect(h.recordProof).toHaveBeenCalled();
+    expect((await res.json()).verdict).toBe("manual_review");
+    // v39 security: From-match zonder token mag nooit een SUCCESS-flip +
+    // off-session fee-charge triggeren — alleen bewijs opslaan voor review.
+    expect(h.recordProof).not.toHaveBeenCalled();
+    expect(h.outcomeProofCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ verificationStatus: "manual_review" }),
+      }),
+    );
   });
 
   it("inbox@ + known sender + image attachment → bill created", async () => {

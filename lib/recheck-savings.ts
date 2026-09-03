@@ -19,7 +19,8 @@ export function isDueForRecheck(
   // Already verified — nothing to chase.
   if (neg.proofVerifiedAt) return false;
   // Open negotiations have nothing to verify yet.
-  const eligibleStates = ["EMAIL_SENT", "COUNTER_SENT", "SUCCESS_UNVERIFIED"];
+  // ACCEPTED = multi-round-succes: zonder recheck nooit bewijs → nooit fee.
+  const eligibleStates = ["EMAIL_SENT", "COUNTER_SENT", "SUCCESS_UNVERIFIED", "ACCEPTED"];
   if (!eligibleStates.includes(neg.state)) return false;
   const anchor = neg.emailSentAt ?? neg.closedAt;
   if (!anchor) return false;

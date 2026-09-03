@@ -10,6 +10,7 @@
  *  - 1× exponential-backoff retry per model bij transient error
  */
 
+import { DEFAULT_GROQ_TEXT_MODEL, DEFAULT_GROQ_VISION_MODEL } from "@/lib/groq-models";
 import Groq from "groq-sdk";
 import crypto from "crypto";
 import { findProvider, providerCountry, type Category, type Country } from "@/lib/providers";
@@ -18,7 +19,7 @@ import { ocrCache } from "@/lib/llm_cache";
 import { extractPdfText } from "@/lib/pdf_extract";
 
 // Groq tekstmodel — naam via env, default gelijk aan lib/env.ts (sept 2026):
-const TEXT_MODEL = process.env.GROQ_TEXT_MODEL ?? "qwen/qwen3.8-27b";
+const TEXT_MODEL = process.env.GROQ_TEXT_MODEL ?? DEFAULT_GROQ_TEXT_MODEL;
 
 export type OcrResult = {
   ok: boolean;
@@ -136,9 +137,7 @@ Voorbeeld JSON output (Eneco stroom+gas):
 // gpt-oss/compound bestaan ook maar staan project-level geblokkeerd tot
 // de owner ze in de Groq-console aanzet.
 // Override with GROQ_VISION_MODEL env var if a paid tier becomes available.
-export const VISION_MODELS = [
-  "qwen/qwen3.8-27b",
-];
+export const VISION_MODELS = [DEFAULT_GROQ_VISION_MODEL];
 
 const apiKey = process.env.GROQ_API_KEY ?? "";
 const visionModelOverride = process.env.GROQ_VISION_MODEL;
@@ -320,7 +319,7 @@ export function parseOcrJson(raw: string): Partial<OcrResult> {
     const totalCents = toCents(obj.total_eur);
     const legacyAmount = toCents(obj.amount_eur);
 
-    // Llama 4 sometimes returns only `total_eur` (pure-subscription bill) or
+    // Sommige vision-modellen retourneren alleen `total_eur` (pure-subscription bill) or
     // only `monthly_subscription_eur` (model couldn't read the total line).
     // Fall back across all three so we never end up with a null comparison
     // amount when at least one bedrag was extracted.
@@ -396,8 +395,11 @@ async function tryModel(
           ],
         },
       ],
-      max_tokens: 500,
+      // json_object werkt op qwen3.8 óók met (meerdere) image_url's (live
+      // getest); budget ruimer, want overschrijding is in JSON-mode een harde 400.
+      max_tokens: 800,
       temperature: 0.1,
+      response_format: { type: "json_object" },
     });
     return { raw: resp.choices[0]?.message?.content ?? "" };
   } catch (e) {
@@ -468,9 +470,17 @@ export function retryAfterMs(e: unknown): number | null {
 /** v18: backoff schedule for Groq 429 — 1s → 2s → 4s, max 3 retries. */
 export const GROQ_BACKOFF_MS = [1000, 2000, 4000];
 
+/** 5xx / "over capacity" / netwerkfouten die het waard zijn om te herhalen. */
+function isTransientError(err: Error): boolean {
+  const status = (err as { status?: number }).status;
+  if (typeof status === "number" && status >= 500) return true;
+  return /503|502|504|over capacity|timeout|econn|enot/.test(err.message.toLowerCase());
+}
+
 /**
  * Try a model with graceful Groq 429 handling.
- *  - non-rate-limit transient (5xx/network) → single 1.5s retry (legacy).
+ *  - transient (5xx / over capacity / network) → zelfde 1/2/4s-backoff,
+ *    daarna rateLimited=true zodat de caller een retryable 503 stuurt.
  *  - rate-limit (429) → respect retry-after else exponential backoff
  *    (1/2/4s, max 3 attempts). After exhaustion, returns rateLimited=true
  *    so the caller can surface a 503 instead of a generic OCR failure.
@@ -493,12 +503,18 @@ async function tryModelWithRetry(
     return { raw: "", err: last.err, rateLimited: true };
   }
 
-  // non-rate-limit transient: 5xx / network → one 1.5s retry.
-  const msg = last.err.message.toLowerCase();
-  const isTransient = /503|502|504|timeout|econn|enot/.test(msg);
-  if (!isTransient) return last;
-  await _ocrSleep(1500);
-  return tryModel(model, dataUrl);
+  // Transient 5xx / "over capacity" / netwerk → zelfde backoff als 429. Na
+  // uitputting rateLimited=true: de upload-route antwoordt dan retryable 503
+  // i.p.v. "vul handmatig in" voor een fout die even later vanzelf weg is
+  // (sept 2026 live gezien op qwen-vision).
+  if (!isTransientError(last.err)) return last;
+  for (let attempt = 0; attempt < GROQ_BACKOFF_MS.length; attempt++) {
+    await _ocrSleep(GROQ_BACKOFF_MS[attempt]);
+    last = await tryModel(model, dataUrl);
+    if (!last.err) return last;
+    if (!isTransientError(last.err) && !isRateLimitError(last.err)) return last;
+  }
+  return { raw: "", err: last.err, rateLimited: true };
 }
 
 /**

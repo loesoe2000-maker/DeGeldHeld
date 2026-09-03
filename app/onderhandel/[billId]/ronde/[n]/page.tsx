@@ -151,9 +151,15 @@ export default async function RoundPage({
               )}
             <a
               href={`/onderhandel/${billId}/uitkomst`}
-              className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              className={
+                existingRound.outcome === "ACCEPTED"
+                  ? "rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
+                  : "rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              }
             >
-              Akkoord — deal gesloten
+              {existingRound.outcome === "ACCEPTED"
+                ? "Provider lijkt akkoord — bevestig je uitkomst"
+                : "Akkoord — deal gesloten"}
             </a>
             <a
               href={`/onderhandel/${billId}/uitkomst`}

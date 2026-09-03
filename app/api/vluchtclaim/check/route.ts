@@ -10,6 +10,7 @@
  */
 import { NextResponse } from "next/server";
 import { isEnabled } from "@/lib/feature-flags";
+import { rateLimit, rateLimitResponse, ipFromRequest } from "@/lib/rate-limit";
 import { isValidFlightDateISO, isValidFlightNumber } from "@/lib/flightdata";
 import { getActiveFlightLookup } from "@/lib/flightdata-runtime";
 import { eu261Compensation } from "@/lib/eu261";
@@ -22,6 +23,10 @@ export async function POST(req: Request) {
   if (!isEnabled("CLAIMS")) {
     return NextResponse.json({ error: "Not found", reason: "disabled" }, { status: 404 });
   }
+  // Ongeauthenticeerd + betaalde flight-data-API erachter: per IP begrenzen
+  // zodat een bot geen API-kosten kan stoken.
+  const rl = rateLimit({ key: `vluchtclaim:${ipFromRequest(req)}`, max: 20, windowSec: 3600 });
+  if (!rl.ok) return rateLimitResponse(rl);
 
   let body: { flightNumber?: unknown; date?: unknown } = {};
   try {

@@ -1,3 +1,4 @@
+import { DEFAULT_GROQ_TEXT_MODEL, DEFAULT_GROQ_VISION_MODEL } from "@/lib/groq-models";
 import { z } from "zod";
 
 const schema = z.object({
@@ -10,8 +11,8 @@ const schema = z.object({
   // Sept 2026: Groq schrapte het hele Llama-aanbod uit dit tier (llama-3.3
   // en llama-4-scout bestaan niet meer — elke call faalde). qwen3.8-27b is
   // live getest: json_object-mode én image_url-input werken.
-  GROQ_VISION_MODEL: z.string().default("qwen/qwen3.8-27b"),
-  GROQ_TEXT_MODEL: z.string().default("qwen/qwen3.8-27b"),
+  GROQ_VISION_MODEL: z.string().default(DEFAULT_GROQ_VISION_MODEL),
+  GROQ_TEXT_MODEL: z.string().default(DEFAULT_GROQ_TEXT_MODEL),
   STRIPE_SECRET_KEY: z.string().min(1),
   // STRIPE_WEBHOOK_SECRET wordt alleen door /api/webhooks/stripe gebruikt.
   // Optional zodat het ontbreken niet de hele app-health degradeert; de

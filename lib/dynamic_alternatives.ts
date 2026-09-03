@@ -8,6 +8,7 @@
  * and the caller falls back to category-level guidance.
  */
 
+import { DEFAULT_GROQ_TEXT_MODEL } from "@/lib/groq-models";
 import Groq from "groq-sdk";
 import type { Category, Country } from "@/lib/providers";
 
@@ -15,7 +16,7 @@ function apiKey(): string {
   return process.env.GROQ_API_KEY ?? "";
 }
 function textModel(): string {
-  return process.env.GROQ_TEXT_MODEL ?? "qwen/qwen3.8-27b";
+  return process.env.GROQ_TEXT_MODEL ?? DEFAULT_GROQ_TEXT_MODEL;
 }
 
 let _client: Groq | null = null;

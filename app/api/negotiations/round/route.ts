@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { isClosedState } from "@/lib/savings";
 import {
   analyseProviderResponse,
   actionToState,
@@ -14,6 +15,9 @@ import { negotiationRoundSchema, firstIssueMessage } from "@/lib/schemas";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+// Groq-analyse + counter-generatie + optioneel OCR in één request: de Vercel-
+// default (10s) is te krap — zelfde keuze als bills/upload.
+export const maxDuration = 60;
 
 const MAX_OCR_SIZE = 10 * 1024 * 1024;
 
@@ -36,7 +40,19 @@ async function readBody(req: NextRequest): Promise<{
       }
       const buf = Buffer.from(await file.arrayBuffer());
       const ocr = await extractBill(buf, file.type || "image/png");
-      ocrText = ocr.rawText || "";
+      // Faal eerlijk: bij een mislukte OCR bevat rawText een interne marker
+      // (OCR_/PDF_/…). Die als "provider-antwoord" analyseren levert een
+      // verzonnen analyse + counter op en verbrandt een van de 3 rondes.
+      // (TODO: succes-pad een echte transcriptie-prompt geven i.p.v. het
+      // factuur-schema, zodat de letterlijke mailtekst geanalyseerd wordt.)
+      if (!ocr.ok || !ocr.rawText || /^(OCR_|PDF_|HEIC_|NORMALIZE_)/.test(ocr.rawText)) {
+        return {
+          error:
+            "We konden je screenshot niet uitlezen (onleesbaar beeld of AI-dienst tijdelijk " +
+            "overbelast). Plak de tekst van het antwoord, of probeer het over een paar minuten opnieuw.",
+        };
+      }
+      ocrText = ocr.rawText;
     }
 
     return {
@@ -142,6 +158,11 @@ export async function POST(req: NextRequest) {
     include: { bill: true, rounds: { orderBy: { roundNumber: "asc" } } },
   });
   if (!negotiation) return NextResponse.json({ error: "Niet gevonden" }, { status: 404 });
+  // Afgesloten onderhandelingen accepteren geen nieuwe rondes — anders is een
+  // SUCCESS/FEE_PAID via dit endpoint terug te draaien naar COUNTER_SENT.
+  if (negotiation.closedAt || isClosedState(negotiation.state)) {
+    return NextResponse.json({ error: "Deze onderhandeling is al afgesloten." }, { status: 409 });
+  }
 
   const roundNumber = negotiation.rounds.length + 1;
   if (roundNumber > MAX_ROUNDS) {
@@ -169,14 +190,23 @@ export async function POST(req: NextRequest) {
       counterBody: counter.body,
       outcome: actionToOutcome(analysis.action),
     },
+  }).catch((e: unknown) => {
+    // Unique (negotiationId, roundNumber): dubbel-submit binnen seconden
+    // (live gezien: 2 rondes in 27s) → nette 409 i.p.v. een 500.
+    if ((e as { code?: string }).code === "P2002") return null;
+    throw e;
   });
+  if (!round) {
+    return NextResponse.json({ error: "Deze ronde is al verwerkt — ververs de pagina." }, { status: 409 });
+  }
 
+  // Nooit auto-sluiten op een classificatie: actionToState mapt accept en
+  // walk_away op RESPONSE_RECEIVED en de gebruiker bevestigt zelf via
+  // /uitkomst. (Voorheen zette dit closedAt + ACCEPTED/REJECTED — één false
+  // positive brickte dan de hele uitkomst-/fee-flow.)
   await prisma.negotiation.update({
     where: { id: negotiationId },
-    data: {
-      state: newState,
-      ...(newState === "ACCEPTED" || newState === "REJECTED" ? { closedAt: new Date() } : {}),
-    },
+    data: { state: newState },
   });
 
   return NextResponse.json({

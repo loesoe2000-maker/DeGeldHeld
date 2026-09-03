@@ -32,7 +32,6 @@ import { prisma } from "@/lib/db";
 import { sendEmail, escapeHtml } from "@/lib/email";
 import { currencyForCountry } from "@/lib/format";
 import { dispatch } from "@/lib/auto-pingpong";
-import { recordProof } from "@/lib/outcome-proof";
 import { extractRelayToken } from "@/lib/relay";
 import { handleRelayReply } from "@/lib/relay-inbound";
 
@@ -216,16 +215,23 @@ async function handleProofByFrom(email: FetchedEmail, atts: AttachmentBuf[]) {
   }
   if (newAmountCents == null) newAmountCents = lastAmountCents(email.text);
 
-  const oldMonthly = negotiation.bill.monthlyCents ?? negotiation.bill.amountCents;
-  const result = await recordProof({
-    negotiationId: negotiation.id,
-    kind: "forwarded_email",
-    storageUrl: null,
-    newAmountCents,
-    oldMonthlyCents: oldMonthly,
-    rawNote: email.subject,
+  // SECURITY: de From-header is spoofbaar — de Resend-signatuur bewijst alleen
+  // dat Resend de mail bezorgde, niet wie 'm stuurde. Zonder token mag dit pad
+  // daarom NOOIT een SUCCESS-flip + off-session fee-charge triggeren (dat zou
+  // een charge op andermans opgeslagen kaart mogelijk maken). We bewaren het
+  // bewijs voor handmatige review; de getokeniseerde bewijs-link uit het
+  // dashboard blijft het pad dat automatisch verwerkt.
+  const proof = await prisma.outcomeProof.create({
+    data: {
+      negotiationId: negotiation.id,
+      kind: "forwarded_email",
+      storageUrl: null,
+      parsedAmountCents: newAmountCents,
+      verificationStatus: "manual_review",
+      verifierNote: `Ontvangen via bewijs@ zonder token (From-match) — niet automatisch verwerkt. ${email.subject ?? ""}`.trim(),
+    },
   });
-  return NextResponse.json({ ok: true, ...result });
+  return NextResponse.json({ ok: true, proofId: proof.id, verdict: "manual_review" });
 }
 
 // ---- the canonical entry-point ----------------------------------------

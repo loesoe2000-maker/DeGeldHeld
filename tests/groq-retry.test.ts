@@ -9,13 +9,16 @@ describe("Groq analyse retry schedule (bug-jacht DEEL 1b)", () => {
     __setSleepImpl(null);
   });
 
-  it("schedules 4 attempts with exponential backoff (0, 1, 3, 8s)", () => {
-    expect(ANALYSE_RETRY_DELAYS_MS).toEqual([0, 1000, 3000, 8000]);
+  it("schedules 3 attempts with backoff (0, 1, 3s) — v39 ingekort", () => {
+    expect(ANALYSE_RETRY_DELAYS_MS).toEqual([0, 1000, 3000]);
   });
 
-  it("total worst-case wait stays under the Vercel hobby 60s budget", () => {
-    const total = ANALYSE_RETRY_DELAYS_MS.reduce((a, b) => a + b, 0);
-    expect(total).toBeLessThan(60_000);
+  it("worst-case (sleeps + 10s timeout per poging) laat ruimte voor counter-generatie binnen maxDuration=60", () => {
+    // Client: timeout 10s, maxRetries 0 (lib/rounds.ts). Na de analyse moet
+    // dezelfde request nog generateEmail() draaien — houd ruime marge.
+    const sleeps = ANALYSE_RETRY_DELAYS_MS.reduce((a, b) => a + b, 0);
+    const worstCase = sleeps + ANALYSE_RETRY_DELAYS_MS.length * 10_000;
+    expect(worstCase).toBeLessThan(45_000);
   });
 
   it("first attempt has zero delay (no wait before first call)", () => {

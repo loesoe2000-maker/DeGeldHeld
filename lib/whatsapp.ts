@@ -9,10 +9,11 @@
  * AI counter generation reuses the Groq text model (GROQ_TEXT_MODEL).
  */
 
+import { DEFAULT_GROQ_TEXT_MODEL } from "@/lib/groq-models";
 import crypto from "crypto";
 import Groq from "groq-sdk";
 
-const TEXT_MODEL = process.env.GROQ_TEXT_MODEL ?? "qwen/qwen3.8-27b";
+const TEXT_MODEL = process.env.GROQ_TEXT_MODEL ?? DEFAULT_GROQ_TEXT_MODEL;
 
 export function isWhatsAppEnabled(): boolean {
   // Honors legacy WHATSAPP_ENABLED + new FEATURE_WHATSAPP_ENABLED
@@ -86,6 +87,20 @@ function client(): Groq {
  * Returns subject + body suitable to mirror on WhatsApp.
  * Caller MUST present this as a draft to the user — never auto-send.
  */
+function deterministicCounter(
+  opts: { providerName: string; alternativeName?: string; alternativeMonthlyEur?: number },
+  reason: string,
+): { analysis: string; counter: string; tone: "FORMEEL" | "INFORMEEL" } {
+  return {
+    analysis: `Provider ${opts.providerName} bood iets aan; analyse niet beschikbaar (${reason}).`,
+    counter:
+      `Bedankt voor je bericht. Ik blijf graag klant bij ${opts.providerName}, maar het aangeboden tarief ` +
+      `is nog niet marktconform. ${opts.alternativeName ? `${opts.alternativeName} biedt ${opts.alternativeMonthlyEur?.toFixed(2)}/mnd. ` : ""}` +
+      `Kun je dit nog matchen? Anders zal ik helaas overstappen.`,
+    tone: "FORMEEL",
+  };
+}
+
 export async function analyseProviderResponse(opts: {
   providerName: string;
   providerMessage: string;
@@ -96,14 +111,7 @@ export async function analyseProviderResponse(opts: {
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey || apiKey === "gsk_test_dummy") {
     // Deterministic fallback (no LLM call) — keeps tests + dev flows working
-    return {
-      analysis: `Provider ${opts.providerName} bood iets aan; analyse niet beschikbaar (geen LLM-key).`,
-      counter:
-        `Bedankt voor je bericht. Ik blijf graag klant bij ${opts.providerName}, maar het aangeboden tarief ` +
-        `is nog niet marktconform. ${opts.alternativeName ? `${opts.alternativeName} biedt ${opts.alternativeMonthlyEur?.toFixed(2)}/mnd. ` : ""}` +
-        `Kun je dit nog matchen? Anders zal ik helaas overstappen.`,
-      tone: "FORMEEL",
-    };
+    return deterministicCounter(opts, "geen LLM-key");
   }
   const prompt = `Je bent een Nederlandse onderhandelaar. Een provider antwoordde via WhatsApp; lees het bericht en stel een korte tegenvraag (counter) op in dezelfde taal.
 
@@ -119,23 +127,25 @@ Geef in JSON:
 - counter: max 200 woorden tegenvoorstel (NL, beleefd, concreet)
 - tone: "FORMEEL" of "INFORMEEL"`;
 
-  const resp = await client().chat.completions.create({
-    model: TEXT_MODEL,
-    messages: [{ role: "user", content: prompt }],
-    response_format: { type: "json_object" },
-    max_tokens: 500,
-    temperature: 0.3,
-  });
-  const raw = resp.choices[0]?.message?.content ?? "{}";
   try {
+    const resp = await client().chat.completions.create({
+      model: TEXT_MODEL,
+      messages: [{ role: "user", content: prompt }],
+      response_format: { type: "json_object" },
+      max_tokens: 500,
+      temperature: 0.3,
+    });
+    const raw = resp.choices[0]?.message?.content ?? "{}";
     const obj = JSON.parse(raw) as { analysis?: string; counter?: string; tone?: string };
     const tone: "FORMEEL" | "INFORMEEL" = obj.tone === "INFORMEEL" ? "INFORMEEL" : "FORMEEL";
-    return {
-      analysis: obj.analysis ?? "",
-      counter: obj.counter ?? "",
-      tone,
-    };
+    const counter = (obj.counter ?? "").trim();
+    // Lege counter = niets om te versturen: liever de deterministische tekst
+    // dan een leeg concept persisteren en mailen.
+    if (!counter) return deterministicCounter(opts, "LLM gaf geen counter");
+    return { analysis: obj.analysis ?? "", counter, tone };
   } catch {
-    return { analysis: "", counter: "", tone: "FORMEEL" };
+    // Groq 429/503/over-capacity of onparseerbare JSON: de Twilio-webhook mag
+    // nooit 500'en (redelivery → dubbele inbound-rows). Degradeer netjes.
+    return deterministicCounter(opts, "LLM niet beschikbaar");
   }
 }

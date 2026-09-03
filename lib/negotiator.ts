@@ -10,6 +10,7 @@
  *  - WhatsApp share helper (build text + URL)
  */
 
+import { DEFAULT_GROQ_TEXT_MODEL } from "@/lib/groq-models";
 import Groq from "groq-sdk";
 import type { Alternative } from "@/lib/comparison";
 import { ruleFor, vocabFor } from "@/lib/categories";
@@ -76,7 +77,7 @@ export type NegotiatorOutput = {
 
 const apiKey = process.env.GROQ_API_KEY ?? "";
 // Default gelijk houden aan lib/env.ts — Groq schrapte alle Llama-modellen (sept 2026).
-const textModel = process.env.GROQ_TEXT_MODEL ?? "qwen/qwen3.8-27b";
+const textModel = process.env.GROQ_TEXT_MODEL ?? DEFAULT_GROQ_TEXT_MODEL;
 
 let _client: Groq | null = null;
 function client(): Groq {

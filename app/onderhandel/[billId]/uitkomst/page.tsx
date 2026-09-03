@@ -47,10 +47,13 @@ export default async function UitkomstPage({
 
   const monthlyCents = bill.monthlyCents ?? bill.amountCents;
 
-  // Terminal once it's closed OR has reached a verified-savings / fee state.
+  // Terminal zodra er een vastgelegde uitkomst is (bedrag ingevuld) of een
+  // fee-/succes-state bereikt is. Bewust NIET op closedAt alleen: de oude
+  // auto-close zette closedAt zónder bedrag — zulke rijen moeten het
+  // formulier alsnog krijgen, anders is de uitkomst onbereikbaar.
   const state = bill.negotiation.state;
   const isTerminal =
-    bill.negotiation.closedAt != null ||
+    bill.negotiation.actualSavingsCents != null ||
     ["FEE_PAID", "BILLED_PENDING_PAYMENT", "SUCCESS", "BILLED"].includes(state);
 
   if (isTerminal) {

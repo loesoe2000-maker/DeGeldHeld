@@ -9,6 +9,7 @@
  *     ok:false instead of fabricating data — sprint regel: niets verzinnen.
  */
 
+import { DEFAULT_GROQ_TEXT_MODEL } from "@/lib/groq-models";
 import Groq from "groq-sdk";
 
 export type DiscoveredRetention = {
@@ -24,7 +25,7 @@ export type DiscoveryResult =
   | { ok: false; reason: string };
 
 const apiKey = (): string => process.env.GROQ_API_KEY ?? "";
-const textModel = (): string => process.env.GROQ_TEXT_MODEL ?? "qwen/qwen3.8-27b";
+const textModel = (): string => process.env.GROQ_TEXT_MODEL ?? DEFAULT_GROQ_TEXT_MODEL;
 
 let _client: Groq | null = null;
 function client(): Groq {
@@ -75,7 +76,7 @@ NIET verzinnen — leeg JSON object als niets gevonden.`,
         },
         { role: "user", content: text.slice(0, 6000) },
       ],
-      max_tokens: 300,
+      max_tokens: 500,
       temperature: 0.1,
       response_format: { type: "json_object" },
     });

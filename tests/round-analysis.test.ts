@@ -96,11 +96,13 @@ describe("rounds — analysis parsing", () => {
 });
 
 describe("rounds — action → state mapping", () => {
-  it("maps accept → ACCEPTED", () => {
-    expect(actionToState("accept")).toBe("ACCEPTED");
+  // v39: accept/walk_away zijn suggesties — nooit een terminale state vanuit
+  // een classificatie; de gebruiker bevestigt zelf via /uitkomst.
+  it("maps accept → RESPONSE_RECEIVED (geen auto-close)", () => {
+    expect(actionToState("accept")).toBe("RESPONSE_RECEIVED");
   });
-  it("maps walk_away → REJECTED", () => {
-    expect(actionToState("walk_away")).toBe("REJECTED");
+  it("maps walk_away → RESPONSE_RECEIVED (geen auto-close)", () => {
+    expect(actionToState("walk_away")).toBe("RESPONSE_RECEIVED");
   });
   it("maps counter → COUNTER_SENT", () => {
     expect(actionToState("counter")).toBe("COUNTER_SENT");

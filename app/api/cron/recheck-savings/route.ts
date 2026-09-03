@@ -39,7 +39,7 @@ export async function GET(req: NextRequest) {
 
     const candidates = await prisma.negotiation.findMany({
       where: {
-        state: { in: ["EMAIL_SENT", "COUNTER_SENT", "SUCCESS_UNVERIFIED"] },
+        state: { in: ["EMAIL_SENT", "COUNTER_SENT", "SUCCESS_UNVERIFIED", "ACCEPTED"] },
         proofVerifiedAt: null,
         OR: [
           { emailSentAt: { gte: lower, lte: upper } },
