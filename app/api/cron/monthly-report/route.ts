@@ -49,7 +49,13 @@ export async function GET(req: NextRequest) {
         unsubscribeToken: true,
         lastMonthlyReportAt: true,
         bills: { where: { deletedAt: null }, select: { category: true, nextRecheckAt: true } },
-        negotiations: { select: { state: true, actualSavingsCents: true } },
+        // Zelfde filter als het dashboard (app/dashboard/page.tsx): onderhandelingen
+        // op een verwijderde rekening tellen nergens mee — anders belooft de mail
+        // een totaal dat het dashboard niet kan laten zien.
+        negotiations: {
+          where: { bill: { deletedAt: null } },
+          select: { state: true, actualSavingsCents: true },
+        },
       },
       take: BATCH_LIMIT,
     });
