@@ -11,6 +11,9 @@
  *   5. If action === "counter": generate a counter-mail via generateEmail()
  *      and persist as a new NegotiationRound with outcome
  *      AWAITING_USER_CONFIRM. **Never** auto-send.
+ *      If action === "accept"/"walk_away" (v39): persist the round WITHOUT a
+ *      counter-draft and notify the user to confirm the outcome — never drop
+ *      a winning/losing reply silently.
  *   6. Notify the user via a one-shot e-mail with a deeplink to
  *      /onderhandel/[billId]/ronde/[n] so they can review + confirm.
  *
@@ -71,6 +74,25 @@ export function parseInboundRouterPayload(raw: unknown): InboundRouterPayload | 
   };
 }
 
+/**
+ * Enige plek in deze module die mailt — en ALTIJD naar de eigen gebruiker.
+ * De guard-tests (auto-pingpong-no-autosend / confirm-required) tellen
+ * sendEmail-callsites om te borgen dat er nooit een pad ontstaat dat de
+ * provider direct mailt.
+ */
+async function notifyUser(
+  negotiation: { user: { email: string | null } },
+  mail: { subject: string; text: string; html: string },
+): Promise<void> {
+  if (!negotiation.user.email) return;
+  await sendEmail({
+    to: negotiation.user.email,
+    subject: mail.subject,
+    text: mail.text,
+    html: mail.html,
+  });
+}
+
 export type RouteResult =
   | { ok: false; reason: "no-thread-id" | "no-match" | "max-rounds" | "no-counter-needed" | "feature-disabled" }
   | { ok: true; roundId: string; negotiationId: string };
@@ -100,6 +122,62 @@ export async function routeInboundReply(
   if (usedRounds >= MAX_ROUNDS) return { ok: false, reason: "max-rounds" };
 
   const analysis = await analyseProviderResponse(payload.text);
+
+  // v39: accept/walk_away NIET meer geruisloos droppen — precies het
+  // incident-scenario per e-mail ("ze hebben het verlaagd" als thread-reply)
+  // verdween hier spoorloos: geen ronde, geen notificatie, negotiation bleef
+  // hangen. We leggen de ronde vast (zonder counter-draft), zetten de state
+  // op RESPONSE_RECEIVED en mailen de gebruiker met een CTA naar de
+  // ronde-pagina (die bij accept de bevestig-uitkomst-knop toont).
+  // Alleen escalate/onduidelijk blijft stil ("no-counter-needed").
+  if (analysis.action === "accept" || analysis.action === "walk_away") {
+    const akkoord = analysis.action === "accept";
+    const round = await prisma.negotiationRound.create({
+      data: {
+        negotiationId: negotiation.id,
+        roundNumber: usedRounds + 1,
+        providerResponse: payload.text,
+        analysisJson: JSON.stringify(analysis),
+        offeredCents: analysis.offeredCents,
+        outcome: akkoord ? "ACCEPTED" : "REJECTED",
+        inboundMessageId: payload.messageId,
+        inboundReplyTo: payload.inReplyTo,
+      },
+    });
+    await prisma.negotiation.update({
+      where: { id: negotiation.id },
+      data: { state: "RESPONSE_RECEIVED" },
+    });
+    if (opts.notifyUser !== false) {
+      const appUrl = process.env.APP_URL ?? "https://degeldheld.com";
+      const link = `${appUrl}/onderhandel/${negotiation.billId}/ronde/${round.roundNumber}`;
+      await notifyUser(negotiation, {
+        subject: akkoord
+          ? `Goed nieuws — ${negotiation.bill.provider} lijkt akkoord`
+          : `${negotiation.bill.provider} wijst je verzoek af — bekijk je opties`,
+        text: akkoord
+          ? `${negotiation.bill.provider} heeft gereageerd en lijkt akkoord met de verlaging.
+Bevestig je uitkomst hier, dan leggen we het nieuwe bedrag vast:
+${link}
+
+— DeGeldHeld`
+          : `${negotiation.bill.provider} heeft je verzoek afgewezen.
+Bekijk de reactie en je opties hier:
+${link}
+
+— DeGeldHeld`,
+        html: akkoord
+          ? `<p><strong>${escapeHtml(negotiation.bill.provider)}</strong> heeft gereageerd en lijkt <strong>akkoord</strong> met de verlaging.</p>
+<p><a href="${link}">Bevestig je uitkomst →</a> — dan leggen we het nieuwe bedrag vast.</p>
+<p>— DeGeldHeld</p>`
+          : `<p><strong>${escapeHtml(negotiation.bill.provider)}</strong> heeft je verzoek afgewezen.</p>
+<p><a href="${link}">Bekijk de reactie en je opties →</a></p>
+<p>— DeGeldHeld</p>`,
+      });
+    }
+    return { ok: true, roundId: round.id, negotiationId: negotiation.id };
+  }
+
   if (analysis.action !== "counter") {
     return { ok: false, reason: "no-counter-needed" };
   }
@@ -148,11 +226,10 @@ export async function routeInboundReply(
     },
   });
 
-  if (opts.notifyUser !== false && negotiation.user.email) {
+  if (opts.notifyUser !== false) {
     const appUrl = process.env.APP_URL ?? "https://degeldheld.com";
     const link = `${appUrl}/onderhandel/${negotiation.billId}/ronde/${round.roundNumber}`;
-    await sendEmail({
-      to: negotiation.user.email,
+    await notifyUser(negotiation, {
       subject: `${negotiation.bill.provider} reageerde — bekijk de counter-mail`,
       text: `${negotiation.bill.provider} heeft gereageerd op je onderhandel-mail.
 We hebben een counter-mail klaargezet. Bekijk + bevestig hier:

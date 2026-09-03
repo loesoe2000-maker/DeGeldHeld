@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { getAuthUrl, isPsd2Enabled } from "@/lib/psd2/tink";
@@ -15,8 +16,22 @@ export async function POST() {
   if (!isPsd2Enabled()) {
     return NextResponse.json({ error: "PSD2 not enabled in this environment" }, { status: 503 });
   }
-  const userId = (session.user as { id: string }).id;
+
+  // v39 CSRF-fix: state is een onvoorspelbare single-use nonce, vastgelegd in
+  // een httpOnly-cookie. Voorheen was state de (raadbare) userId én optioneel
+  // in de callback — klassieke OAuth login-CSRF: een aanvaller kon zijn eigen
+  // bank-code onder de sessie van een slachtoffer laten inwisselen en zo
+  // aanvaller-transacties in andermans bill-detectie injecteren.
+  const nonce = crypto.randomBytes(24).toString("base64url");
   const redirectUri = `${APP_URL}/api/psd2/callback`;
-  const url = getAuthUrl(userId, redirectUri);
-  return NextResponse.json({ url });
+  const url = getAuthUrl(nonce, redirectUri);
+  const res = NextResponse.json({ url });
+  res.cookies.set("psd2_state", nonce, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/api/psd2",
+    maxAge: 600,
+  });
+  return res;
 }

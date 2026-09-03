@@ -61,7 +61,9 @@ export function isPsd2Enabled(): boolean {
  * Build Tink Link URL for a one-off connect flow.
  * Tink Link is the user-facing OAuth-ish bank consent flow.
  */
-export function getAuthUrl(userId: string, redirectUri: string, market = "NL"): string {
+// v39 CSRF-fix: state is een door de caller gegenereerde onvoorspelbare
+// nonce (single-use, httpOnly-cookie), NIET meer de raadbare userId.
+export function getAuthUrl(state: string, redirectUri: string, market = "NL"): string {
   const cfg = getConfig();
   const params = new URLSearchParams({
     client_id: cfg.clientId,
@@ -69,7 +71,7 @@ export function getAuthUrl(userId: string, redirectUri: string, market = "NL"): 
     market,
     locale: "nl_NL",
     scope: "accounts:read,transactions:read",
-    state: userId,
+    state,
   });
   return `https://link.tink.com/1.0/transactions/connect-accounts?${params.toString()}`;
 }

@@ -26,13 +26,17 @@ describe("POST /api/psd2/connect", () => {
     expect(r.status).toBe(503);
   });
 
-  it("200 with Tink Link URL when enabled", async () => {
+  it("200 met Tink Link URL; state = onvoorspelbare nonce in httpOnly-cookie (v39 CSRF-fix)", async () => {
     mockSession.mockResolvedValue({ user: { id: "u1" } });
     process.env.PSD2_ENABLED = "true";
     const r = await connectPOST();
     expect(r.status).toBe(200);
     const body = await r.json();
     expect(body.url).toMatch(/link\.tink\.com/);
-    expect(body.url).toContain("state=u1");
+    // Nooit meer de raadbare userId als state:
+    expect(body.url).not.toContain("state=u1");
+    const nonce = r.cookies.get("psd2_state")?.value ?? "";
+    expect(nonce.length).toBeGreaterThan(20);
+    expect(body.url).toContain(`state=${nonce}`);
   });
 });
