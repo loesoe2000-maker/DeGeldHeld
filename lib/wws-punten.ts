@@ -476,6 +476,19 @@ export function maxHuurBand2026Cents(punten: number): MaxHuurBand {
   return { exactCents: exact, ondergrensCents: exact, bovengrensCents: exact };
 }
 
+/**
+ * Maximale huurprijs zoals de OFFICIËLE Huurprijscheck hem toont: onder de
+ * 40 punten klapt de wizard terug op de 40-puntenrij (live geverifieerd
+ * 3-9-2026: 37 punten → € 250,26 = de 40-rij). Boven 250 punten geeft de
+ * officiële tabel geen waarde → null (die woningen zijn sowieso hoogsegment).
+ */
+export function maxHuurMetClamp2026Cents(punten: number): number | null {
+  if (!Number.isFinite(punten)) return null;
+  const heel = Math.round(punten);
+  if (heel > TABEL_MAX_PUNTEN) return null;
+  return maxHuur2026Cents(Math.max(TABEL_MIN_PUNTEN, heel));
+}
+
 /** Opslagen op de maximale huurPRIJS (BHW art. 8a) — F3 past ze toe. */
 export const HUURPRIJS_OPSLAG_PCT = {
   rijksmonumentNieuwContract: 35,

@@ -18,6 +18,7 @@
 
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import type { VolmachtClaimType } from "@/lib/volmacht";
+import { addMonths } from "@/lib/date-utils";
 
 export type GenerateVolmachtPdfInput = {
   claimType: VolmachtClaimType;
@@ -310,20 +311,11 @@ export async function generateVolmachtPdf(
 }
 
 /**
- * Voeg N maanden toe aan een datum, geclampt op de laatste dag van de
- * doelmaand. Kale setMonth overschiet bij korte doelmaanden (29 feb 2024 +
- * 12 mnd → 1 mrt 2025; 31 jan + 1 mnd → 2/3 mrt) — juridisch relevant voor
- * de volmacht-einddatum, dus expliciet afgehandeld. Exported voor tests.
+ * addMonths woont sinds v40 in lib/date-utils.ts (dependency-vrij, zodat
+ * client-side modules 'm kunnen gebruiken zonder pdf-lib mee te bundelen).
+ * Hier ge-re-exporteerd omdat bestaande callers + tests dit pad gebruiken.
  */
-export function addMonths(d: Date, months: number): Date {
-  const r = new Date(d);
-  const dag = r.getDate();
-  r.setMonth(r.getMonth() + months);
-  // Overschoten naar de volgende maand? Clamp terug naar de laatste dag van
-  // de bedoelde maand (setDate(0) = laatste dag van de vorige maand).
-  if (r.getDate() < dag) r.setDate(0);
-  return r;
-}
+export { addMonths } from "@/lib/date-utils";
 
 /** Eenvoudige greedy word-wrap (op woord-grens) naar regels van max `width` tekens. */
 function wrapText(text: string, width: number): string[] {

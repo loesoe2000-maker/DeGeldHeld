@@ -48,6 +48,17 @@ vóór commit.
 - Kaart-mandaat verplicht vóór indienen (zelfde patroon als Box 3).
 - Output: puntenrapport + Huurcommissie-verzoekschrift-concept (klant dient in).
 
+### F3 status (4-9-2026): check-helft AF, claim-helft = F3b
+
+**Af (commit-klaar):** `lib/huurprijs-check.ts` (routes + marge-regel + fee),
+`/huurprijs-check` intake, DIY-brief, hub-tegel, 33 tests. Flag blijft uit.
+
+**F3b (volgende gate, bewust apart):** het NCNP-claimpad — kaart-mandaat
+vóór indienen, foto-bewijs in de documentenkluis, en het
+Huurcommissie-verzoekschrift. Dat raakt Prisma-modellen + Stripe en verdient
+zijn eigen gates; de gratis check staat er los van (zelfde scheiding als
+box3-check ↔ box3-check/proof).
+
 ## F4 — Pilot vóór automatisering
 
 - Eerste 10–20 zaken handmatig begeleiden; voorspelling vs. echte uitspraak

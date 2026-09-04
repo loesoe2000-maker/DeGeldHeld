@@ -21,7 +21,9 @@ export type PostCheckSource =
   | "spookabonnementen"
   // v35 Claim-Hub uitbreiding — beide officiële-instantie-claims (geen relay-mail).
   | "huurcommissie"
-  | "energie-claim";
+  | "energie-claim"
+  // v40 F3 — huurprijs-toets (WWS-punten → maximale huur).
+  | "huurprijs";
 
 export type PostCheckCtaProps = {
   fromCheck: PostCheckSource;
@@ -36,6 +38,9 @@ export type PostCheckCtaProps = {
 };
 
 const PLUS_BODY: Record<PostCheckSource, string> = {
+  huurprijs:
+    "Punten en maximale huurprijzen worden elk jaar geïndexeerd. Met Plus "
+    + "krijg je bericht zodra jouw woning opnieuw te duur wordt.",
   geld:
     "Toeslagen-grenzen wijzigen elk jaar. Met Plus krijg je elk kwartaal een " +
     "her-check-herinnering — zodat je niets meer mist.",
@@ -63,6 +68,9 @@ const PLUS_BODY: Record<PostCheckSource, string> = {
 };
 
 const ONDERHANDEL_BODY: Record<PostCheckSource, string> = {
+  huurprijs:
+    "Naast je huur betaal je vaste lasten voor energie, internet en "
+    + "verzekeringen. Upload een rekening en we onderhandelen mee.",
   geld:
     "Bovenop toeslagen kun je vaak nog €350-€800/jaar besparen op telecom / " +
     "internet / energie. Wij onderhandelen automatisch — 20% NCNP op bewezen " +

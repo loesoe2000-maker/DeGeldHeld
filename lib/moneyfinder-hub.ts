@@ -79,6 +79,18 @@ export const HUB_TILES: ReadonlyArray<HubTile> = [
     flag: "HUURCOMMISSIE_CHECK_ENABLED",
     icon: "🏠",
   },
+  // v40 F3 — huurprijs-toets op het woningwaarderingsstelsel. Flag blijft uit
+  // tot de F4-pilot (docs/V40_PLAN.md) gedraaid is.
+  {
+    id: "huurprijs-check",
+    title: "Huurprijs-check — betaal je te veel?",
+    body:
+      "Punten van je woning → maximale huurprijs 2026. Gratis check + " +
+      "voorstelbrief; ook eerlijk als je géén procedure kunt starten.",
+    href: "/huurprijs-check",
+    flag: "HUURPRIJS_CHECK_ENABLED",
+    icon: "📐",
+  },
   {
     id: "energie-claim-check",
     title: "Energie-eindafrekening-claim",

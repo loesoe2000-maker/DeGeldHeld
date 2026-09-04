@@ -57,6 +57,9 @@ export type AnalyticsEvent =
   // v38 uitbreiding A — Engelstalige landing voor internationals (EN_LANDING_ENABLED)
   | "en_landing_view"
   // v35 Huurcommissie-bezwaar servicekosten (achter HUURCOMMISSIE_CHECK_ENABLED)
+  // v40 F3 — huurprijs-check (WWS-punten). Alleen verdict/punten/route,
+  // nooit adres, WOZ of huurbedrag.
+  | "huurprijs_check_done"
   | "huurcommissie_check_started"
   | "huurcommissie_results_viewed"
   | "huurcommissie_ncnp_chosen"
