@@ -78,6 +78,10 @@ const FLAG_DEFAULTS = {
   // + NCNP-claim ≥ € 50. Bron-discipline: docs/V35_DATA_2026.md. Flip aan na
   // privacy/disclaimer-review eigenaar.
   HUURCOMMISSIE_CHECK_ENABLED: false,
+  // Off by default — v40 F2/F3 Huurprijs-check (WWS-puntentoets + huurverlaging
+  // Wet betaalbare huur). Mag pas aan ná de kalibratie-gate uit docs/V40_PLAN.md
+  // (≥ 10 adressen tegen de officiële Huurprijscheck) én de F4-pilot.
+  HUURPRIJS_CHECK_ENABLED: false,
   // Off by default — v35 Energie-eindafrekening-claim via Geschillencommissie
   // Energie. Rode-vlag-detector + DIY-klachtbrief + NCNP-claim ≥ € 50. Flip aan
   // na privacy/disclaimer-review + verificatie energiebelasting-vermindering 2026.
