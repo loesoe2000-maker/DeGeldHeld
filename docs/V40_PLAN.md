@@ -59,6 +59,38 @@ Huurcommissie-verzoekschrift. Dat raakt Prisma-modellen + Stripe en verdient
 zijn eigen gates; de gratis check staat er los van (zelfde scheiding als
 box3-check ↔ box3-check/proof).
 
+### F3-correcties (4-9-2026) — beide AF, vóór F3b
+
+Uit het marktonderzoek kwamen twee fouten die vóór elke uitbreiding moesten:
+
+1. **Woningdelers-gate** (commit 0280593). BHW art. 1 lid 2: zelfstandig =
+   max 2 bewoners, of 3+ mét gemeenschappelijke huishouding. Drie huisgenoten
+   in een appartement zijn juridisch ONzelfstandig (WWSO). De check gaf daar
+   een *fout antwoord*, niet slechts een afwijzing. `bewoning` is nu verplicht.
+2. **Fee over netto besparing** (commit 83e82af). Huurtoeslag daalt mee met de
+   huur; onder € 498,20 is de terugname 100%. Fee gaat nu over de conservatief
+   bepaalde netto besparing; netto nul → fee nul.
+
+### Herziene volgorde ná deze correcties
+
+1. **Servicekosten-check aanzetten** — `/huurcommissie-check` is al gebouwd
+   (V35) en staat op de flag uit, terwijl servicekosten de grootste
+   gerealiseerde zaaksoort bij de Huurcommissie is en géén route-gates kent.
+   Nul bouwwerk, alleen een copy-review + flag.
+2. **F3b** — NCNP-claimpad (mandaat, foto-bewijs, verzoekschrift).
+3. **WWSO** (onzelfstandige woonruimte) — opent de kamermarkt en verdrievoudigt
+   het studentensegment; 2–4 weken werk.
+
+### Marktcijfers die de volgorde dragen (bron: onderzoek 4-9-2026)
+
+~173.000 huurders (band 140–210k) betalen te veel én hebben een route;
+~107.000 (~38%) valt af op gate 2. Benutting vandaag: ~1.920 puntenonderzoeken
+per jaar landelijk, ver onder 1%. Realistisch zonder marketingbudget:
+€ 15–80k in jaar 1, € 100–300k/jr in jaar 2–3. Studenten: 55% woont
+onzelfstandig (buiten scope), maar wie zelfstandig woont valt bijna altijd
+binnen een route én vaak in het 6-maandenvenster — campagnevenster is
+september t/m februari.
+
 ## F4 — Pilot vóór automatisering
 
 - Eerste 10–20 zaken handmatig begeleiden; voorspelling vs. echte uitspraak
