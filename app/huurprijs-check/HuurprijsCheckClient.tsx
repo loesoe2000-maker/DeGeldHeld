@@ -111,6 +111,7 @@ export default function HuurprijsCheckClient() {
   const [contractType, setContractType] = useState<ContractType>("vast");
   const [eindDatum, setEindDatum] = useState("");
   const [kaleHuur, setKaleHuur] = useState("");
+  const [huurtoeslag, setHuurtoeslag] = useState(false);
 
   const [resultaat, setResultaat] = useState<HuurprijsResultaat | null>(null);
   const [fout, setFout] = useState<string | null>(null);
@@ -184,6 +185,7 @@ export default function HuurprijsCheckClient() {
         aantalBewoners: Math.max(1, Math.round(num(aantalBewoners))),
         gemeenschappelijkeHuishouding: gemeenschappelijk,
       },
+      ontvangtHuurtoeslag: huurtoeslag,
       kaleHuurCents: huurCents,
       // Heeft de huurder de keuken-/sanitair-extra's echt nagelopen? Zo niet,
       // rekent de marge-regel ze op het wettelijke maximum (pessimistisch).
@@ -585,6 +587,21 @@ export default function HuurprijsCheckClient() {
                 Zonder servicekosten, gas/licht en internet.
               </span>
             </label>
+
+            <label className="flex items-start gap-2 self-end pb-2 text-sm text-slate-700">
+              <input
+                type="checkbox"
+                checked={huurtoeslag}
+                onChange={(e) => setHuurtoeslag(e.target.checked)}
+                data-testid="hp-huurtoeslag"
+                className="mt-0.5"
+              />
+              <span>
+                Ik ontvang <strong>huurtoeslag</strong>. Belangrijk: die daalt mee
+                als je huur omlaag gaat, dus je houdt minder over dan de verlaging
+                op papier. We rekenen daar eerlijk mee.
+              </span>
+            </label>
           </div>
         </section>
 
@@ -661,14 +678,32 @@ export default function HuurprijsCheckClient() {
             )}
 
             {resultaat.verdict === "kansrijk" ? (
-              <p className="mt-4 text-sm text-slate-700">
-                Ook als we voorzichtig rekenen (meetmarge, luxe die je misschien
-                vergeten bent) blijf je boven de maximale huurprijs. Minimaal{" "}
-                <strong>{formatEurCents(resultaat.maandVerlagingMinCents)}</strong> per
-                maand te veel — zo&apos;n{" "}
-                <strong>{formatEurCents(resultaat.jaarbesparingMinCents)}</strong> per
-                jaar.
-              </p>
+              <div className="mt-4 text-sm text-slate-700">
+                <p>
+                  Ook als we voorzichtig rekenen (meetmarge, luxe die je misschien
+                  vergeten bent) blijf je boven de maximale huurprijs. Minimaal{" "}
+                  <strong>{formatEurCents(resultaat.maandVerlagingMinCents)}</strong> per
+                  maand te veel — zo&apos;n{" "}
+                  <strong>{formatEurCents(resultaat.jaarbesparingMinCents)}</strong> per
+                  jaar.
+                </p>
+                {resultaat.huurtoeslagVolledigTeruggenomen ? (
+                  <p data-testid="hp-netto-nul" className="mt-3 rounded-lg bg-amber-100 p-3 text-amber-900">
+                    <strong>Maar let op:</strong> je huurtoeslag daalt euro voor euro
+                    mee, dus netto houd je hier <strong>niets</strong> aan over. De
+                    zaak is juridisch sterk, maar financieel schiet je er niets mee
+                    op — en wij rekenen dan ook <strong>geen fee</strong>.
+                  </p>
+                ) : resultaat.nettoMaandVerlagingMinCents < resultaat.maandVerlagingMinCents ? (
+                  <p data-testid="hp-netto" className="mt-3 rounded-lg bg-slate-100 p-3">
+                    Je ontvangt huurtoeslag, dus die daalt mee. Je houdt er netto{" "}
+                    <strong>ten minste{" "}
+                    {formatEurCents(resultaat.nettoMaandVerlagingMinCents)}</strong> per
+                    maand aan over. Onze fee gaat over dát bedrag, niet over de
+                    verlaging op papier.
+                  </p>
+                ) : null}
+              </div>
             ) : null}
 
             {resultaat.verdict === "twijfelgeval" ? (

@@ -84,6 +84,38 @@ describe("HuurprijsCheckClient — woningdelers-gate (BHW art. 1 lid 2)", () => 
   });
 });
 
+describe("HuurprijsCheckClient — huurtoeslag-terugname", () => {
+  it("aangevinkt → toont de netto besparing als 'ten minste', niet het bruto bedrag", () => {
+    render(<HuurprijsCheckClient />);
+    const recent = new Date();
+    recent.setMonth(recent.getMonth() - 2);
+    fireEvent.click(screen.getByTestId("hp-huurtoeslag"));
+    vulFormulier({ huur: "900,00", start: recent.toISOString().slice(0, 10) });
+    // Kleinere, goedkopere woning → maximale huur onder de maximale huurgrens
+    // van € 932,93, zodat de verlaging daadwerkelijk in een toeslag-schijf valt.
+    fireEvent.change(screen.getByTestId("hp-woz"), { target: { value: "150000" } });
+    ["12", "8", "8", "4"].forEach((v, i) =>
+      fireEvent.change(screen.getByTestId(`hp-ruimte-m2-${i}`), { target: { value: v } }),
+    );
+    fireEvent.click(screen.getByTestId("hp-extras-ingevuld"));
+    fireEvent.click(screen.getByTestId("hp-submit"));
+
+    const netto = screen.queryByTestId("hp-netto") ?? screen.queryByTestId("hp-netto-nul");
+    expect(netto).not.toBeNull();
+    expect(netto!.textContent).toMatch(/huurtoeslag/i);
+  });
+
+  it("niet aangevinkt → geen huurtoeslag-blok", () => {
+    render(<HuurprijsCheckClient />);
+    const recent = new Date();
+    recent.setMonth(recent.getMonth() - 2);
+    vulFormulier({ huur: "1.500,00", start: recent.toISOString().slice(0, 10) });
+    fireEvent.click(screen.getByTestId("hp-submit"));
+    expect(screen.queryByTestId("hp-netto")).toBeNull();
+    expect(screen.queryByTestId("hp-netto-nul")).toBeNull();
+  });
+});
+
 describe("HuurprijsCheckClient — uitkomsten", () => {
   it("te hoge huur bij een recent contract → resultaat met punten en route", () => {
     render(<HuurprijsCheckClient />);

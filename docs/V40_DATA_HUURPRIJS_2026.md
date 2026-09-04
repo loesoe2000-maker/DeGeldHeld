@@ -115,3 +115,54 @@ opgegeven keuken-/sanitair-extra's op het wettelijke maximum, WOZ-tolerantie).
 
 Dit is bewust pessimistisch voor ons: het filtert cases weg die we anders zouden
 verliezen (en waarbij de klant € 25 leges kwijt is).
+
+## Huurtoeslag-terugname (toegevoegd 4-9-2026, `lib/huurtoeslag.ts`)
+
+Bij een huurder mét huurtoeslag daalt die toeslag mee zodra de kale huur
+daalt. Een fee over de bruto verlaging zou de klant dan geld kosten voor
+voordeel dat hij niet krijgt. **De fee gaat daarom over de conservatief
+bepaalde NETTO besparing.**
+
+Bronnen (alle primair, opgehaald 4-9-2026): Wet op de huurtoeslag geldend
+1-1-2026 (wetten.overheid.nl/BWBR0008659) · Besluit op de huurtoeslag geldend
+1-1-2026 (BWBR0008763) · Regeling huurtoeslaggrenzen 2026, Stcrt. 2025, 39783.
+
+**Bronconflict opgelost.** Secundaire bronnen spraken elkaar tegen over wat er
+per 1-1-2026 veranderde. De wettekst zelf geeft uitsluitsel:
+- De **normhuurformule is vervallen** (art. 18 en 19 Wht, letterlijk
+  "[Vervallen per 01-01-2026]"). Basishuur is nu een vast bedrag; het
+  inkomenseffect zit in een lineaire afbouw (art. 21 lid 2).
+- De **kwaliteitskortingsgrens en aftoppingsgrenzen zijn NIET vervallen** —
+  art. 20 Wht staat onverkort en Stcrt. 2025, 39783 indexeert ze voor 2026.
+- De **maximale huurgrens is geen afwijzingsgrond meer** maar werkt als
+  plafond via art. 21 lid 1 onder d. Dáár kwam de verwarring vandaan.
+- **Servicekosten tellen niet meer mee in de rekenhuur** → voor ons loopt
+  kale huur 1-op-1 naar rekenhuur.
+
+### Parameters 2026 en de marginale terugname
+
+| Grens | Bedrag 2026 | Terugname per euro huurverlaging in die schijf |
+|---|---|---|
+| boven maximale huurgrens | > € 932,93 | **0%** (netto = bruto) |
+| aftoppingsgrens → maximale huurgrens | € 713,02 / € 764,14 → € 932,93 | **40%** |
+| kwaliteitskortingsgrens → aftoppingsgrens | € 498,20 → aftopping | **65%** |
+| basishuur → kwaliteitskortingsgrens | € 202,52 / € 200,71 → € 498,20 | **100% — netto NUL** |
+| onder de basishuur | < basishuur | 0% |
+
+Aftoppingsgrens: € 713,02 bij 1–2 bewoners, € 764,14 bij 3 of meer. Let op de
+contra-intuïtie: een **hogere** aftoppingsgrens laat méér van de verlaging in
+de 65%-schijf vallen en levert de huurder dus **minder** netto op.
+
+### Productregels die hieruit volgen
+
+1. **Communiceer als "je houdt netto ten MINSTE € X over"**, nooit als een
+   exact bedrag — de werkelijke uitkomst kan alleen hoger zijn (namelijk als
+   de toeslag al bijna nul is door het inkomen, dat wij niet vragen).
+2. **Fee = 0 zodra de netto besparing 0 is**, ook al is de zaak juridisch
+   kansrijk. Dit is tegelijk het sterkste verschil met concurrenten die op
+   bruto factureren.
+3. **Jaarlijkse onderhoudstaak (november):** alle bedragen worden geïndexeerd.
+   `HUURTOESLAG_PARAMS` is jaargesleuteld met een `geldigTot`; loopt die af,
+   dan toont de check géén netto bedrag meer maar verwijst door naar de
+   officiële proefberekening. Zelfde geldt voor de 143-puntengrens, die de
+   geïndexeerde tegenhanger van een eurobedrag is en dus kan schuiven.

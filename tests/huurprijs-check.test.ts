@@ -157,6 +157,7 @@ describe("huurprijs-check — verdict", () => {
     woning: WONING,
     contract: contract(new Date(2026, 5, 1)),
     bewoning: BEWONING,
+    ontvangtHuurtoeslag: false,
     kaleHuurCents,
     vandaag: VANDAAG,
     ...over,
@@ -241,6 +242,7 @@ describe("huurprijs-check — DIY-brief", () => {
     woning: WONING,
     contract: contract(new Date(2025, 0, 1)),
     bewoning: BEWONING,
+    ontvangtHuurtoeslag: false,
     kaleHuurCents: 150_000,
     vandaag: VANDAAG,
   });
@@ -259,6 +261,7 @@ describe("huurprijs-check — DIY-brief", () => {
       woning: WONING,
       contract: contract(new Date(2026, 5, 1)),
       bewoning: BEWONING,
+      ontvangtHuurtoeslag: false,
       kaleHuurCents: 150_000,
       vandaag: VANDAAG,
     });
@@ -290,6 +293,7 @@ describe("huurprijs-check — GATE 0: woningdelers (BHW art. 1 lid 2)", () => {
       woning: WONING,
       contract: contract(new Date(2026, 5, 1)),
       bewoning: { aantalBewoners: 3, gemeenschappelijkeHuishouding: false },
+      ontvangtHuurtoeslag: false,
       kaleHuurCents: 150_000,
       vandaag: VANDAAG,
     });
@@ -304,6 +308,7 @@ describe("huurprijs-check — GATE 0: woningdelers (BHW art. 1 lid 2)", () => {
       woning: WONING,
       contract: contract(new Date(2020, 0, 1)),
       bewoning: { aantalBewoners: 4, gemeenschappelijkeHuishouding: false },
+      ontvangtHuurtoeslag: false,
       kaleHuurCents: 200_000,
       vandaag: VANDAAG,
     });
@@ -318,6 +323,7 @@ describe("huurprijs-check — GATE 0: woningdelers (BHW art. 1 lid 2)", () => {
       woning: WONING,
       contract: contract(new Date(2026, 5, 1)),
       bewoning: { aantalBewoners: 4, gemeenschappelijkeHuishouding: true },
+      ontvangtHuurtoeslag: false,
       kaleHuurCents: 150_000,
       vandaag: VANDAAG,
     });
@@ -330,10 +336,70 @@ describe("huurprijs-check — GATE 0: woningdelers (BHW art. 1 lid 2)", () => {
       woning: WONING,
       contract: contract(new Date(2026, 5, 1)),
       bewoning: { aantalBewoners: 3, gemeenschappelijkeHuishouding: false },
+      ontvangtHuurtoeslag: false,
       kaleHuurCents: 150_000,
       vandaag: VANDAAG,
     });
     expect(r.route.mogelijk).toBe(false);
+  });
+});
+
+describe("huurprijs-check — fee gaat over de NETTO besparing (huurtoeslag)", () => {
+  /** Kleine, slechte woning: max huur klapt op de 40-puntenrij (€ 250,26). */
+  const KLEIN: WwsInput = {
+    woonvorm: "meergezins",
+    vertrekken: [{ m2: 20, verwarmd: true }],
+    overigeRuimten: [],
+    aanrechtLengteCm: 0,
+    sanitair: {},
+    buitenruimten: { geen: true },
+    woz: { waardeEuro: 80_000, gebruiksoppervlakM2: 20 },
+    energie: { label: "G" },
+  };
+
+  const check = (kaleHuurCents: number, toeslag: boolean, woning = KLEIN) =>
+    checkHuurprijs({
+      woning,
+      contract: contract(new Date(2026, 5, 1)),
+      bewoning: BEWONING,
+      ontvangtHuurtoeslag: toeslag,
+      kaleHuurCents,
+      vandaag: VANDAAG,
+    });
+
+  it("volledige terugname (huur onder € 498,20) → netto € 0 en GEEN fee", () => {
+    const r = check(45_000, true); // € 450, verlaging valt geheel in de 100%-schijf
+    expect(r.verdict).toBe("kansrijk");
+    expect(r.maandVerlagingMinCents).toBeGreaterThan(0); // bruto wél
+    expect(r.nettoMaandVerlagingMinCents).toBe(0); // netto niet
+    expect(r.huurtoeslagVolledigTeruggenomen).toBe(true);
+    expect(r.feeIndicatieCents).toBe(0); // dit is de hele fix
+  });
+
+  it("zonder huurtoeslag is er in exact hetzelfde geval WEL een fee", () => {
+    const zonder = check(45_000, false);
+    expect(zonder.nettoMaandVerlagingMinCents).toBe(zonder.maandVerlagingMinCents);
+    expect(zonder.feeIndicatieCents).toBeGreaterThan(0);
+  });
+
+  it("gedeeltelijke terugname → fee lager dan bij dezelfde bruto zonder toeslag", () => {
+    // € 800 → € 250,26 kruist drie schijven: 40% / 65% / 100%.
+    // Verlies € 422,36 van € 549,74 bruto → netto € 127,38 per maand.
+    const metToeslag = check(80_000, true);
+    const zonderToeslag = check(80_000, false);
+    expect(metToeslag.nettoMaandVerlagingMinCents).toBe(12_738);
+    expect(metToeslag.huurtoeslagVolledigTeruggenomen).toBe(false);
+    expect(metToeslag.nettoJaarbesparingMinCents).toBeLessThan(
+      zonderToeslag.jaarbesparingMinCents,
+    );
+    // Beide raken de cap van € 500 niet op dezelfde manier: netto geeft minder.
+    expect(metToeslag.feeIndicatieCents).toBeLessThan(zonderToeslag.feeIndicatieCents);
+  });
+
+  it("waarschuwt de huurder expliciet als de toeslag alles opeet", () => {
+    const r = check(45_000, true);
+    expect(r.waarschuwingen.join(" ")).toMatch(/netto niets op/i);
+    expect(r.waarschuwingen.join(" ")).toMatch(/geen fee/i);
   });
 });
 

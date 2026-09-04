@@ -24,6 +24,7 @@ import {
   type WwsRubrieken,
 } from "@/lib/wws-punten";
 import { addMonths } from "@/lib/date-utils";
+import { nettoBesparingBand } from "@/lib/huurtoeslag";
 import {
   HUURCOMMISSIE_LEGES_CENTS,
   HUUR_NCNP_DREMPEL_CENTS,
@@ -147,6 +148,12 @@ export interface HuurprijsInput {
   bewoning: HuurprijsBewoning;
   /** Kale huur per maand in centen (excl. servicekosten). */
   kaleHuurCents: number;
+  /**
+   * Verplicht: bij huurtoeslag daalt de toeslag mee met de huur, dus de
+   * netto besparing is lager dan de verlaging op papier. Niet vragen zou
+   * betekenen dat we fee rekenen over voordeel dat de klant niet krijgt.
+   */
+  ontvangtHuurtoeslag: boolean;
   marge?: MargeAannames;
   vandaag?: Date;
 }
@@ -163,8 +170,16 @@ export interface HuurprijsResultaat {
   maandVerlagingMinCents: number;
   /** Maandverlaging t.o.v. de opgegeven waarden. */
   maandVerlagingBasisCents: number;
-  /** 12 × de conservatieve maandverlaging — basis voor de fee-indicatie. */
+  /** 12 × de conservatieve maandverlaging (BRUTO, vóór huurtoeslag). */
   jaarbesparingMinCents: number;
+  /** Wat de huurder er netto op vooruitgaat, ná huurtoeslag-terugname. */
+  nettoMaandVerlagingMinCents: number;
+  /** 12 × de netto maandverlaging — HIEROVER gaat de fee. */
+  nettoJaarbesparingMinCents: number;
+  /** True als de huurtoeslag de hele verlaging opeet (netto € 0). */
+  huurtoeslagVolledigTeruggenomen: boolean;
+  /** True als er geen geldige huurtoeslag-parameterset is voor vandaag. */
+  huurtoeslagConfigVerlopen: boolean;
   feeIndicatieCents: number;
   route: RouteUitkomst;
   waarschuwingen: string[];
@@ -363,6 +378,10 @@ export function checkHuurprijs(input: HuurprijsInput): HuurprijsResultaat {
       maandVerlagingMinCents: 0,
       maandVerlagingBasisCents: 0,
       jaarbesparingMinCents: 0,
+      nettoMaandVerlagingMinCents: 0,
+      nettoJaarbesparingMinCents: 0,
+      huurtoeslagVolledigTeruggenomen: false,
+      huurtoeslagConfigVerlopen: false,
       feeIndicatieCents: 0,
       route: {
         route: "ONZELFSTANDIG_WWSO",
@@ -399,7 +418,40 @@ export function checkHuurprijs(input: HuurprijsInput): HuurprijsResultaat {
     maxHuurRuimCents == null ? 0 : Math.max(0, input.kaleHuurCents - maxHuurRuimCents);
   const jaarbesparingMinCents = maandVerlagingMinCents * 12;
 
+  // Huurtoeslag-terugname: bij toeslagontvangers daalt de toeslag mee met de
+  // huur. We rekenen met de conservatieve ONDERGRENS (volledige terugname),
+  // zodat de fee de klant nooit meer kost dan hij overhoudt.
+  const netto = nettoBesparingBand({
+    huidigeKaleHuurCents: input.kaleHuurCents,
+    nieuweKaleHuurCents: maxHuurRuimCents ?? input.kaleHuurCents,
+    ontvangtHuurtoeslag: input.ontvangtHuurtoeslag,
+    aantalBewoners: input.bewoning.aantalBewoners,
+    vandaag,
+  });
+  const nettoMaandVerlagingMinCents = netto.nettoOndergrensPerMaandCents;
+  const nettoJaarbesparingMinCents = nettoMaandVerlagingMinCents * 12;
+
   const waarschuwingen: string[] = [];
+  if (netto.volledigTeruggenomen) {
+    waarschuwingen.push(
+      "Je huurverlaging levert je netto niets op: je huurtoeslag daalt euro " +
+        "voor euro mee. De zaak is juridisch wel sterk, maar financieel " +
+        "schiet je er niets mee op — en wij rekenen dus geen fee.",
+    );
+  } else if (input.ontvangtHuurtoeslag && nettoMaandVerlagingMinCents < maandVerlagingMinCents) {
+    waarschuwingen.push(
+      "Omdat je huurtoeslag ontvangt, daalt die mee met je huur. Je houdt er " +
+        "netto ten minste een deel van over — reken je situatie na met de " +
+        "officiële proefberekening van de Belastingdienst.",
+    );
+  }
+  if (netto.configVerlopen) {
+    waarschuwingen.push(
+      "Onze huurtoeslag-bedragen zijn verlopen (die worden jaarlijks " +
+        "geïndexeerd). We tonen daarom geen netto bedrag — gebruik de " +
+        "officiële proefberekening van de Belastingdienst.",
+    );
+  }
   if (!input.woning.energie.label) {
     waarschuwingen.push(
       "Je hebt geen energielabel ingevuld, dus we rekenen met het bouwjaar. " +
@@ -446,8 +498,17 @@ export function checkHuurprijs(input: HuurprijsInput): HuurprijsResultaat {
     maandVerlagingMinCents,
     maandVerlagingBasisCents,
     jaarbesparingMinCents,
-    // Fee alleen op de CONSERVATIEVE besparing; drempel + cap uit V35.
-    feeIndicatieCents: verdict === "kansrijk" ? computeHuurFee(jaarbesparingMinCents) : 0,
+    nettoMaandVerlagingMinCents,
+    nettoJaarbesparingMinCents,
+    huurtoeslagVolledigTeruggenomen: netto.volledigTeruggenomen,
+    huurtoeslagConfigVerlopen: netto.configVerlopen,
+    // Fee over de NETTO besparing (na huurtoeslag-terugname), conservatief
+    // bepaald; drempel + cap uit V35. Is de netto besparing nul, dan is de
+    // fee nul — ook al is de zaak juridisch kansrijk.
+    feeIndicatieCents:
+      verdict === "kansrijk" && !netto.configVerlopen
+        ? computeHuurFee(nettoJaarbesparingMinCents)
+        : 0,
     route,
     waarschuwingen,
   };
