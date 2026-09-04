@@ -36,7 +36,7 @@ export default function MoneyfinderHubBanner() {
     >
       <div className="mx-auto max-w-5xl text-center">
         <p className="text-sm font-semibold uppercase tracking-wider text-brand-700">
-          Of: vind je geld zonder iets te uploaden
+          Dit is waar we je geld terughalen
         </p>
         <h2
           id="moneyfinder-banner-heading"
@@ -45,9 +45,9 @@ export default function MoneyfinderHubBanner() {
           {visibleTiles.length} gratis checks · 1 minuut · geen DigiD
         </h2>
         <p className="mx-auto mt-4 max-w-2xl text-slate-600">
-          Naast onderhandelen helpen we je het geld te vinden dat je laat
-          liggen: toeslagen die je misloopt, Box 3-belasting die je terug kunt
-          vragen, NS-vertragingen die je nooit hebt geclaimd, en meer. Indicatie
+          We helpen je het geld te vinden dat je laat liggen: toeslagen die je
+          misloopt, Box 3-belasting die je terug kunt vragen, te hoge huur- of
+          servicekosten, een foute energie-eindafrekening, en meer. Indicatie
           op de officiële 2026-regels — je gegevens blijven in je browser.
         </p>
 

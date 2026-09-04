@@ -18,24 +18,22 @@ beforeEach(() => {
   flagOn.CLAIMS = false;
 });
 
-describe("Hero — vind al je geld framing", () => {
-  it("keeps the headline + primary CTAs (no regression)", () => {
+describe("Hero — claims-first framing (v40 B-verbouwing)", () => {
+  it("opent claims-first met check-flags aan; track record vervangt de demo-link", () => {
     render(<Hero />);
-    expect(screen.getByText(/Houd je geld in/i)).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /Upload je rekening/i })).toHaveAttribute(
-      "href",
-      "/onderhandel",
-    );
+    expect(screen.getByText(/Haal terug wat/i)).toBeInTheDocument();
+    // Hub-flag staat in deze suite uit → de primaire CTA blijft de upload-route.
+    expect(
+      screen.getByRole("link", { name: /Upload je rekening — gratis/i }),
+    ).toHaveAttribute("href", "/onderhandel");
     expect(screen.getByRole("link", { name: /Inloggen/i })).toHaveAttribute("href", "/login");
-    expect(screen.getByRole("link", { name: /hoe het werkt/i })).toHaveAttribute("href", "/demo");
+    expect(screen.getByRole("link", { name: /track record/i })).toHaveAttribute("href", "/proof");
   });
 
-  it("shows the 'vind al je geld' framing in the subtitle when GELD_CHECK_ENABLED is on", () => {
+  it("subtitel is claims-first: Box 3 + toeslagen + no-cure-no-pay", () => {
     render(<Hero />);
-    // De tegel-strip onder de Hero is in v36 verwijderd (zie MoneyfinderHubBanner
-    // op de homepage). De Hero-subtitel zelf bevat nog wel de "vind al je geld"-
-    // framing + no-cure-no-pay-belofte.
-    expect(screen.getByText(/al je geld/i)).toBeInTheDocument();
+    expect(screen.getByText(/Box 3-belasting/i)).toBeInTheDocument();
+    expect(screen.getByText(/toeslagen/i)).toBeInTheDocument();
     expect(screen.getByText(/no cure, no pay/i)).toBeInTheDocument();
   });
 

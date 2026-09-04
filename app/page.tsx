@@ -17,7 +17,7 @@ const organisationLd = {
   url: APP_URL,
   email: "hallo@degeldheld.com",
   description:
-    "Automatisch onderhandelen op je Nederlandse maandlasten met AI.",
+    "Haalt geld terug voor Nederlandse consumenten: Box 3-belasting, huur- en servicekosten, energiecorrecties en toeslagen. No cure, no pay.",
 };
 
 const websiteLd = {
