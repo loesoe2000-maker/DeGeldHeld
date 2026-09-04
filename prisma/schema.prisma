@@ -694,6 +694,46 @@ model HuurServicekostenClaim {
   @@index([status, createdAt])
 }
 
+/// v40 F4 — kalibratie-logboek voor de huurprijs-check.
+///
+/// Slaat per proefzaak ONZE voorspelling op naast de WERKELIJKHEID, zodat we
+/// kunnen meten of de puntentelling en het route-advies kloppen. Twee soorten
+/// werkelijkheid: (a) de officiele Huurprijscheck van de Huurcommissie —
+/// direct beschikbaar, dus bruikbaar als lanceer-gate; (b) de uiteindelijke
+/// uitspraak — pas na 4-6 maanden, dus doorlopende kalibratie na lancering.
+model HuurprijsPilotCase {
+  id             String   @id @default(cuid())
+  /// Vrije label, bv "moeder - Dorpsstraat 12". Geen adres verplicht: de
+  /// pilot mag met geanonimiseerde cases draaien.
+  label          String
+  /// Volledige check-input als JSON, zodat elke case reproduceerbaar is en
+  /// opnieuw doorgerekend kan worden als de lib wijzigt.
+  inputJson      String   @db.Text
+  // --- Onze voorspelling ---
+  onzePunten     Int
+  onzePuntenRuim Int
+  onzeMaxHuurCents Int?
+  onsVerdict     String
+  onzeRoute      String
+  kaleHuurCents  Int
+  // --- Werkelijkheid A: de officiele Huurprijscheck (direct te doen) ---
+  officieelPunten       Int?
+  officieelMaxHuurCents Int?
+  officieelGecheckWhen  DateTime?
+  // --- Werkelijkheid B: de uitspraak (pas na maanden) ---
+  /// GEWONNEN | VERLOREN | GESCHIKT | INGETROKKEN | LOPEND
+  uitspraakUitkomst     String?
+  uitspraakPunten       Int?
+  uitspraakVerlagingCents Int?
+  uitspraakDatum        DateTime?
+  /// Wat ging er mis of goed in de intake — het echte leergeld.
+  intakeNotitie         String?  @db.Text
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([createdAt])
+}
+
 model EnergieEindafrekeningClaim {
   id                       String   @id @default(cuid())
   userId                   String

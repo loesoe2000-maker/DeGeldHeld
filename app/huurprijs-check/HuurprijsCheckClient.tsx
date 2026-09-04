@@ -87,7 +87,7 @@ const VERDICT_STYLE: Record<
   },
 };
 
-export default function HuurprijsCheckClient() {
+export default function HuurprijsCheckClient({ isAdmin = false }: { isAdmin?: boolean }) {
   // Woning
   const [woonvorm, setWoonvorm] = useState<Woonvorm>("meergezins");
   const [aantalBewoners, setAantalBewoners] = useState("1");
@@ -114,6 +114,9 @@ export default function HuurprijsCheckClient() {
   const [huurtoeslag, setHuurtoeslag] = useState(false);
 
   const [resultaat, setResultaat] = useState<HuurprijsResultaat | null>(null);
+  const [laatsteInput, setLaatsteInput] = useState<string>("");
+  const [pilotLabel, setPilotLabel] = useState("");
+  const [pilotStatus, setPilotStatus] = useState<string | null>(null);
   const [fout, setFout] = useState<string | null>(null);
 
   const num = (s: string): number => {
@@ -193,6 +196,11 @@ export default function HuurprijsCheckClient() {
     });
 
     setResultaat(r);
+    // Reproduceerbaarheid voor het pilot-logboek: bewaar de exacte invoer.
+    setLaatsteInput(
+      JSON.stringify({ woning, kaleHuurCents: huurCents, startDatum, contractType, huurtoeslag }),
+    );
+    setPilotStatus(null);
     // Alleen niet-herleidbare signalen naar analytics.
     track("huurprijs_check_done", {
       verdict: r.verdict,
@@ -812,6 +820,69 @@ export default function HuurprijsCheckClient() {
                 rows={14}
                 className="mt-3 w-full rounded-lg border border-slate-300 p-3 font-mono text-xs"
               />
+            </div>
+          ) : null}
+
+          {isAdmin ? (
+            <div
+              data-testid="hp-pilot"
+              className="mt-6 rounded-xl border border-dashed border-slate-400 bg-slate-50 p-5"
+            >
+              <h3 className="text-sm font-semibold text-slate-900">
+                Pilot-logboek (alleen zichtbaar voor admins)
+              </h3>
+              <p className="mt-1 text-xs text-slate-600">
+                Bewaar deze uitkomst als proefzaak. Vul daarna in{" "}
+                <Link className="underline" href="/admin/huurprijs-pilot">
+                  het logboek
+                </Link>{" "}
+                in wat de officiële Huurprijscheck zegt — dat is gate A.
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <input
+                  value={pilotLabel}
+                  onChange={(e) => setPilotLabel(e.target.value)}
+                  placeholder="bv. moeder — Dorpsstraat 12"
+                  data-testid="hp-pilot-label"
+                  className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                />
+                <button
+                  type="button"
+                  data-testid="hp-pilot-save"
+                  onClick={async () => {
+                    setPilotStatus("Bezig…");
+                    try {
+                      const res = await fetch("/api/admin/huurprijs-pilot", {
+                        method: "POST",
+                        headers: { "content-type": "application/json" },
+                        body: JSON.stringify({
+                          label: pilotLabel || "naamloze proefzaak",
+                          inputJson: laatsteInput,
+                          onzePunten: resultaat.puntenBasis,
+                          onzePuntenRuim: resultaat.puntenRuim,
+                          onzeMaxHuurCents: resultaat.maxHuurBasisCents,
+                          onsVerdict: resultaat.verdict,
+                          onzeRoute: resultaat.route.route,
+                          kaleHuurCents: resultaat.kaleHuurCents,
+                        }),
+                      });
+                      setPilotStatus(
+                        res.ok ? "Opgeslagen in het logboek." : "Opslaan mislukt.",
+                      );
+                    } catch {
+                      setPilotStatus("Opslaan mislukt (netwerk).");
+                    }
+                  }}
+                  className="rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-900"
+                >
+                  Bewaar als proefzaak
+                </button>
+              </div>
+              {pilotStatus ? (
+                <p data-testid="hp-pilot-status" className="mt-2 text-xs text-slate-700">
+                  {pilotStatus}
+                </p>
+              ) : null}
             </div>
           ) : null}
 

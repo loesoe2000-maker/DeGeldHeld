@@ -91,10 +91,30 @@ onzelfstandig (buiten scope), maar wie zelfstandig woont valt bijna altijd
 binnen een route én vaak in het 6-maandenvenster — campagnevenster is
 september t/m februari.
 
-## F4 — Pilot vóór automatisering
+## F4 — Pilot vóór automatisering (HERZIEN 4-9-2026)
 
-- Eerste 10–20 zaken handmatig begeleiden; voorspelling vs. echte uitspraak
-  bijhouden. Pas daarna marketing aan/op.
+**Het oorspronkelijke plan deugde niet als lanceer-gate.** "10-20 zaken,
+voorspelling naast de uitspraak" kan niet: een Huurcommissie-procedure duurt
+4-6 maanden, dus die data bestaat pas een half jaar ná de eerste zaak. Dat
+blokkeert het product op gegevens die er nog niet kúnnen zijn. Daarom
+gesplitst:
+
+**GATE A — lanceer-gate, direct haalbaar.** Draai onze check op ≥ 3 ECHTE
+woningen (eigen huis, familie, vrienden) en leg de uitkomst naast de
+officiële Huurprijscheck. Geen procedure, geen leges, geen wachttijd. Eisen:
+elke woning binnen 2 punten afwijking, en NUL vals-positieven (iemand
+"kansrijk" noemen die het niet is). Hier hangt `HUURPRIJS_CHECK_ENABLED` aan.
+Dit test bovendien de intake zelf: snappen mensen de vragen, meten ze goed,
+kiest de route-logica het juiste pad bij hun échte contract.
+
+**GATE B — doorlopend, ná lancering.** Vergelijking met echte uitspraken
+(≥ 5, nul verloren zaken na een "kansrijk"-advies). Belangrijk, maar geen
+dichte deur.
+
+**Gereedschap (af):** `lib/pilot-kalibratie.ts` rekent beide gates uit;
+`/admin/huurprijs-pilot` is het logboek; de check-pagina heeft een
+"bewaar als proefzaak"-knop voor admins. Admins komen bij `/huurprijs-check`
+óók als de flag uit staat — anders is gate A niet uitvoerbaar.
 
 ## F5 — Relay-restje (A)
 

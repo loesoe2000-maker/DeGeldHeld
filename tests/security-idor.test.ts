@@ -118,6 +118,7 @@ const ADMIN_ROUTES = [
   "app/api/admin/fraud/[id]/unflag/route.ts",
   "app/api/admin/training/route.ts",
   "app/api/admin/seed-success/route.ts",
+  "app/api/admin/huurprijs-pilot/route.ts",
   "app/api/providers/candidates/[id]/route.ts",
 ];
 
