@@ -2,8 +2,11 @@ import { describe, it, expect } from "vitest";
 import {
   berekenWwsPunten,
   rondRubriek,
+  rondOppervlakteSom,
   labelUitBouwjaar,
   maxHuurBand2026Cents,
+  maxHuur2026Cents,
+  MAX_HUUR_TABEL_2026_CENTS,
   ENERGIE_PUNTEN,
   LAAG_SEGMENT_MAX_PUNTEN_2026,
   MIDDENHUUR_MAX_PUNTEN_2026,
@@ -184,16 +187,118 @@ describe("wws-punten — maximale huurprijs 2026 (ankers + conservatieve band)",
     expect(maxHuurBand2026Cents(186).exactCents).toBe(122807);
   });
 
-  it("tussen ankers: band met omliggende officiële waarden, geen verzonnen precisie", () => {
+  it("volledige tabel: 211 rijen, strikt oplopend, plausibele stappen", () => {
+    expect(MAX_HUUR_TABEL_2026_CENTS).toHaveLength(211);
+    for (let i = 1; i < MAX_HUUR_TABEL_2026_CENTS.length; i++) {
+      const stap = MAX_HUUR_TABEL_2026_CENTS[i] - MAX_HUUR_TABEL_2026_CENTS[i - 1];
+      expect(stap).toBeGreaterThanOrEqual(550);
+      expect(stap).toBeLessThanOrEqual(750);
+    }
+  });
+
+  it("na de tabel-import is elke waarde in 40–250 exact (band == exact)", () => {
     const band = maxHuurBand2026Cents(147);
-    expect(band.exactCents).toBeNull();
-    expect(band.ondergrensCents).toBe(93973); // anker 144
-    expect(band.bovengrensCents).toBe(104957); // anker 160
+    expect(band.exactCents).toBe(96033); // officiële rij 147 → € 960,33
+    expect(band.ondergrensCents).toBe(96033);
+    expect(band.bovengrensCents).toBe(96033);
+    expect(maxHuur2026Cents(40)).toBe(25026);
+    expect(maxHuur2026Cents(250)).toBe(166740);
   });
 
   it("buiten 40–250 punten: null (geen extrapolatie)", () => {
     expect(maxHuurBand2026Cents(30).bovengrensCents).toBeNull();
-    expect(maxHuurBand2026Cents(300).exactCents).toBeNull();
+    expect(maxHuur2026Cents(300)).toBeNull();
+    expect(maxHuur2026Cents(147.5)).toBeNull(); // alleen hele punten
+  });
+});
+
+describe("wws-punten — F2b-regels uit het Beleidsboek", () => {
+  it("oppervlakte: som per categorie eerst op hele m² (Beleidsboek §2.4-voorbeeld)", () => {
+    // Officieel rekenvoorbeeld: garage 19,34 + bijkeuken 6,06 = 25,40 → 25 m².
+    expect(rondOppervlakteSom([3.16 * 6.12, 2.11 * 2.87])).toBe(25);
+    expect(rondOppervlakteSom([18.3, 11.9])).toBe(30); // 30,2 → 30
+    const r = berekenWwsPunten({
+      ...basisInput,
+      overigeRuimten: [{ m2: 3.16 * 6.12 }, { m2: 2.11 * 2.87 }],
+    });
+    expect(r.rubrieken.oppervlakteOverigeRuimten).toBe(18.75); // 25 × 0,75
+  });
+
+  it("monument: geen minpunten voor energie — label G wordt 0 (Beleidsboek 4.2)", () => {
+    const r = berekenWwsPunten({
+      ...basisInput,
+      energie: { label: "G" },
+      bijzonder: { monument: "rijksmonument" },
+    });
+    expect(r.rubrieken.energieprestatie).toBe(0);
+  });
+
+  it("EPV overeengekomen: vast 32 (eengezins) / 28 (meergezins) — Beleidsboek 4.3", () => {
+    const r = berekenWwsPunten({ ...basisInput, energie: { label: "A", epv: true } });
+    expect(r.rubrieken.energieprestatie).toBe(28);
+    const r2 = berekenWwsPunten({
+      ...basisInput,
+      woonvorm: "eengezins",
+      energie: { epv: true },
+    });
+    expect(r2.rubrieken.energieprestatie).toBe(32);
+  });
+
+  it("kleine woning (overgangsrecht 2021–1-7-2024): <25 m² label A meergezins → 45", () => {
+    const r = berekenWwsPunten({
+      ...basisInput,
+      energie: { label: "A", kleineWoningKlasse: "<25" },
+    });
+    expect(r.rubrieken.energieprestatie).toBe(45);
+  });
+
+  it("rubriek 9/10: gedeelde binnenruimte en parkeerplek gedeeld door adressen", () => {
+    const r = berekenWwsPunten({
+      ...basisInput,
+      gemeenschappelijkeBinnenruimten: { overigeRuimten: [{ m2: 40, adressen: 10 }] },
+      gemeenschappelijkeParkeerruimten: [{ type: 2, adressen: 2 }],
+    });
+    expect(r.rubrieken.gemeenschappelijkeRuimten).toBe(3); // 40×0,75÷10
+    expect(r.rubrieken.gemeenschappelijkeParkeerruimte).toBe(3); // 6÷2
+  });
+});
+
+describe("wws-punten — KALIBRATIE tegen de officiële Huurprijscheck", () => {
+  it("case 1 (3-9-2026, wizard live doorlopen): 159 punten, € 1.042,73 — exact gelijk", () => {
+    // Officiële invoer: meergezins, label A (vanaf 2021), WOZ € 300.000
+    // peildatum 1-1-2025, woonkamer 18 + slaapkamers 12/10 + keuken 10
+    // (aanrecht 1–2 m) + badkamer 6 (douche + wastafel), alle verwarmd;
+    // toiletruimte 1,5 m² (telt níet als oppervlakte — < 2 m²-eis, wél 3
+    // sanitairpunten); berging 5; balkon 6; video-intercom.
+    // Officiële uitkomst per rubriek: 56 / 3,75 / 10 / 37 / 4 / 8 / 4 / 36 / 0,25.
+    const r = berekenWwsPunten({
+      woonvorm: "meergezins",
+      vertrekken: [
+        { m2: 18, verwarmd: true },
+        { m2: 12, verwarmd: true },
+        { m2: 10, verwarmd: true },
+        { m2: 10, verwarmd: true },
+        { m2: 6, verwarmd: true },
+      ],
+      overigeRuimten: [{ m2: 5 }],
+      aanrechtLengteCm: 180,
+      sanitair: { toilettenAparteRuimte: 1, wastafels: 1, douches: 1 },
+      buitenruimten: { priveM2: 6 },
+      woz: { waardeEuro: 300_000, gebruiksoppervlakM2: 61 },
+      energie: { label: "A" },
+      bijzonder: { videoIntercom: true },
+    });
+    expect(r.rubrieken.oppervlakteVertrekken).toBe(56);
+    expect(r.rubrieken.oppervlakteOverigeRuimten).toBe(3.75);
+    expect(r.rubrieken.verwarmingEnVerkoeling).toBe(10);
+    expect(r.rubrieken.energieprestatie).toBe(37);
+    expect(r.rubrieken.keuken).toBe(4);
+    expect(r.rubrieken.sanitair).toBe(8);
+    expect(r.rubrieken.buitenruimten).toBe(4);
+    expect(r.rubrieken.wozPunten).toBe(36);
+    expect(r.rubrieken.bijzondereVoorzieningen).toBe(0.25);
+    expect(r.totaalPunten).toBe(159);
+    expect(maxHuur2026Cents(r.totaalPunten)).toBe(104273); // € 1.042,73
   });
 });
 

@@ -78,13 +78,38 @@ export interface WwsInput {
     label?: EnergieLabel;
     /** Fallback zonder geldig label: bouwjaar (BHW rubriek 4). */
     bouwjaar?: number;
+    /**
+     * Overgangsrecht kleine woningen (Beleidsboek 4.4, vervallen per
+     * 1-1-2025 maar geldig voor NTA-labels afgegeven 1-1-2021 t/m 30-6-2024):
+     * gebruikersoppervlak < 25 m² of 25–40 m² → afwijkende tabellen.
+     */
+    kleineWoningKlasse?: "<25" | "25-40";
+    /** Energieprestatievergoeding overeengekomen → vast 32/28 (Beleidsboek 4.3). */
+    epv?: boolean;
   };
+  /** Rubriek 9: gedeeld met andere adressen (Beleidsboek h2 rubriek 9). */
+  gemeenschappelijkeBinnenruimten?: {
+    vertrekken?: Array<{ m2: number; adressen: number }>;
+    overigeRuimten?: Array<{ m2: number; adressen: number }>;
+  };
+  /**
+   * Rubriek 10: gemeenschappelijke parkeerruimte. Type I = afgesloten garage
+   * (9 pt), II = buiten met dak (6 pt), III = buiten zonder dak (4 pt),
+   * telkens gedeeld door het aantal adressen. // bron: Beleidsboek h2 r10.
+   */
+  gemeenschappelijkeParkeerruimten?: Array<{ type: 1 | 2 | 3; adressen: number }>;
   bijzonder?: {
     zorgwoning?: boolean;
     videoIntercom?: boolean;
     laadpaal?: boolean;
     /** Investering verhuurder in gehandicapten-voorzieningen, in euro's. */
     gehandicaptenInvesteringEuro?: number;
+    /**
+     * Monument-status. Beleidsboek 4.2: bij een rijks-, provinciaal of
+     * gemeentelijk monument geen mínpunten voor energie (E/F/G → 0). De
+     * huurprijs-opslagen (art. 8a) past F3 toe via HUURPRIJS_OPSLAG_PCT.
+     */
+    monument?: "rijksmonument" | "gemeentelijk" | "beschermd_gezicht" | null;
   };
 }
 
@@ -97,6 +122,8 @@ export interface WwsRubrieken {
   sanitair: number;
   gehandicaptenVoorzieningen: number;
   buitenruimten: number;
+  gemeenschappelijkeRuimten: number;
+  gemeenschappelijkeParkeerruimte: number;
   wozPunten: number;
   bijzondereVoorzieningen: number;
   zorgwoningOpslag: number;
@@ -119,6 +146,37 @@ export const ENERGIE_PUNTEN: Record<Woonvorm, Record<EnergieLabel, number>> = {
   meergezins: {
     "A++++": 58, "A+++": 53, "A++": 48, "A+": 43, A: 37,
     B: 30, C: 15, D: 11, E: -5, F: -9, G: -15,
+  },
+};
+
+/**
+ * Overgangsrecht kleine woningen (Beleidsboek 4.4.1 / 4.4.2) — geldt alleen
+ * voor NTA-labels afgegeven 1-1-2021 t/m 30-6-2024 bij gebruiksoppervlak
+ * ≤ 40 m². // bron: docs/V40_DATA_WWS_2026.md.
+ */
+export const ENERGIE_PUNTEN_KLEINE_WONING: Record<
+  "<25" | "25-40",
+  Record<Woonvorm, Record<EnergieLabel, number>>
+> = {
+  "<25": {
+    eengezins: {
+      "A++++": 62, "A+++": 62, "A++": 60, "A+": 55, A: 49,
+      B: 42, C: 36, D: 32, E: -4, F: -9, G: -15,
+    },
+    meergezins: {
+      "A++++": 62, "A+++": 62, "A++": 56, "A+": 51, A: 45,
+      B: 38, C: 32, D: 28, E: -4, F: -9, G: -15,
+    },
+  },
+  "25-40": {
+    eengezins: {
+      "A++++": 62, "A+++": 57, "A++": 52, "A+": 47, A: 41,
+      B: 34, C: 22, D: 14, E: -4, F: -9, G: -15,
+    },
+    meergezins: {
+      "A++++": 62, "A+++": 53, "A++": 48, "A+": 43, A: 37,
+      B: 30, C: 15, D: 11, E: -4, F: -9, G: -15,
+    },
   },
 };
 
@@ -146,15 +204,25 @@ const WOZ_DELER_PER_M2 = 268; // // bron: BHW 11.1 onder b
 const WOZ_DELER_PER_M2_AMS_UT = 114; // // bron: BHW 11.1 onder a
 const GEHANDICAPT_EURO_PER_PUNT = 332; // // bron: BHW rubriek 7
 
+/**
+ * Meetregel Beleidsboek h2 §2.4: oppervlaktes per ruimte op 2 decimalen,
+ * daarna de SOM per categorie afronden op hele m² (≥ 0,5 naar boven), en
+ * pas dán waarderen in punten.
+ */
+export function rondOppervlakteSom(m2s: number[]): number {
+  const som = m2s.reduce((s, m) => s + Math.max(0, Math.round(m * 100) / 100), 0);
+  return Math.floor(som + 0.5);
+}
+
 export function berekenWwsPunten(input: WwsInput): WwsResultaat {
-  // Rubriek 1 — vertrekken: 1 punt per m².
+  // Rubriek 1 — vertrekken: som op hele m², dan 1 punt per m².
   const oppervlakteVertrekken = rondRubriek(
-    input.vertrekken.reduce((s, v) => s + Math.max(0, v.m2), 0),
+    rondOppervlakteSom(input.vertrekken.map((v) => v.m2)),
   );
 
-  // Rubriek 2 — overige ruimten: 0,75 punt per m².
+  // Rubriek 2 — overige ruimten: som op hele m², dan 0,75 punt per m².
   const oppervlakteOverigeRuimten = rondRubriek(
-    input.overigeRuimten.reduce((s, r) => s + Math.max(0, r.m2) * 0.75, 0),
+    rondOppervlakteSom(input.overigeRuimten.map((r) => r.m2)) * 0.75,
   );
 
   // Rubriek 3 — verwarming (vertrek 2, overige 1 met max 4) + verkoeling
@@ -172,11 +240,24 @@ export function berekenWwsPunten(input: WwsInput): WwsResultaat {
     verwarmdeVertrekken * 2 + verwarmdeOverige + verkoeld,
   );
 
-  // Rubriek 4 — energieprestatie via label, anders bouwjaar.
+  // Rubriek 4 — energieprestatie: EPV-vast, anders label (evt. kleine-woning-
+  // overgangstabel), anders bouwjaar. Monument: geen minpunten (E/F/G → 0,
+  // Beleidsboek 4.2).
   const label =
     input.energie.label ??
     (input.energie.bouwjaar != null ? labelUitBouwjaar(input.energie.bouwjaar) : undefined);
-  const energieprestatie = label == null ? 0 : ENERGIE_PUNTEN[input.woonvorm][label];
+  let energieprestatie: number;
+  if (input.energie.epv) {
+    energieprestatie = input.woonvorm === "eengezins" ? 32 : 28;
+  } else if (label == null) {
+    energieprestatie = 0;
+  } else if (input.energie.kleineWoningKlasse) {
+    energieprestatie =
+      ENERGIE_PUNTEN_KLEINE_WONING[input.energie.kleineWoningKlasse][input.woonvorm][label];
+  } else {
+    energieprestatie = ENERGIE_PUNTEN[input.woonvorm][label];
+  }
+  if (input.bijzonder?.monument && energieprestatie < 0) energieprestatie = 0;
 
   // Rubriek 5 — keuken: aanrechtlengte + extra kwaliteit (gecapt).
   const aanrechtPunten =
@@ -221,6 +302,29 @@ export function berekenWwsPunten(input: WwsInput): WwsResultaat {
     buitenruimten = rondRubriek(Math.min(15, prive + gedeeld));
   }
 
+  // Rubriek 9 — gemeenschappelijke binnenruimtes: vertrek 1 pt/m², overige
+  // 0,75 pt/m², telkens gedeeld door het aantal adressen.
+  const g = input.gemeenschappelijkeBinnenruimten;
+  const gemeenschappelijkeRuimten = rondRubriek(
+    (g?.vertrekken ?? []).reduce(
+      (s, r) => s + (r.adressen > 0 ? r.m2 / r.adressen : 0),
+      0,
+    ) +
+      (g?.overigeRuimten ?? []).reduce(
+        (s, r) => s + (r.adressen > 0 ? (r.m2 * 0.75) / r.adressen : 0),
+        0,
+      ),
+  );
+
+  // Rubriek 10 — gemeenschappelijke parkeerruimte: 9/6/4 punten ÷ adressen.
+  const PARKEER_PUNTEN = { 1: 9, 2: 6, 3: 4 } as const;
+  const gemeenschappelijkeParkeerruimte = rondRubriek(
+    (input.gemeenschappelijkeParkeerruimten ?? []).reduce(
+      (s, p) => s + (p.adressen > 0 ? PARKEER_PUNTEN[p.type] / p.adressen : 0),
+      0,
+    ),
+  );
+
   // Rubriek 12 — bijzondere voorzieningen (excl. zorgopslag).
   const bijzondereVoorzieningen = rondRubriek(
     (input.bijzonder?.videoIntercom ? 0.25 : 0) + (input.bijzonder?.laadpaal ? 2 : 0),
@@ -243,6 +347,8 @@ export function berekenWwsPunten(input: WwsInput): WwsResultaat {
     sanitair +
     gehandicaptenVoorzieningen +
     buitenruimten +
+    gemeenschappelijkeRuimten +
+    gemeenschappelijkeParkeerruimte +
     bijzondereVoorzieningen;
 
   // BHW 11.2: nieuwbouw 2015–2019 → minimaal 40 WOZ-punten bij rest ≥ 110.
@@ -287,6 +393,8 @@ export function berekenWwsPunten(input: WwsInput): WwsResultaat {
       sanitair,
       gehandicaptenVoorzieningen,
       buitenruimten,
+      gemeenschappelijkeRuimten,
+      gemeenschappelijkeParkeerruimte,
       wozPunten,
       bijzondereVoorzieningen,
       zorgwoningOpslag,
@@ -298,23 +406,47 @@ export function berekenWwsPunten(input: WwsInput): WwsResultaat {
 }
 
 /**
- * Geverifieerde ankerrijen uit de officiële per-punt-tabel per 1-1-2026.
+ * Volledige officiële per-punt-tabel maximale huurprijsgrenzen per 1-1-2026,
+ * in centen; index 0 = 40 punten, laatste = 250 punten (211 rijen).
  * // bron: Huurcommissie Beleidsboek Bijlage 3 (docs/V40_DATA_WWS_2026.md).
- * F2b vervangt dit door de volledige 40–250-tabel.
+ * Import geverifieerd (F2b): doorlopend 40–250, strikt oplopend met stappen
+ * € 5,50–7,50, en exact gelijk aan de 11 onafhankelijk geverifieerde ankers.
  */
-export const MAX_HUUR_ANKERS_2026: ReadonlyArray<{ punten: number; cents: number }> = [
-  { punten: 40, cents: 25026 },
-  { punten: 100, cents: 63767 },
-  { punten: 140, cents: 91226 },
-  { punten: 142, cents: 92598 },
-  { punten: 143, cents: 93293 },
-  { punten: 144, cents: 93973 },
-  { punten: 160, cents: 104957 },
-  { punten: 186, cents: 122807 },
-  { punten: 187, cents: 123492 },
-  { punten: 200, cents: 132418 },
-  { punten: 250, cents: 166740 },
+export const MAX_HUUR_TABEL_2026_CENTS: readonly number[] = [
+  25026, 25653, 26275, 26902, 27527, 28150, 28778, 29403, 30029, 30654,
+  31280, 31902, 32530, 33154, 33780, 34405, 35035, 35653, 36279, 36909,
+  37532, 38155, 38783, 39406, 40032, 40658, 41285, 41910, 42533, 43156,
+  43781, 44409, 45036, 45657, 46286, 46909, 47536, 48160, 48789, 49410,
+  50038, 50722, 51408, 52096, 52781, 53470, 54156, 54841, 55529, 56213,
+  56903, 57587, 58271, 58961, 59645, 60332, 61019, 61708, 62394, 63082,
+  63767, 64453, 65136, 65824, 66512, 67195, 67885, 68570, 69256, 69944,
+  70632, 71320, 72005, 72695, 73379, 74066, 74751, 75437, 76121, 76808,
+  77494, 78185, 78871, 79556, 80244, 80930, 81614, 82302, 82994, 83674,
+  84362, 85049, 85733, 86424, 87106, 87797, 88479, 89167, 89856, 90539,
+  91226, 91914, 92598, 93293, 93973, 94661, 95345, 96033, 96718, 97405,
+  98091, 98778, 99463, 100150, 100835, 101522, 102207, 102900, 103581, 104273,
+  104957, 105642, 106332, 107014, 107700, 108388, 109076, 109761, 110446, 111139,
+  111823, 112508, 113194, 113885, 114569, 115255, 115940, 116627, 117315, 118001,
+  118684, 119376, 120061, 120746, 121431, 122121, 122807, 123492, 124181, 124865,
+  125553, 126240, 126925, 127612, 128300, 128986, 129670, 130357, 131046, 131728,
+  132418, 133103, 133789, 134475, 135163, 135850, 136534, 137224, 137909, 138595,
+  139284, 139969, 140656, 141343, 142028, 142715, 143399, 144086, 144771, 145460,
+  146149, 146831, 147519, 148205, 148895, 149577, 150267, 150953, 151640, 152328,
+  153012, 153698, 154385, 155071, 155756, 156446, 157131, 157817, 158501, 159191,
+  159876, 160564, 161252, 161936, 162624, 163310, 163996, 164678, 165370, 166054,
+  166740,
 ];
+
+const TABEL_MIN_PUNTEN = 40;
+const TABEL_MAX_PUNTEN = 250;
+
+/** Exacte maximale huurprijs 2026 in centen; null buiten 40–250 punten. */
+export function maxHuur2026Cents(punten: number): number | null {
+  if (!Number.isInteger(punten) || punten < TABEL_MIN_PUNTEN || punten > TABEL_MAX_PUNTEN) {
+    return null;
+  }
+  return MAX_HUUR_TABEL_2026_CENTS[punten - TABEL_MIN_PUNTEN];
+}
 
 /** Bovengrens laag segment (sociale huur) 2026, in punten. */
 export const LAAG_SEGMENT_MAX_PUNTEN_2026 = 143;
@@ -330,30 +462,14 @@ export interface MaxHuurBand {
 }
 
 /**
- * Maximale huurprijs per 1-1-2026 voor een puntenaantal. Exact op ankers;
- * daartussen een band (marge-regel rekent met de BOVENgrens — pessimistisch
- * voor ons, veilig voor de klant). Buiten 40–250: null.
+ * Maximale huurprijs per 1-1-2026 voor een puntenaantal. Sinds de F2b-import
+ * van de volledige tabel is dit voor elk aantal in 40–250 exact (band ==
+ * exact); de band-vorm blijft bestaan zodat F3 er stabiel op kan bouwen.
+ * Buiten 40–250: null (geen extrapolatie).
  */
 export function maxHuurBand2026Cents(punten: number): MaxHuurBand {
-  const ankers = MAX_HUUR_ANKERS_2026;
-  if (punten < ankers[0].punten || punten > ankers[ankers.length - 1].punten) {
-    return { exactCents: null, ondergrensCents: null, bovengrensCents: null };
-  }
-  const exact = ankers.find((a) => a.punten === punten);
-  if (exact) {
-    return {
-      exactCents: exact.cents,
-      ondergrensCents: exact.cents,
-      bovengrensCents: exact.cents,
-    };
-  }
-  let onder = ankers[0];
-  let boven = ankers[ankers.length - 1];
-  for (const a of ankers) {
-    if (a.punten < punten && a.punten > onder.punten) onder = a;
-    if (a.punten > punten && a.punten < boven.punten) boven = a;
-  }
-  return { exactCents: null, ondergrensCents: onder.cents, bovengrensCents: boven.cents };
+  const exact = maxHuur2026Cents(punten);
+  return { exactCents: exact, ondergrensCents: exact, bovengrensCents: exact };
 }
 
 /** Opslagen op de maximale huurPRIJS (BHW art. 8a) — F3 past ze toe. */

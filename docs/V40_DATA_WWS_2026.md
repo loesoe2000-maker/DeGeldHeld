@@ -87,10 +87,12 @@ Nederland "Maximale huurprijsgrenzen zelfstandige woningen per 1-1-2026"
 | 200 | € 1.324,18 |
 | 250 | € 1.667,40 |
 
-De tabel is per-punt en niet lineair; tussen ankers rekent de lib bewust een
-**conservatieve band** (onder- en bovengrens uit omliggende ankers).
-**F2b-actie**: volledige 40–250-tabel importeren uit het officiële bestand,
-daarna vervalt de band.
+**F2b (3-9-2026): volledige 40–250-tabel geïmporteerd** in
+`lib/wws-punten.ts` (`MAX_HUUR_TABEL_2026_CENTS`, 211 rijen) vanaf de
+Huurcommissie-bijlage-3-pagina. Import-verificatie: doorlopend 40–250,
+strikt oplopend, stapgroottes € 5,50–7,50, en exact gelijk aan de 11
+bovenstaande onafhankelijk opgehaalde ankerrijen. De eerdere
+conservatieve band is daarmee vervallen (band == exact).
 
 ## Afronding
 
@@ -98,18 +100,40 @@ Waardering per rubriek op 0,25 punt (1/8 wordt naar boven afgerond);
 eindtotaal op hele punten (≥ 0,5 naar boven). // bron: BHW Bijlage I-A slot +
 Beleidsboek juli 2025.
 
-## Open kalibratievragen (F2b, vóór lancering beantwoorden)
+## F2b-kalibratie (3-9-2026) — bevindingen uit Beleidsboek + live wizard
 
-1. "Kleine woning na 1-1-2025"-melding in de officiële wizard: raakt dit de
-   labelbepaling (EP-Online/NTA 8800) of de WWS-punten zelf? In BHW-bijlage
-   staat géén aparte kleine-woning-energieregel → aanname: labelbepaling.
-   Verifiëren via Beleidsboek §4.
+**Kalibratie-case 1 (officiële wizard live doorlopen): exacte 1-op-1 match.**
+Meergezins, label A, WOZ € 300.000 (peildatum 1-1-2025), 5 vertrekken
+(56 m²) + toiletruimte 1,5 m² + berging 5 m² + balkon 6 m² + video-intercom
+→ officieel **159 punten, € 1.042,73** — onze lib identiek op elke rubriek
+(56 / 3,75 / 10 / 37 / 4 / 8 / 4 / 36 / 0,25). Vastgelegd als borg-test.
+
+Regels toegevoegd aan de lib op basis van Beleidsboek juli 2025 (PDF, h2):
+
+| Regel | Waarde | Bron |
+|---|---|---|
+| Oppervlakte-afronding | per ruimte 2 decimalen; SOM per categorie op hele m² (≥ 0,5 op), dán pas punten | Beleidsboek §2.4 (incl. rekenvoorbeeld 25,40 → 25) |
+| Vertrek-eisen | o.a. ≥ 4 m², ≥ 1,50 m breed; keuken/badkamer altijd vertrek | Beleidsboek h2 §1 |
+| Overige-ruimte-eis | ≥ 2 m² (toiletruimte 1,5 m² telt dus nérgens als oppervlakte; wél 3 sanitairpunten) | Beleidsboek h2 §2 — live bevestigd in wizard |
+| Verkeersruimten (gang/hal/overloop) | niet gewaardeerd als oppervlakte; verwarmd → 1 pt (max 4 samen met overige) | Beleidsboek h2 §2/§3 |
+| Monument-uitzondering energie | E/F/G → 0 punten (geen minpunten) bij rijks/prov./gem. monument | Beleidsboek 4.2 |
+| EPV overeengekomen | vast 32 (eengezins) / 28 (meergezins) | Beleidsboek 4.3 |
+| Kleine woningen ≤ 40 m² | aparte tabellen 4.4.1 (<25 m²) en 4.4.2 (25–40 m²), alléén voor NTA-labels 1-1-2021 t/m 30-6-2024 (overgangsrecht, vervallen per 1-1-2025) | Beleidsboek 4.4 |
+| Rubriek 9 gemeensch. binnenruimtes | vertrek 1 pt/m² ÷ adressen; overige 0,75 pt/m² ÷ adressen | Beleidsboek h2 r9 |
+| Rubriek 10 gemeensch. parkeren | Type I (garage) 9 / II (buiten+dak) 6 / III (buiten) 4 punten ÷ adressen | Beleidsboek h2 r10 |
+| Zolder zonder vaste trap | −5 punten op de zolder-oppervlaktepunten (max de zolderpunten zelf) | Beleidsboek h2 §2 — nog niet in lib (intake-veld F3) |
+| Gebruiksoppervlak voor WOZ-deling | = som gewaardeerde ruimtes (vertrekken + overige), niet BAG | live wizard: 61 m² bij case 1 |
+| < 40 punten | wizard toont de 40-puntenprijs (€ 250,26); lib geeft null → F3 toont "onder tabelminimum" | live wizard |
+| Keuken/sanitair-featurepunten | volledige lijsten met puntwaarden (afzuig 0,75 · inductie 1,75 · vaatwasser 1,5 · … / bubbelbad 1,5 · doucheafscheiding 1,25 · …) | Beleidsboek 5.2/6.2 — voor de F3-intake |
+
+## Open kalibratievragen (rest, vóór lancering)
+
 2. Volgorde zorgopslag (35%) vs. WOZ-cap (33%): lib past cap eerst toe en
-   zorgopslag daarna over 1–11.1 — bevestigen met Beleidsboek-rekenvoorbeeld.
+   zorgopslag daarna over 1–11.1 — bevestigen met een wizard-zorgwoning-case.
 3. Rijksmonument bij contracten van vóór 1-7-2024 (oud regime, €-toeslag):
    buiten scope v1 — alleen nieuwe contracten.
-4. WOZ-cap-randgeval: als de 33%-cap het totaal van boven 187 naar ónder 187
-   duwt — geldt er dan een bodem (bv. totaal wordt op 186 gesteld)? De lib
-   volgt nu de letterlijke BHW-tekst (cap zodra ongecapt ≥ 187, geen bodem);
-   bevestigen met Beleidsboek-rekenvoorbeeld. Dit randgeval kwam boven bij
-   het schrijven van de unit-tests (adres op 188,5 ruw → gecapt 165,75).
+4. WOZ-cap-randgeval (cap duwt totaal van ≥ 187 naar < 187): bodem of niet?
+   Lib volgt de letterlijke BHW-tekst; verifiëren met een wizard-cap-case.
+5. Resterende wizard-cases (≥ 9): eengezins · bouwjaar-fallback · cap ≥ 187 ·
+   Amsterdam/Utrecht-corop · zorgwoning · monument · geen buitenruimte ·
+   gedeelde tuin + parkeer · kleine woning ≤ 40 m² · nieuwbouwopslag.
