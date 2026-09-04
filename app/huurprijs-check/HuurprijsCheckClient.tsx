@@ -55,6 +55,11 @@ const VERDICT_STYLE: Record<
   HuurprijsResultaat["verdict"],
   { pill: string; kop: string; card: string }
 > = {
+  onzelfstandig: {
+    pill: "bg-sky-100 text-sky-900",
+    kop: "Ander puntenstelsel — wij rekenen dit (nog) niet uit",
+    card: "border-sky-200 bg-sky-50/50",
+  },
   kansrijk: {
     pill: "bg-brand-100 text-brand-800",
     kop: "Je betaalt waarschijnlijk te veel huur",
@@ -85,6 +90,8 @@ const VERDICT_STYLE: Record<
 export default function HuurprijsCheckClient() {
   // Woning
   const [woonvorm, setWoonvorm] = useState<Woonvorm>("meergezins");
+  const [aantalBewoners, setAantalBewoners] = useState("1");
+  const [gemeenschappelijk, setGemeenschappelijk] = useState(false);
   const [wozEuro, setWozEuro] = useState("");
   const [label, setLabel] = useState<EnergieLabel | "">("");
   const [bouwjaar, setBouwjaar] = useState("");
@@ -172,6 +179,10 @@ export default function HuurprijsCheckClient() {
         startDatum: new Date(startDatum),
         type: contractType,
         eindDatum: contractType === "tijdelijk" && eindDatum ? new Date(eindDatum) : null,
+      },
+      bewoning: {
+        aantalBewoners: Math.max(1, Math.round(num(aantalBewoners))),
+        gemeenschappelijkeHuishouding: gemeenschappelijk,
       },
       kaleHuurCents: huurCents,
       // Heeft de huurder de keuken-/sanitair-extra's echt nagelopen? Zo niet,
@@ -275,6 +286,40 @@ export default function HuurprijsCheckClient() {
                 . Scheelt vaak tientallen punten.
               </span>
             </label>
+
+            <label className="block">
+              <span className="text-sm font-medium text-slate-700">
+                Met hoeveel mensen woon je hier?
+              </span>
+              <input
+                type="number"
+                min={1}
+                value={aantalBewoners}
+                onChange={(e) => setAantalBewoners(e.target.value)}
+                data-testid="hp-bewoners"
+                className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+              />
+              <span className="mt-1 block text-xs text-slate-500">
+                Inclusief jezelf. Bij drie of meer bewoners bepaalt de wet een
+                ander puntenstelsel — daarom vragen we het.
+              </span>
+            </label>
+
+            {num(aantalBewoners) >= 3 ? (
+              <label className="flex items-start gap-2 self-end pb-2 text-sm text-slate-700">
+                <input
+                  type="checkbox"
+                  checked={gemeenschappelijk}
+                  onChange={(e) => setGemeenschappelijk(e.target.checked)}
+                  data-testid="hp-huishouding"
+                  className="mt-0.5"
+                />
+                <span>
+                  We voeren een <strong>gezamenlijke huishouding</strong> (gezin,
+                  familie) — geen losse huisgenoten die ieder hun eigen leven leiden.
+                </span>
+              </label>
+            ) : null}
 
             {!label ? (
               <label className="block">
@@ -568,6 +613,25 @@ export default function HuurprijsCheckClient() {
               {VERDICT_STYLE[resultaat.verdict].kop}
             </span>
 
+            {resultaat.verdict === "onzelfstandig" ? (
+              <div data-testid="hp-onzelfstandig" className="mt-4 text-sm text-slate-700">
+                <p>
+                  We tonen hier bewust <strong>geen puntenaantal</strong>: dat zou
+                  met het verkeerde stelsel berekend zijn en je op het verkeerde
+                  been zetten.
+                </p>
+                <p className="mt-3">
+                  <a
+                    className="font-medium text-brand-700 underline"
+                    href="https://www.huurcommissie.nl/support/huurprijscheck/huurprijscheck-onzelfstandige-woonruimte"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Naar de officiële Huurprijscheck voor onzelfstandige woonruimte →
+                  </a>
+                </p>
+              </div>
+            ) : (
             <div className="mt-4 grid gap-4 sm:grid-cols-3">
               <div>
                 <div className="text-xs uppercase tracking-wide text-slate-500">Punten</div>
@@ -594,6 +658,7 @@ export default function HuurprijsCheckClient() {
                 </div>
               </div>
             </div>
+            )}
 
             {resultaat.verdict === "kansrijk" ? (
               <p className="mt-4 text-sm text-slate-700">
@@ -675,7 +740,8 @@ export default function HuurprijsCheckClient() {
             </ul>
           ) : null}
 
-          {/* Puntenopbouw */}
+          {/* Puntenopbouw — niet tonen bij een ander stelsel */}
+          {resultaat.verdict === "onzelfstandig" ? null : (
           <details className="mt-4 rounded-xl border border-slate-200 bg-white p-5">
             <summary className="cursor-pointer text-sm font-semibold text-slate-900">
               Zo komen we aan {resultaat.puntenBasis} punten
@@ -694,6 +760,7 @@ export default function HuurprijsCheckClient() {
               een zaak echt kansrijk is.
             </p>
           </details>
+          )}
 
           {/* DIY-brief */}
           {brief ? (

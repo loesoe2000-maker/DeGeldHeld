@@ -8,8 +8,10 @@ import {
   huurcommissieDeadline,
   STANDAARD_MARGE,
   WBH_INWERKING,
+  isJuridischZelfstandig,
   type HuurprijsContract,
   type HuurprijsInput,
+  type HuurprijsBewoning,
 } from "@/lib/huurprijs-check";
 import { berekenWwsPunten, type WwsInput } from "@/lib/wws-punten";
 import { FLAG_DEFAULTS } from "@/lib/feature-flags";
@@ -45,6 +47,12 @@ const contract = (start: Date, extra: Partial<HuurprijsContract> = {}): Huurprij
   type: "vast",
   ...extra,
 });
+
+/** Twee bewoners → altijd juridisch zelfstandig, ongeacht de huishouding. */
+const BEWONING: HuurprijsBewoning = {
+  aantalBewoners: 2,
+  gemeenschappelijkeHuishouding: false,
+};
 
 describe("huurprijs-check — routes (wie mág een procedure starten)", () => {
   it("nieuw contract, binnen 6 maanden → aanvangshuurtoets met terugwerkende kracht", () => {
@@ -148,6 +156,7 @@ describe("huurprijs-check — verdict", () => {
   const basis = (kaleHuurCents: number, over: Partial<HuurprijsInput> = {}): HuurprijsInput => ({
     woning: WONING,
     contract: contract(new Date(2026, 5, 1)),
+    bewoning: BEWONING,
     kaleHuurCents,
     vandaag: VANDAAG,
     ...over,
@@ -231,6 +240,7 @@ describe("huurprijs-check — DIY-brief", () => {
   const r = checkHuurprijs({
     woning: WONING,
     contract: contract(new Date(2025, 0, 1)),
+    bewoning: BEWONING,
     kaleHuurCents: 150_000,
     vandaag: VANDAAG,
   });
@@ -248,6 +258,7 @@ describe("huurprijs-check — DIY-brief", () => {
     const nieuw = checkHuurprijs({
       woning: WONING,
       contract: contract(new Date(2026, 5, 1)),
+      bewoning: BEWONING,
       kaleHuurCents: 150_000,
       vandaag: VANDAAG,
     });
@@ -261,6 +272,68 @@ describe("huurprijs-check — DIY-brief", () => {
     const brief = huurverlagingsBrief(r, { vandaag: VANDAAG });
     expect(brief).toMatch(/\[naam\]/);
     expect(brief).not.toMatch(/DeGeldHeld dient/i);
+  });
+});
+
+describe("huurprijs-check — GATE 0: woningdelers (BHW art. 1 lid 2)", () => {
+  it("de wettelijke test: max 2 bewoners, of 3+ mét gemeenschappelijke huishouding", () => {
+    expect(isJuridischZelfstandig({ aantalBewoners: 1, gemeenschappelijkeHuishouding: false })).toBe(true);
+    expect(isJuridischZelfstandig({ aantalBewoners: 2, gemeenschappelijkeHuishouding: false })).toBe(true);
+    // Gezin van vier: wél gemeenschappelijke huishouding → zelfstandig.
+    expect(isJuridischZelfstandig({ aantalBewoners: 4, gemeenschappelijkeHuishouding: true })).toBe(true);
+    // Drie vrienden / woningdelers → juridisch ONzelfstandig.
+    expect(isJuridischZelfstandig({ aantalBewoners: 3, gemeenschappelijkeHuishouding: false })).toBe(false);
+  });
+
+  it("woningdelers krijgen GEEN puntenuitkomst — die zou met het verkeerde stelsel gerekend zijn", () => {
+    const r = checkHuurprijs({
+      woning: WONING,
+      contract: contract(new Date(2026, 5, 1)),
+      bewoning: { aantalBewoners: 3, gemeenschappelijkeHuishouding: false },
+      kaleHuurCents: 150_000,
+      vandaag: VANDAAG,
+    });
+    expect(r.verdict).toBe("onzelfstandig");
+    expect(r.route.route).toBe("ONZELFSTANDIG_WWSO");
+    expect(r.maxHuurBasisCents).toBeNull();
+    expect(r.feeIndicatieCents).toBe(0);
+  });
+
+  it("de boodschap is eerlijk: ander stelsel, maar wél altijd een maximale huurprijs", () => {
+    const r = checkHuurprijs({
+      woning: WONING,
+      contract: contract(new Date(2020, 0, 1)),
+      bewoning: { aantalBewoners: 4, gemeenschappelijkeHuishouding: false },
+      kaleHuurCents: 200_000,
+      vandaag: VANDAAG,
+    });
+    expect(r.route.uitleg).toMatch(/altijd in de gereguleerde sector/i);
+    expect(r.route.uitleg).toMatch(/WWSO/);
+    // Geen valse afwijzing: nergens "je hebt geen recht".
+    expect(r.route.uitleg).not.toMatch(/geen recht/i);
+  });
+
+  it("een gezin van 4 wordt gewoon doorgerekend (gemeenschappelijke huishouding)", () => {
+    const r = checkHuurprijs({
+      woning: WONING,
+      contract: contract(new Date(2026, 5, 1)),
+      bewoning: { aantalBewoners: 4, gemeenschappelijkeHuishouding: true },
+      kaleHuurCents: 150_000,
+      vandaag: VANDAAG,
+    });
+    expect(r.verdict).toBe("kansrijk");
+    expect(r.puntenBasis).toBe(159);
+  });
+
+  it("de brief bestaat niet voor woningdelers (route niet mogelijk)", () => {
+    const r = checkHuurprijs({
+      woning: WONING,
+      contract: contract(new Date(2026, 5, 1)),
+      bewoning: { aantalBewoners: 3, gemeenschappelijkeHuishouding: false },
+      kaleHuurCents: 150_000,
+      vandaag: VANDAAG,
+    });
+    expect(r.route.mogelijk).toBe(false);
   });
 });
 

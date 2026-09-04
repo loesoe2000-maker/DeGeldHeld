@@ -58,12 +58,40 @@ export interface HuurprijsContract {
   eindDatum?: Date | null;
 }
 
+/**
+ * Wie woont er? Sinds 1-7-2024 is dit BEPALEND voor welk puntenstelsel geldt.
+ * // bron: Besluit huurprijzen woonruimte art. 1 lid 2 (geldend 2026):
+ * "Onder een woonruimte welke een zelfstandige woning vormt, wordt een
+ * woonruimte verstaan als bedoeld in artikel 7:234 van het Burgerlijk
+ * Wetboek, welke wordt bewoond door maximaal twee personen of welke wordt
+ * bewoond door drie of meer personen die een duurzame gemeenschappelijke
+ * huishouding hebben."
+ */
+export interface HuurprijsBewoning {
+  /** Aantal personen dat de woning bewoont. */
+  aantalBewoners: number;
+  /** Voeren zij een duurzame gemeenschappelijke huishouding (gezin, koppel)? */
+  gemeenschappelijkeHuishouding: boolean;
+}
+
+/**
+ * Een woning met eigen voordeur, keuken en douche is tóch juridisch
+ * ONZELFSTANDIG als er drie of meer mensen wonen zonder gemeenschappelijke
+ * huishouding — de klassieke vriendengroep of woningdelers. Dan geldt het
+ * WWSO (ander stelsel) en is onze puntentelling niet van toepassing.
+ */
+export function isJuridischZelfstandig(b: HuurprijsBewoning): boolean {
+  return b.aantalBewoners <= 2 || b.gemeenschappelijkeHuishouding;
+}
+
 export type HuurprijsRoute =
   | "AANVANGSHUURPRIJS"
   | "HUURVERLAGING_VOORSTEL"
   | "WBH_LAAG_SEGMENT"
   | "GEEN_HOOGSEGMENT"
-  | "GEEN_MIDDENHUUR_OUD_CONTRACT";
+  | "GEEN_MIDDENHUUR_OUD_CONTRACT"
+  // Woningdelers: ander stelsel (WWSO), niet "geen recht" — zie hieronder.
+  | "ONZELFSTANDIG_WWSO";
 
 export interface RouteUitkomst {
   route: HuurprijsRoute;
@@ -78,6 +106,8 @@ export interface RouteUitkomst {
 }
 
 export type HuurprijsVerdict =
+  /** Juridisch onzelfstandig: ons stelsel is niet van toepassing. */
+  | "onzelfstandig"
   | "kansrijk"
   | "twijfelgeval"
   | "geen_zaak"
@@ -110,6 +140,11 @@ export const STANDAARD_MARGE: MargeAannames = {
 export interface HuurprijsInput {
   woning: WwsInput;
   contract: HuurprijsContract;
+  /**
+   * Verplicht: bepaalt of het zelfstandige stelsel überhaupt geldt. Bewust
+   * NIET optioneel — vergeten te vragen was precies de bug (v40, 4-9-2026).
+   */
+  bewoning: HuurprijsBewoning;
   /** Kale huur per maand in centen (excl. servicekosten). */
   kaleHuurCents: number;
   marge?: MargeAannames;
@@ -307,6 +342,49 @@ export function ruimeVariant(
 export function checkHuurprijs(input: HuurprijsInput): HuurprijsResultaat {
   const marge = input.marge ?? STANDAARD_MARGE;
   const vandaag = input.vandaag ?? new Date();
+
+  // GATE 0 — geldt ons stelsel wel? Drie of meer bewoners zonder
+  // gemeenschappelijke huishouding = juridisch onzelfstandig (BHW art. 1
+  // lid 2). Dan is elke uitkomst van berekenWwsPunten misleidend, dus we
+  // rekenen niet door en verwijzen door. Belangrijk: dit is GEEN afwijzing —
+  // onzelfstandige woonruimte valt altijd in de gereguleerde sector en heeft
+  // dus altijd een maximale huurprijs.
+  // // bron: Huurcommissie, Beleidsboek WWSO + Huurprijscheck onzelfstandige
+  // woonruimte (geverifieerd 4-9-2026).
+  if (!isJuridischZelfstandig(input.bewoning)) {
+    return {
+      puntenBasis: 0,
+      puntenRuim: 0,
+      rubrieken: berekenWwsPunten(input.woning).rubrieken,
+      maxHuurBasisCents: null,
+      maxHuurRuimCents: null,
+      kaleHuurCents: input.kaleHuurCents,
+      verdict: "onzelfstandig",
+      maandVerlagingMinCents: 0,
+      maandVerlagingBasisCents: 0,
+      jaarbesparingMinCents: 0,
+      feeIndicatieCents: 0,
+      route: {
+        route: "ONZELFSTANDIG_WWSO",
+        mogelijk: false,
+        titel: "Jouw woning valt onder een ander puntenstelsel",
+        uitleg:
+          `Je woont hier met ${input.bewoning.aantalBewoners} mensen zonder ` +
+          "gemeenschappelijke huishouding. Dan telt je woning wettelijk als " +
+          "onzelfstandige woonruimte, ook al heb je een eigen voordeur en " +
+          "keuken. Daarvoor geldt een ánder puntenstelsel (het WWSO) dat wij " +
+          "nog niet berekenen. Goed nieuws: onzelfstandige woonruimte valt " +
+          "altijd in de gereguleerde sector, dus er is altijd een maximale " +
+          "huurprijs — ongeacht wat je nu betaalt of wanneer je contract is " +
+          "ingegaan. Gebruik de officiële Huurprijscheck voor onzelfstandige " +
+          "woonruimte van de Huurcommissie.",
+        terugwerkendTotContractstart: false,
+        deadline: null,
+        legesCents: 0,
+      },
+      waarschuwingen: [],
+    };
+  }
 
   const basis = berekenWwsPunten(input.woning);
   const ruim = berekenWwsPunten(ruimeVariant(input.woning, marge));

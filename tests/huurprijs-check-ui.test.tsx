@@ -43,6 +43,47 @@ describe("HuurprijsCheckClient — validatie", () => {
   });
 });
 
+describe("HuurprijsCheckClient — woningdelers-gate (BHW art. 1 lid 2)", () => {
+  const recent = () => {
+    const d = new Date();
+    d.setMonth(d.getMonth() - 2);
+    return d.toISOString().slice(0, 10);
+  };
+
+  it("3 bewoners zonder gezamenlijke huishouding → ander stelsel, GEEN punten getoond", () => {
+    render(<HuurprijsCheckClient />);
+    fireEvent.change(screen.getByTestId("hp-bewoners"), { target: { value: "3" } });
+    vulFormulier({ huur: "1.500,00", start: recent() });
+    fireEvent.click(screen.getByTestId("hp-submit"));
+
+    expect(screen.getByTestId("hp-onzelfstandig")).toBeInTheDocument();
+    // Het puntenaantal mag NIET verschijnen — het is met het verkeerde stelsel gerekend.
+    expect(screen.queryByTestId("hp-punten")).toBeNull();
+    expect(screen.queryByTestId("hp-maxhuur")).toBeNull();
+    expect(screen.queryByTestId("hp-brief")).toBeNull();
+    // Wel een eerlijke doorverwijzing.
+    expect(screen.getByTestId("hp-route").textContent).toMatch(/gereguleerde sector/i);
+  });
+
+  it("gezin van 4 mét gezamenlijke huishouding → gewoon doorrekenen", () => {
+    render(<HuurprijsCheckClient />);
+    fireEvent.change(screen.getByTestId("hp-bewoners"), { target: { value: "4" } });
+    fireEvent.click(screen.getByTestId("hp-huishouding"));
+    vulFormulier({ huur: "1.500,00", start: recent() });
+    fireEvent.click(screen.getByTestId("hp-submit"));
+
+    expect(screen.queryByTestId("hp-onzelfstandig")).toBeNull();
+    expect(screen.getByTestId("hp-punten").textContent).toBe("146");
+  });
+
+  it("de huishouding-vraag verschijnt pas vanaf 3 bewoners", () => {
+    render(<HuurprijsCheckClient />);
+    expect(screen.queryByTestId("hp-huishouding")).toBeNull();
+    fireEvent.change(screen.getByTestId("hp-bewoners"), { target: { value: "3" } });
+    expect(screen.getByTestId("hp-huishouding")).toBeInTheDocument();
+  });
+});
+
 describe("HuurprijsCheckClient — uitkomsten", () => {
   it("te hoge huur bij een recent contract → resultaat met punten en route", () => {
     render(<HuurprijsCheckClient />);

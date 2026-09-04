@@ -7,6 +7,38 @@ zijn alleen gebruikt om pagina's te vinden, nooit als bron voor een getal).
 De puntentelling zelf staat in `docs/V40_DATA_WWS_2026.md` (F2/F2b,
 gekalibreerd tegen de officiële Huurprijscheck).
 
+## GATE 0 — geldt het zelfstandige stelsel wel? (toegevoegd 4-9-2026)
+
+**Dit is de enige plek waar de check een FOUT antwoord kon geven in plaats
+van een afwijzing.** Sinds 1-7-2024 hangt "zelfstandig" niet alleen aan de
+voorzieningen maar ook aan het aantal bewoners:
+
+> "Onder een woonruimte welke een zelfstandige woning vormt, wordt een
+> woonruimte verstaan als bedoeld in artikel 7:234 van het Burgerlijk
+> Wetboek, welke wordt bewoond door maximaal twee personen of welke wordt
+> bewoond door drie of meer personen die een duurzame gemeenschappelijke
+> huishouding hebben."
+> — Besluit huurprijzen woonruimte art. 1 lid 2, geldend 2026
+>   (wetten.overheid.nl/BWBR0003237/2026-01-01, geverifieerd 4-9-2026)
+
+Gevolg: een appartement met eigen voordeur, keuken, toilet en douche waarin
+**drie of meer huisgenoten zonder gemeenschappelijke huishouding** wonen — de
+klassieke vriendengroep, woningdelers, veel expat-shares en studentenhuizen —
+is juridisch **onzelfstandig** en moet onder het WWSO worden gewaardeerd.
+Onze puntentelling is daar niet op van toepassing.
+
+**Implementatie:** `isJuridischZelfstandig()` in `lib/huurprijs-check.ts`;
+`bewoning` is een VERPLICHT inputveld (niet optioneel — vergeten te vragen
+wás de bug). Bij onzelfstandig geeft de check géén puntenaantal en géén
+maximale huur, maar verwijst door.
+
+**En de boodschap is positief, niet afwijzend:** onzelfstandige woonruimte
+valt **altijd** in de gereguleerde sector — er is dus altijd een maximale
+huurprijs, ongeacht de huurprijs en de contractdatum. Er is geen midden- of
+vrije sector voor kamerverhuur. Die huurder heeft dus wél een route; wij
+rekenen hem alleen (nog) niet uit. // bron: Huurcommissie, Huurprijscheck
+onzelfstandige woonruimte + Beleidsboek WWSO januari 2026.
+
 ## De kernvraag: mág deze huurder überhaupt een toets aanvragen?
 
 Dit is de belangrijkste gate van de hele flow. Lang niet iedereen met een te
