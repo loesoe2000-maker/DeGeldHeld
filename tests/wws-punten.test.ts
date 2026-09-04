@@ -108,7 +108,7 @@ describe("wws-punten — caps en bijzondere regels", () => {
     expect(r.rubrieken.buitenruimten).toBe(-5);
   });
 
-  it("WOZ-cap 33% grijpt pas vanaf 187 punten en wordt gemeld", () => {
+  it("WOZ-cap: totaal wordt floor(rest ÷ 0,67) — gekalibreerde formule", () => {
     const groot: WwsInput = {
       ...basisInput,
       woonvorm: "eengezins",
@@ -129,10 +129,11 @@ describe("wws-punten — caps en bijzondere regels", () => {
       woz: { waardeEuro: 2_000_000, gebruiksoppervlakM2: 80 },
     };
     const r = berekenWwsPunten(groot);
-    // rest: 100 + 10 + 62 + 14 + 11,75 − 5 = 192,75; ruwe WOZ ≈ 211 → cap
+    // rest: 100 + 10 + 62 + 14 + 11,75 − 5 = 192,75; ruwe WOZ ≈ 211 → cap:
+    // floor(192,75 ÷ 0,67) = 287 → woz = 287 − 192,75 = 94,25.
     expect(r.wozCapToegepast).toBe(true);
-    expect(r.rubrieken.wozPunten).toBe(95); // 192,75 × 33/67 → 95,0
-    expect(r.totaalPunten).toBe(288); // 192,75 + 95 → 287,75 → 288
+    expect(r.rubrieken.wozPunten).toBe(94.25);
+    expect(r.totaalPunten).toBe(287);
   });
 
   it("nieuwbouw 2015-2019: minimaal 40 WOZ-punten bij rest ≥ 110 (BHW 11.2)", () => {
@@ -260,6 +261,148 @@ describe("wws-punten — F2b-regels uit het Beleidsboek", () => {
     });
     expect(r.rubrieken.gemeenschappelijkeRuimten).toBe(3); // 40×0,75÷10
     expect(r.rubrieken.gemeenschappelijkeParkeerruimte).toBe(3); // 6÷2
+  });
+});
+
+describe("wws-punten — KALIBRATIE cases 2-10 (officiële wizard, 4-9-2026)", () => {
+  // Skelet: woonkamer 20 m² verwarmd, geen buitenruimte, meergezins label A,
+  // WOZ € 250.000 — per case wordt één regel gevarieerd, met de door de
+  // officiële Huurprijscheck getoonde uitkomst als verwachting.
+  const skelet: WwsInput = {
+    woonvorm: "meergezins",
+    vertrekken: [{ m2: 20, verwarmd: true }],
+    overigeRuimten: [],
+    aanrechtLengteCm: 0,
+    sanitair: {},
+    buitenruimten: { geen: true },
+    woz: { waardeEuro: 250_000, gebruiksoppervlakM2: 20 },
+    energie: { label: "A" },
+  };
+
+  it("case 2 — eengezins + bouwjaar 1995: officieel 101 punten / € 644,53", () => {
+    const r = berekenWwsPunten({
+      ...skelet,
+      woonvorm: "eengezins",
+      energie: { bouwjaar: 1995 },
+    });
+    expect(r.rubrieken.energieprestatie).toBe(22);
+    expect(r.rubrieken.wozPunten).toBe(61.5);
+    expect(r.totaalPunten).toBe(101);
+    expect(maxHuur2026Cents(101)).toBe(64453);
+  });
+
+  it("case 3 — cap-bodem: officieel exact 186 punten / € 1.228,07", () => {
+    const r = berekenWwsPunten({
+      ...skelet,
+      woonvorm: "eengezins",
+      vertrekken: [
+        { m2: 30, verwarmd: true },
+        { m2: 25, verwarmd: true },
+        { m2: 15, verwarmd: true },
+      ],
+      woz: { waardeEuro: 850_000, gebruiksoppervlakM2: 70 },
+      energie: { bouwjaar: 1995 },
+    });
+    // rest 93; ruwe WOZ 95,44 → ongecapt ≥ 187 maar floor(93/0,67)=138 < 187
+    // → bodem: totaal 186 (wizard toont WOZ "afgetopt").
+    expect(r.wozCapToegepast).toBe(true);
+    expect(r.totaalPunten).toBe(186);
+    expect(maxHuur2026Cents(186)).toBe(122807);
+  });
+
+  it("case 3b — cap boven de bodem: officieel 198 punten / € 1.310,46, WOZ 65", () => {
+    const r = berekenWwsPunten({
+      ...skelet,
+      woonvorm: "eengezins",
+      vertrekken: [
+        { m2: 45, verwarmd: true },
+        { m2: 35, verwarmd: true },
+        { m2: 30, verwarmd: true },
+      ],
+      woz: { waardeEuro: 850_000, gebruiksoppervlakM2: 110 },
+      energie: { bouwjaar: 1995 },
+    });
+    expect(r.wozCapToegepast).toBe(true);
+    expect(r.rubrieken.wozPunten).toBe(65); // floor(133/0,67)=198 → 198−133
+    expect(r.totaalPunten).toBe(198);
+    expect(maxHuur2026Cents(198)).toBe(131046);
+  });
+
+  it("case 4 — Amsterdam/Utrecht-deler € 114: officieel 173 punten / € 1.138,85, WOZ 111", () => {
+    const r = berekenWwsPunten({
+      ...skelet,
+      vertrekken: [
+        { m2: 16, verwarmd: true },
+        { m2: 10, verwarmd: true },
+      ],
+      woz: {
+        waardeEuro: 280_000,
+        gebruiksoppervlakM2: 26,
+        kleineNieuwbouwAmsterdamUtrecht: true,
+      },
+    });
+    expect(r.rubrieken.wozPunten).toBe(111);
+    expect(r.totaalPunten).toBe(173);
+    expect(maxHuur2026Cents(173)).toBe(113885);
+  });
+
+  it("case 5 — zorgwoning: officieel opslag 40,50 → 156 punten / € 1.022,07", () => {
+    const r = berekenWwsPunten({ ...skelet, bijzonder: { zorgwoning: true } });
+    expect(r.rubrieken.zorgwoningOpslag).toBe(40.5); // (54+61,5) × 35%
+    expect(r.totaalPunten).toBe(156);
+    expect(maxHuur2026Cents(156)).toBe(102207);
+  });
+
+  it("case 6 — rijksmonument + label G: officieel energie 0 → 79 punten / € 494,10", () => {
+    const r = berekenWwsPunten({
+      ...skelet,
+      energie: { label: "G" },
+      bijzonder: { monument: "rijksmonument" },
+    });
+    expect(r.rubrieken.energieprestatie).toBe(0);
+    expect(r.totaalPunten).toBe(79);
+    expect(maxHuur2026Cents(79)).toBe(49410);
+    // Prijsopslag (wizard: "35% Rijksmonument → € 667,04") past F3 toe:
+    expect(Math.round(49410 * 1.35)).toBe(66704);
+  });
+
+  it("case 8 — gedeelde achtertuin + parkeer type III: officieel 7,50 en 2 punten", () => {
+    const r = berekenWwsPunten({
+      ...skelet,
+      buitenruimten: { gedeeld: [{ m2: 40, adressen: 4 }] },
+      gemeenschappelijkeParkeerruimten: [{ type: 3, adressen: 2 }],
+    });
+    expect(r.rubrieken.buitenruimten).toBe(7.5);
+    expect(r.rubrieken.gemeenschappelijkeParkeerruimte).toBe(2);
+  });
+
+  it("case 9 — kleine woning <25 m² label A: officieel 45 → 111 punten / € 713,20", () => {
+    const r = berekenWwsPunten({
+      ...skelet,
+      woz: { waardeEuro: 200_000, gebruiksoppervlakM2: 20 },
+      energie: { label: "A", kleineWoningKlasse: "<25" },
+    });
+    expect(r.rubrieken.energieprestatie).toBe(45);
+    expect(r.rubrieken.wozPunten).toBe(49);
+    expect(r.totaalPunten).toBe(111);
+    expect(maxHuur2026Cents(111)).toBe(71320);
+  });
+
+  it("case 10 — nieuwbouwopslag: officieel 157 / € 1.029 + 10% = € 1.131,90", () => {
+    const r = berekenWwsPunten({
+      ...skelet,
+      vertrekken: [
+        { m2: 30, verwarmd: true },
+        { m2: 25, verwarmd: true },
+        { m2: 20, verwarmd: true },
+      ],
+      woz: { waardeEuro: 400_000, gebruiksoppervlakM2: 75 },
+    });
+    expect(r.rubrieken.wozPunten).toBe(43.5);
+    expect(r.totaalPunten).toBe(157);
+    const basis = maxHuur2026Cents(157)!;
+    expect(basis).toBe(102900);
+    expect(Math.round(basis * 1.1)).toBe(113190); // wizard: € 1.131,90
   });
 });
 

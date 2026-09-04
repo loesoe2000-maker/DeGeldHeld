@@ -358,15 +358,19 @@ export function berekenWwsPunten(input: WwsInput): WwsResultaat {
     wozMinimum40Toegepast = true;
   }
 
-  // BHW 11: WOZ-aandeel max 33% — geldt alleen als het totaal zónder de cap
-  // op 187+ uitkomt. Cap: woz = 33/67 × rest (zodat woz/(rest+woz) = 33%).
+  // BHW 11: WOZ-aandeel max 33% — geldt alleen als het totaal zónder cap op
+  // 187+ uitkomt. KALIBRATIE 3-9-2026 (cases 3/3b tegen de officiële
+  // Huurprijscheck): de cap werkt op het TOTAAL — het wordt het grootste
+  // gehele puntental T waarbij (T − rest) ≤ 33% van T, ofwel
+  // T = floor(rest / 0,67); zakt T daarmee onder de 187, dan geldt de bodem
+  // en wordt het totaal op 186 gesteld (de liberalisatiegrens).
   let wozCapToegepast = false;
   let wozPunten = rondRubriek(wozRuw);
-  if (restPunten + wozPunten >= 187) {
-    const gecapt = rondRubriek((restPunten * 33) / 67);
-    if (gecapt < wozPunten && !wozMinimum40Toegepast) {
-      wozPunten = gecapt;
+  if (restPunten + wozPunten >= 187 && !wozMinimum40Toegepast) {
+    const maxTotaal = Math.floor(restPunten / 0.67);
+    if (restPunten + wozPunten > maxTotaal) {
       wozCapToegepast = true;
+      wozPunten = (maxTotaal >= 187 ? maxTotaal : 186) - restPunten;
     }
   }
 

@@ -126,14 +126,33 @@ Regels toegevoegd aan de lib op basis van Beleidsboek juli 2025 (PDF, h2):
 | < 40 punten | wizard toont de 40-puntenprijs (€ 250,26); lib geeft null → F3 toont "onder tabelminimum" | live wizard |
 | Keuken/sanitair-featurepunten | volledige lijsten met puntwaarden (afzuig 0,75 · inductie 1,75 · vaatwasser 1,5 · … / bubbelbad 1,5 · doucheafscheiding 1,25 · …) | Beleidsboek 5.2/6.2 — voor de F3-intake |
 
-## Open kalibratievragen (rest, vóór lancering)
+## KALIBRATIE AFGEROND (4-9-2026) — 10 wizard-cases, gate GEHAALD
 
-2. Volgorde zorgopslag (35%) vs. WOZ-cap (33%): lib past cap eerst toe en
-   zorgopslag daarna over 1–11.1 — bevestigen met een wizard-zorgwoning-case.
-3. Rijksmonument bij contracten van vóór 1-7-2024 (oud regime, €-toeslag):
-   buiten scope v1 — alleen nieuwe contracten.
-4. WOZ-cap-randgeval (cap duwt totaal van ≥ 187 naar < 187): bodem of niet?
-   Lib volgt de letterlijke BHW-tekst; verifiëren met een wizard-cap-case.
-5. Resterende wizard-cases (≥ 9): eengezins · bouwjaar-fallback · cap ≥ 187 ·
-   Amsterdam/Utrecht-corop · zorgwoning · monument · geen buitenruimte ·
-   gedeelde tuin + parkeer · kleine woning ≤ 40 m² · nieuwbouwopslag.
+Alle cases live doorlopen in de officiële Huurprijscheck en vastgelegd als
+borg-tests (tests/wws-punten.test.ts, "KALIBRATIE cases"):
+
+| Case | Regel getest | Officieel | Lib |
+|---|---|---|---|
+| 1 | integraal (7 ruimtes, per rubriek) | 159 / € 1.042,73 | exact ✓ |
+| 2 | eengezins + bouwjaar-fallback + −5 geen buitenruimte | 101 / € 644,53 | exact ✓ |
+| 3 | **cap-bodem**: cap zou < 187 geven → totaal = 186 | 186 / € 1.228,07 | fix → ✓ |
+| 3b | **cap-formule**: totaal = ⌊rest ÷ 0,67⌋ | 198 / € 1.310,46 (WOZ 65) | fix → ✓ |
+| 4 | Amsterdam/Utrecht-deler € 114 | 173 / € 1.138,85 (WOZ 111) | exact ✓ |
+| 5 | zorgopslag 35% (volgorde + afronding) | 156 / € 1.022,07 (opslag 40,50) | exact ✓ |
+| 6 | monument: label G → 0 + prijsopslag 35% | 79 / € 494,10 → € 667,04 | exact ✓ |
+| 8 | gedeelde tuin ÷ adressen + parkeer III ÷ adressen | 7,50 resp. 2 punten | exact ✓ |
+| 9 | kleine-woning-tabel <25 m² label A | 111 / € 713,20 (energie 45) | exact ✓ |
+| 10 | nieuwbouwopslag +10% op prijs | 157 / € 1.029 → € 1.131,90 | exact ✓ |
+
+**Cap-formule definitief (uit cases 3/3b):** bij ongecapt totaal ≥ 187 wordt
+het totaal ⌊rest ÷ 0,67⌋; komt dat onder de 187, dan bodem op 186. De
+letterlijke 33%-lezing uit de BHW-bijlage was ontoereikend — de wizard-
+implementatie van de Huurcommissie is leidend genomen.
+
+Weergave-detail (geen rekenverschil): bij de bodem toont de wizard de
+WOZ-rubriek een half punt lager (92,50 bij rest 93) maar het puntentotaal en
+de prijs zijn identiek aan de onze.
+
+Rest-scope (bewust v1-buiten): rijksmonument-contracten van vóór 1-7-2024
+(oud €-toeslagregime) · zolder-zonder-vaste-trap-aftrek (intake-veld F3) ·
+verkoeling-zonder-koeling-NTA-variant.
