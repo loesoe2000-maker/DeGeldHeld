@@ -51,8 +51,10 @@ export default function OverOnsPage() {
               Geen marketing-cijfers — directe live data.
             </li>
             <li>
-              <strong>Transparant over kosten</strong>: eerste onderhandeling
-              gratis — en dat blijft zo. Geen fee, geen abonnement, geen addertje.
+              <strong>Gratis, en dat blijft zo</strong>: geen fee, geen
+              percentage over wat je terugkrijgt, geen abonnement. Dit is een
+              niet-commercieel project — we verdienen er niets aan, en we
+              krijgen ook geen commissie van providers.
             </li>
           </ul>
 
