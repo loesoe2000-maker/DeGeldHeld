@@ -193,10 +193,9 @@ describe("Huurcommissie — engine: rode-vlaggen-som + status-logica", () => {
 });
 
 describe("Huurcommissie — validateHuurClaimIntent (HARD € 50-gate)", () => {
-  it("422 onder gate: 4_999 cents → 'below-ncnp-threshold'", () => {
-    const v = validateHuurClaimIntent({ boekjaar: 2024, verwachteRestitutieCents: 4_999 });
-    expect(v.ok).toBe(false);
-    if (!v.ok) expect(v.reason).toBe("below-ncnp-threshold");
+  it("v41 GRATIS: ook 4_999 cents wordt geaccepteerd (drempel vervallen)", () => {
+    const r = validateHuurClaimIntent({ boekjaar: 2024, verwachteRestitutieCents: 4_999 });
+    expect(r.ok).toBe(true);
   });
 
   it("exact € 50 = 5_000 cents → ok", () => {

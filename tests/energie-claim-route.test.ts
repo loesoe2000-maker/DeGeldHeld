@@ -76,17 +76,16 @@ describe("/api/energie-claim/claim — gating", () => {
 });
 
 describe("/api/energie-claim/claim — validatie", () => {
-  it("422 onder € 50-drempel", async () => {
+  it("v41 GRATIS: onder € 50 wordt de claim gewoon aangemaakt", async () => {
+    // De € 50-drempel bestond om te bepalen of een fee loonde.
+    // Zonder fee weigeren we niemand meer.
     const r = await claimPOST(
       jsonReq("http://x/api/energie-claim/claim", {
-        provider: "Vattenfall",
-        verwachteRestitutieCents: 4_999,
+        provider: "Eneco",
+        verwachteRestitutieCents: 4_999, // onder de oude € 50-drempel
       }),
     );
-    expect(r.status).toBe(422);
-    const body = await r.json();
-    expect(body.reason).toBe("below-ncnp-threshold");
-    expect(h.claim).toBeNull();
+    expect(r.status).toBe(200);
   });
 
   it("400 bij lege provider", async () => {

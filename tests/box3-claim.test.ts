@@ -110,10 +110,9 @@ describe("validateClaimIntent (HARDE €500-gate)", () => {
     expect(validateClaimIntent({ jaar: 2024, verwachteTeruggaveCents: "veel" }).ok).toBe(false);
   });
 
-  it("below-ncnp-threshold bij < €500 (NIET stil accepteren)", () => {
-    const r = validateClaimIntent({ jaar: 2024, verwachteTeruggaveCents: BOX3_NCNP_GATE_CENTS - 1 });
-    expect(r.ok).toBe(false);
-    expect(r.ok === false && r.reason).toBe("below-ncnp-threshold");
+  it("v41 GRATIS: ook onder € 500 wordt de claim geaccepteerd", () => {
+    const r = validateClaimIntent({ jaar: 2023, verwachteTeruggaveCents: 30_000 });
+    expect(r.ok).toBe(true);
   });
 });
 
@@ -272,11 +271,10 @@ describe("POST /api/box3/claim", () => {
     expect(r.status).toBe(401);
   });
 
-  it("422 below-ncnp-threshold bij < €500 (DIY-pad, geen stille acceptatie)", async () => {
+  it("v41 GRATIS: < € 500 wordt gewoon aangemaakt (geen fee-drempel meer)", async () => {
     const r = await claimPOST(jsonReq(url, { jaar: 2024, verwachteTeruggaveCents: 49_999 }));
-    expect(r.status).toBe(422);
-    expect((await r.json()).reason).toBe("below-ncnp-threshold");
-    expect(h.claim).toBeNull(); // niets in DB aangemaakt
+    expect(r.status).toBe(200);
+    expect(h.claim).not.toBeNull();
   });
 
   it("400 bij invalid jaar", async () => {

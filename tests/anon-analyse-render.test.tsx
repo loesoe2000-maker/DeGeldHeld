@@ -26,7 +26,8 @@ describe("Analyse page anonymous detection — source-level", () => {
     expect(src).toMatch(/isAnonymous/);
   });
 
-  it("paywall is skipped for anonymous (no userId)", () => {
-    expect(src).toMatch(/userId && \(await requiresPayment/);
+  it("v41 GRATIS: er staat helemaal geen paywall meer in de analyse-pagina", () => {
+    expect(src).not.toMatch(/requiresPayment/);
+    expect(src).not.toMatch(/\/pay\//);
   });
 });

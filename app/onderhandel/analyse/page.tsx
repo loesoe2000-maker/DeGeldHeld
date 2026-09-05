@@ -10,7 +10,6 @@ import { infoFor } from "@/lib/category-info";
 import CategoryInfoSection from "@/components/CategoryInfoSection";
 import { pricesAreStale, pricesAsOfLabel } from "@/lib/market-prices";
 import { hasMarketData, countryLabel, isSupportedCategory } from "@/lib/market-coverage";
-import { requiresPayment } from "@/lib/payments";
 import { compareEnergy, type EnergyContractType } from "@/lib/categories/energie";
 import { compareWater } from "@/lib/categories/water";
 import { ANON_COOKIE_NAME, isValidAnonSessionId } from "@/lib/anon-session";
@@ -94,12 +93,8 @@ export default async function AnalysePage({
     );
   }
 
-  // DEEL 10 paywall — first bill free, others require payment first.
-  // Anonymous flow skips paywall entirely; we want them to see value
-  // before any signup gate.
-  if (userId && (await requiresPayment(userId, billId))) {
-    redirect(`/pay/${billId}?type=paywall`);
-  }
+  // v41 — GRATIS PLATFORM: de paywall die hier vanaf de tweede rekening naar
+  // /pay redirectte is verwijderd. Elke analyse is voor iedereen gratis.
 
   // Empty bill → OCR couldn't extract usable data. Show a graceful fallback
   // instead of letting Comparison render an empty page or silently failing.

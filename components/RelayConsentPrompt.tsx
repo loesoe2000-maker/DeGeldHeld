@@ -22,7 +22,6 @@ import type { RelayChannel } from "@/lib/relay-providers";
 export default function RelayConsentPrompt({
   negotiationId,
   provider,
-  hasFeeCard,
   resolvedProviderEmail,
   channel,
   noEmailNote,
@@ -31,7 +30,6 @@ export default function RelayConsentPrompt({
 }: {
   negotiationId: string;
   provider: string;
-  hasFeeCard: boolean;
   resolvedProviderEmail: string | null;
   channel: RelayChannel;
   noEmailNote: string | null;
@@ -52,26 +50,9 @@ export default function RelayConsentPrompt({
 
   const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
-  // GUARDRAIL 4 — no chargeable card → no relay. Send to the card-link step.
-  if (!hasFeeCard) {
-    return (
-      <section
-        data-testid="relay-card-required"
-        className="mt-6 rounded-xl border border-brand-200 bg-brand-50 p-5"
-      >
-        <h2 className="text-lg font-semibold text-brand-900">
-          Laat DeGeldHeld namens jou onderhandelen
-        </h2>
-        <p className="mt-1 text-sm text-brand-900">
-          Wij doen het werk en mailen namens jou met {provider}. Koppel eerst je
-          kaart — je betaalt <strong>€0 nu</strong>, en pas 20% áls we een
-          besparing bewijzen. Zonder gekoppelde kaart kunnen we niet namens jou
-          onderhandelen.
-        </p>
-        <FeeMandatePrompt returnTo={returnTo} />
-      </section>
-    );
-  }
+  // v41 — GRATIS PLATFORM: GUARDRAIL 4 (geen kaart → geen relay) is
+  // vervallen. Relay hangt nu alleen nog aan RELAY_ENABLED + jouw toestemming.
+
 
   // The address we'll actually send to + whether we're cleared to start.
   const effectiveEmail = editing ? manualEmail.trim().toLowerCase() : resolvedProviderEmail;

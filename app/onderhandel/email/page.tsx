@@ -11,7 +11,6 @@ import { relayProviderEmail, relayProviderChannel, relayNoEmailNote } from "@/li
 import { isEnabled } from "@/lib/feature-flags";
 import TrackEvent from "@/components/TrackEvent";
 import EmailDisplay from "@/components/EmailDisplay";
-import EmailPreviewLocked from "@/components/EmailPreviewLocked";
 import { reconcileFeeSetupFromSession } from "@/lib/payments";
 
 export const dynamic = "force-dynamic";
@@ -46,7 +45,6 @@ export default async function EmailPage({
     where: { id: userId },
     select: { feePaymentMethodId: true },
   });
-  const hasFeeCard = !!userRow?.feePaymentMethodId;
 
   // v22 AFM gate: never generate a negotiation for hypotheek/verzekering —
   // route back to the analyse page which shows the "not supported" state.
@@ -108,11 +106,9 @@ export default async function EmailPage({
   });
   const relayAuthorized = !!negotiation.relayAuthorizedAt;
 
-  // v22.1: gate the full copyable email behind the no-cure-no-pay card
-  // mandate. When no card is linked we send ONLY a short teaser to the
-  // browser (the full body never reaches the client/HTML source), so a
-  // visitor can't grab the email for free by scrolling past the prompt.
-  const teaser = result.body.slice(0, 220).trimEnd() + "…";
+  // v41 — GRATIS PLATFORM: de mail werd tot v40 als 220-teken-teaser naar de
+  // browser gestuurd zolang er geen betaalkaart gekoppeld was. Dat is weg —
+  // iedereen krijgt de volledige tekst.
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-12">
@@ -120,15 +116,13 @@ export default async function EmailPage({
       {params.card === "ok" && <TrackEvent event="fee_card_linked" />}
       <h1 className="text-3xl font-bold text-slate-900">Onderhandel-email</h1>
       <p className="mt-2 text-slate-600">
-        {hasFeeCard
-          ? "Kopieer de tekst hieronder en stuur via je eigen e-mailadres naar je provider."
-          : "Je mail staat klaar. Koppel je kaart (€0 nu) om 'm volledig te zien en te kopiëren."}
+        Kopieer de tekst hieronder en stuur via je eigen e-mailadres naar je
+        provider.
       </p>
       {/* ph-no-capture: the email body/teaser contains the customer's name +
           negotiation content — never let autocapture/heatmaps grab it. */}
       <div className="mt-8 ph-no-capture">
-        {hasFeeCard ? (
-          <EmailDisplay
+                  <EmailDisplay
             subject={result.subject}
             body={result.body}
             reasoning={result.reasoning}
@@ -140,16 +134,7 @@ export default async function EmailPage({
             billId={bill.id}
             negotiationId={negotiation.id}
           />
-        ) : (
-          <EmailPreviewLocked
-            subject={result.subject}
-            teaser={teaser}
-            expectedSavingsCents={result.expectedSavingsCents}
-            confidence={result.confidence}
-            strategy={result.strategy}
-            returnTo={`/onderhandel/email?bill=${bill.id}`}
-          />
-        )}
+
       </div>
 
       {/* GUARDRAIL 7 — relay UI only exists behind the flag. Off → the manual
@@ -175,7 +160,6 @@ export default async function EmailPage({
           <RelayConsentPrompt
             negotiationId={negotiation.id}
             provider={bill.provider}
-            hasFeeCard={hasFeeCard}
             resolvedProviderEmail={relayProviderEmail(bill.provider)}
             channel={relayProviderChannel(bill.provider)}
             noEmailNote={relayNoEmailNote(bill.provider)}

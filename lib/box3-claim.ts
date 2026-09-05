@@ -54,9 +54,9 @@ export function validateClaimIntent(input: ClaimIntentInput): ClaimIntentValidat
   if (!Number.isInteger(cents) || cents <= 0) {
     return { ok: false, reason: "invalid-amount" };
   }
-  if (cents < BOX3_NCNP_GATE_CENTS) {
-    return { ok: false, reason: "below-ncnp-threshold" };
-  }
+  // v41 — GRATIS PLATFORM: de drempel bestond om te bepalen of een fee
+  // loonde. Er is geen fee meer, dus we weigeren niemand meer op
+  // geldgrond. De reden blijft in het type staan voor oude callers.
   return { ok: true, jaar, verwachteTeruggaveCents: cents };
 }
 

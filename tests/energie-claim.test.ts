@@ -198,13 +198,9 @@ describe("Energie-claim — engine: rode-vlaggen-detectie", () => {
 });
 
 describe("Energie-claim — validateEnergieClaimIntent (HARD € 50-gate)", () => {
-  it("422 onder gate: 4_999 cents → 'below-ncnp-threshold'", () => {
-    const v = validateEnergieClaimIntent({
-      provider: "Vattenfall",
-      verwachteRestitutieCents: 4_999,
-    });
-    expect(v.ok).toBe(false);
-    if (!v.ok) expect(v.reason).toBe("below-ncnp-threshold");
+  it("v41 GRATIS: ook 4_999 cents wordt geaccepteerd (drempel vervallen)", () => {
+    const r = validateEnergieClaimIntent({ provider: "Eneco", verwachteRestitutieCents: 4_999 });
+    expect(r.ok).toBe(true);
   });
 
   it("exact € 50 = 5_000 cents → ok", () => {

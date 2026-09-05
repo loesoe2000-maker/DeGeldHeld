@@ -16,7 +16,6 @@ vi.mock("@/lib/analytics", () => ({ track: (...a: unknown[]) => track(...a) }));
 const verifiedProps = {
   negotiationId: "neg_1",
   provider: "Greenchoice",
-  hasFeeCard: true,
   resolvedProviderEmail: "vragen@greenchoice.nl",
   channel: "email" as const,
   noEmailNote: null,
@@ -36,12 +35,13 @@ beforeEach(() => {
   vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true, status: 200, json: async () => ({ ok: true }) })));
 });
 
-describe("RelayConsentPrompt — card gate", () => {
-  it("no fee-card → shows the card-link step, not the start button", () => {
-    render(<RelayConsentPrompt {...verifiedProps} hasFeeCard={false} />);
-    expect(screen.getByTestId("relay-card-required")).toBeInTheDocument();
-    expect(screen.getByTestId("fee-mandate-prompt")).toBeInTheDocument();
-    expect(screen.queryByTestId("relay-consent-start")).not.toBeInTheDocument();
+describe("RelayConsentPrompt — v41: geen kaart meer nodig", () => {
+  it("zonder betaalkaart is relay gewoon beschikbaar (kaart-gate is vervallen)", () => {
+    render(<RelayConsentPrompt {...verifiedProps} />);
+    // GUARDRAIL 4 (geen kaart → geen relay) bestond om de fee te kunnen innen.
+    // Het platform is gratis, dus die drempel is weg.
+    expect(screen.queryByTestId("relay-card-required")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("fee-mandate-prompt")).not.toBeInTheDocument();
   });
 });
 
