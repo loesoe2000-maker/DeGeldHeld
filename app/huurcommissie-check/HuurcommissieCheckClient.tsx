@@ -8,8 +8,8 @@
  * en huurcontract-vlaggen verlaten de browser NIET. PostHog krijgt alleen
  * booleans/counts (geen PII).
  *
- * Revenue-gate (guardrail V35): NCNP-aanbod alléén bij verwachte restitutie
- * ≥ € 50 — anders DIY-brief gratis.
+ * v41 — GRATIS PLATFORM: de oude € 50-drempel bepaalde of een fee loonde.
+ * Er is geen fee meer; iedereen krijgt hetzelfde aanbod.
  */
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -388,13 +388,13 @@ function Results({
           className="mt-6 rounded-xl border border-brand-300 bg-white p-5"
         >
           <h3 className="text-lg font-semibold text-slate-900">
-            Wij doen het bezwaar voor je — no cure, no pay
+            Wij doen het bezwaar voor je — gratis
           </h3>
           <p className="mt-1 text-sm text-slate-700">
-            Bij een verwachte restitutie boven € 50 kunnen we het bezwaartraject
-            voor je opstellen tegen <strong>20%</strong> van het werkelijk teruggehaalde
-            bedrag — alléén áls je geld terugkrijgt. Liever zelf doen? Hieronder
-            staat de gratis DIY-brief.
+            We stellen het bezwaartraject voor je op. Dat kost je niets: het
+            hele platform is gratis. Let op: de Huurcommissie zelf vraagt
+            € 25 leges — dat bedrag gaat naar hen en krijg je terug als je wint.
+            Liever zelf doen? Hieronder staat dezelfde brief om zelf te sturen.
           </p>
           <button
             type="button"

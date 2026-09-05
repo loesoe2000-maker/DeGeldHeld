@@ -20,7 +20,8 @@
  *  - Nooit een absoluut "you pay nothing": Huurcommissie kost € 25 leges en
  *    de Geschillencommissie Energie € 27,50 + € 52,50 klachtgeld, door de
  *    klant voorgeschoten (terug bij winst). Zie EN_FEE_NOTE.
- *  - Fees concreet noemen (20% / Box 3 25%, cap € 500), niet "fair".
+ *  - v41: DeGeldHeld is GRATIS. Nooit een eigen fee noemen. Wel de leges
+ *    van derden noemen — dat is precies waar "free" anders misleidend wordt.
  *  - Geen kwantitatieve doelgroep-claims zonder bron.
  */
 
@@ -48,7 +49,7 @@ export const EN_HERO = {
     "overpaid Box 3 wealth tax, rent service charge refunds, energy bill " +
     "corrections, missed allowances (toeslagen). DeGeldHeld checks it for free " +
     "and prepares the Dutch paperwork — you submit it and keep the money. " +
-    "No cure, no pay.",
+    "Completely free.",
   ctaPrimary: "See what you can claim",
   ctaSecondary: "How it works",
 } as const;
@@ -120,10 +121,10 @@ export const EN_HOW_IT_WORKS = [
   },
   {
     n: "4",
-    title: "No cure, no pay",
+    title: "Completely free",
     body:
-      "Our fee is 20% of what you actually get back (Box 3: 25%), capped at " +
-      "€ 500 per claim. Recovered nothing? You owe us nothing.",
+      "We charge nothing — no percentage, no subscription, no paid upgrade. " +
+      "Whatever you get back is entirely yours.",
   },
 ] as const;
 
@@ -133,11 +134,11 @@ export const EN_HOW_IT_WORKS = [
  * voorschiet. Bedragen uit lib/huurcommissie.ts + lib/energie-claim.ts.
  */
 export const EN_FEE_NOTE =
-  "Honest about costs: a Huurcommissie case has an official € 25 filing fee, " +
+  "Honest about costs: DeGeldHeld itself is free, but two official routes " +
+  "charge a fee of their own. A Huurcommissie case has a € 25 filing fee, " +
   "and the Geschillencommissie Energie charges € 27.50 plus a € 52.50 " +
   "complaint deposit — you advance these yourself and get them back if you " +
-  "win. If your recovery stays below the threshold (Box 3 < € 500, " +
-  "rent/energy < € 50), our fee is € 0 and the do-it-yourself letter is free.";
+  "win. Those go to them, not to us.";
 
 export const EN_TRUST = {
   disclaimer:

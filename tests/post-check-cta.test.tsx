@@ -26,27 +26,15 @@ const SOURCES: PostCheckSource[] = [
 ];
 
 describe("PostCheckCta — render", () => {
-  it("rendert altijd de Plus-kaart by default", () => {
+  it("v41 GRATIS: de betaalde Plus-kaart bestaat niet meer", () => {
     render(<PostCheckCta fromCheck="geld" />);
-    expect(screen.getByTestId("post-check-plus")).toBeInTheDocument();
-    expect(screen.getByTestId("post-check-onderhandel")).toBeInTheDocument();
-  });
-
-  it("toonOnderhandel=false → alleen Plus-kaart", () => {
-    render(<PostCheckCta fromCheck="geld" toonOnderhandel={false} />);
-    expect(screen.getByTestId("post-check-plus")).toBeInTheDocument();
-    expect(screen.queryByTestId("post-check-onderhandel")).not.toBeInTheDocument();
-  });
-
-  it("toonPlus=false → alleen onderhandel-kaart", () => {
-    render(<PostCheckCta fromCheck="box3" toonPlus={false} />);
     expect(screen.queryByTestId("post-check-plus")).not.toBeInTheDocument();
     expect(screen.getByTestId("post-check-onderhandel")).toBeInTheDocument();
   });
 
-  it("toonPlus=false + toonOnderhandel=false → renders niets", () => {
+  it("toonOnderhandel=false → renders niets", () => {
     const { container } = render(
-      <PostCheckCta fromCheck="ns" toonPlus={false} toonOnderhandel={false} />,
+      <PostCheckCta fromCheck="ns" toonOnderhandel={false} />,
     );
     expect(container.firstChild).toBeNull();
   });
@@ -68,17 +56,6 @@ describe("PostCheckCta — render", () => {
 });
 
 describe("PostCheckCta — per fromCheck unieke copy", () => {
-  it("Plus-body verschilt per source", () => {
-    const bodies = new Set<string>();
-    for (const src of SOURCES) {
-      const { container, unmount } = render(<PostCheckCta fromCheck={src} />);
-      const card = container.querySelector("[data-testid='post-check-plus']");
-      bodies.add(card?.textContent ?? "");
-      unmount();
-    }
-    expect(bodies.size).toBe(SOURCES.length); // élke source heeft unieke tekst
-  });
-
   it("Onderhandel-body verschilt per source", () => {
     const bodies = new Set<string>();
     for (const src of SOURCES) {
@@ -92,12 +69,6 @@ describe("PostCheckCta — per fromCheck unieke copy", () => {
 });
 
 describe("PostCheckCta — analytics", () => {
-  it("klik op Plus-kaart fired track('plus_cta_clicked') met juiste fromCheck", () => {
-    render(<PostCheckCta fromCheck="box3" />);
-    fireEvent.click(screen.getByTestId("post-check-plus"));
-    expect(track).toHaveBeenCalledWith("plus_cta_clicked", { fromCheck: "box3" });
-  });
-
   it("klik op Onderhandel-kaart fired track('onderhandel_cta_clicked') met juiste fromCheck", () => {
     render(<PostCheckCta fromCheck="zorgkosten" />);
     fireEvent.click(screen.getByTestId("post-check-onderhandel"));
@@ -105,40 +76,14 @@ describe("PostCheckCta — analytics", () => {
   });
 });
 
-describe("PostCheckCta — v35 huurcommissie + energie-claim sources", () => {
-  it("huurcommissie: Plus-body noemt jaarafrekening / servicekosten + Onderhandel-body cross-link werkt", () => {
-    render(<PostCheckCta fromCheck="huurcommissie" />);
-    const plus = screen.getByTestId("post-check-plus");
-    expect(plus.textContent).toMatch(/servicekosten|jaarafrekening/i);
-    const onder = screen.getByTestId("post-check-onderhandel");
-    expect(onder.textContent).toMatch(/vaste lasten|besparen|onderhandel/i);
-  });
-
-  it("energie-claim: Plus-body noemt eindafrekening / contract-jaar", () => {
-    render(<PostCheckCta fromCheck="energie-claim" />);
-    const plus = screen.getByTestId("post-check-plus");
-    expect(plus.textContent).toMatch(/eindafrekening|contract|tarief/i);
-  });
-
-  it("v35 sources fired juiste analytics-event op klik", () => {
-    render(<PostCheckCta fromCheck="huurcommissie" />);
-    fireEvent.click(screen.getByTestId("post-check-plus"));
-    expect(track).toHaveBeenCalledWith("plus_cta_clicked", { fromCheck: "huurcommissie" });
-
-    render(<PostCheckCta fromCheck="energie-claim" />);
-    fireEvent.click(screen.getAllByTestId("post-check-onderhandel")[1]);
-    expect(track).toHaveBeenCalledWith("onderhandel_cta_clicked", { fromCheck: "energie-claim" });
-  });
-});
-
-describe("PostCheckCta — hrefs", () => {
-  it("Plus-kaart linkt naar /plus", () => {
-    render(<PostCheckCta fromCheck="geld" />);
-    expect(screen.getByTestId("post-check-plus")).toHaveAttribute("href", "/plus");
-  });
-
-  it("Onderhandel-kaart linkt naar /onderhandel", () => {
-    render(<PostCheckCta fromCheck="geld" />);
-    expect(screen.getByTestId("post-check-onderhandel")).toHaveAttribute("href", "/onderhandel");
+describe("PostCheckCta — v41: elke bron heeft eigen gratis copy", () => {
+  it("huurcommissie en energie-claim hebben eigen onderhandel-tekst, zonder fee", () => {
+    for (const src of ["huurcommissie", "energie-claim"] as const) {
+      const { container, unmount } = render(<PostCheckCta fromCheck={src} />);
+      const kaart = container.querySelector("[data-testid='post-check-onderhandel']");
+      expect(kaart?.textContent ?? "").toMatch(/gratis/i);
+      expect(kaart?.textContent ?? "").not.toMatch(/20%|NCNP|no.?cure/i);
+      unmount();
+    }
   });
 });

@@ -18,10 +18,10 @@ export const metadata: Metadata = {
     default: "DeGeldHeld — haal terug wat van jou is",
     template: "%s · DeGeldHeld",
   },
-  // v40 F1: claims-first. "No cure no pay" gaat over onze fee; de leges-
-  // eerlijkheid staat op de check-pagina's zelf.
+  // v41: claims-first én volledig gratis. De leges van derden (Huurcommissie,
+  // Geschillencommissie) staan op de check-pagina's zelf — die blijven.
   description:
-    "Gratis checks voor Box 3-belasting, huur- en servicekosten, energie-eindafrekening en toeslagen. Wij bereiden je claim voor, jij dient in. No cure, no pay: 20% van wat je terugkrijgt (Box 3: 25%), max € 500.",
+    "Gratis checks voor Box 3-belasting, huur- en servicekosten, energie-eindafrekening en toeslagen. Wij bereiden je claim voor, jij dient in. Volledig gratis — geen fee, geen abonnement.",
   keywords: ["geld terugvragen", "box 3", "huurverlaging", "toeslagen", "besparen", "maandlasten", "energie", "Nederland"],
   authors: [{ name: "DeGeldHeld" }],
   openGraph: {
@@ -31,14 +31,14 @@ export const metadata: Metadata = {
     siteName: "DeGeldHeld",
     title: "DeGeldHeld — haal terug wat van jou is",
     description:
-      "Gratis checks voor Box 3-belasting, huur- en servicekosten, energie-eindafrekening en toeslagen. Wij bereiden je claim voor, jij dient in. No cure, no pay: 20% van wat je terugkrijgt (Box 3: 25%), max € 500.",
+      "Gratis checks voor Box 3-belasting, huur- en servicekosten, energie-eindafrekening en toeslagen. Wij bereiden je claim voor, jij dient in. Volledig gratis — geen fee, geen abonnement.",
     images: [{ url: "/api/og?title=DeGeldHeld", width: 1200, height: 630 }],
   },
   twitter: {
     card: "summary_large_image",
     title: "DeGeldHeld — haal terug wat van jou is",
     description:
-      "Gratis checks voor Box 3-belasting, huur- en servicekosten, energie-eindafrekening en toeslagen. Wij bereiden je claim voor, jij dient in. No cure, no pay: 20% van wat je terugkrijgt (Box 3: 25%), max € 500.",
+      "Gratis checks voor Box 3-belasting, huur- en servicekosten, energie-eindafrekening en toeslagen. Wij bereiden je claim voor, jij dient in. Volledig gratis — geen fee, geen abonnement.",
     images: ["/api/og?title=DeGeldHeld"],
   },
   robots: { index: true, follow: true },

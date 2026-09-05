@@ -45,7 +45,7 @@ const faqs = [
   },
   {
     q: "Wat doet DeGeldHeld bij een Box 3-claim?",
-    a: "We tonen je gratis een indicatie van de vermindering op /box3-check (alles client-side, geen DigiD). Bij een verwachte teruggave van € 500 of meer bieden we optioneel een no-cure-no-pay-claim aan (25% van het werkelijk teruggehaalde bedrag, gecapt op € 500). Onder die drempel krijg je gratis een DIY-brief — een 25%-fee op een kleine teruggave is niet eerlijk.",
+    a: "We tonen je gratis een indicatie van de vermindering op /box3-check (alles client-side, geen DigiD) en maken de brief voor je klaar. Dat kost niets — DeGeldHeld is volledig gratis.",
   },
   {
     q: "Wat als de OCR mijn beschikking niet goed leest?",
@@ -278,10 +278,8 @@ export default function Box3RechtsherstelPage() {
             Vul je jaar, vermogenspositie en (optioneel) werkelijk rendement
             in. We tonen een indicatie van de verwachte vermindering plus,
             áls je dat wilt, een gratis DIY-OWR-brief die je in
-            MijnBelastingdienst kunt plakken. Bij ≥ € 500 verwachte teruggave
-            kun je optioneel onze no-cure-no-pay-claim starten (25% van het
-            werkelijk teruggehaalde bedrag, gecapt op € 500; werkelijk &lt; €
-            500 = fee € 0).
+            MijnBelastingdienst kunt plakken. Wil je liever dat wij het
+            opstellen? Dat kan ook, en het is net zo gratis.
           </p>
           <Link
             href="/box3-check"

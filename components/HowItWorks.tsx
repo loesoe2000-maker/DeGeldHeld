@@ -20,9 +20,9 @@ export default function HowItWorks() {
     },
     {
       nr: "4",
-      titel: "No cure, no pay",
+      titel: "Jij houdt alles",
       tekst:
-        "Bij succes pakken wij een eerlijk percentage van wat je terugkrijgt. Niet bespaard / geen teruggave? Niets te betalen.",
+        "Het geld dat je terugkrijgt gaat rechtstreeks naar jou. Wij rekenen geen percentage en geen abonnement — DeGeldHeld is gratis.",
     },
   ];
   return (

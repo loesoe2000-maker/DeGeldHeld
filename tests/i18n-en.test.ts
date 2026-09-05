@@ -88,17 +88,18 @@ describe("EN landing copy — eerlijkheid + juridische correctheid", () => {
     expect(alleCopy().toLowerCase()).toMatch(/you submit/);
   });
 
-  it("geen absoluut 'you pay nothing' — wel de eerlijke no-cure-formulering", () => {
-    expect(alleCopy()).not.toMatch(/you pay nothing/i);
-    expect(alleCopy()).toMatch(/owe us nothing/i);
+  it("v41 GRATIS: 'free' mag nu, mits de leges van derden erbij staan", () => {
+    expect(alleCopy()).toMatch(/free/i);
+    // De enige reden dat "free" eerlijk is: de leges staan er expliciet bij.
+    expect(EN_FEE_NOTE).toMatch(/€\s?25/);
+    expect(EN_FEE_NOTE).toMatch(/not to us/i);
   });
 
-  it("fee is concreet: 20% + Box 3 25% + cap € 500 (niet 'a fair percentage')", () => {
-    const stap4 = EN_HOW_IT_WORKS[3];
-    expect(stap4.body).toMatch(/20%/);
-    expect(stap4.body).toMatch(/25%/);
-    expect(stap4.body).toMatch(/€\s?500/);
-    expect(alleCopy()).not.toMatch(/a fair percentage/i);
+  it("v41 GRATIS: nergens meer een eigen fee-percentage", () => {
+    expect(alleCopy()).not.toMatch(/\b20\s?%/);
+    expect(alleCopy()).not.toMatch(/\b25\s?%/);
+    expect(alleCopy()).not.toMatch(/our fee/i);
+    expect(EN_HOW_IT_WORKS[3].title).toMatch(/free/i);
   });
 
   it("fee-noot noemt de voorgeschoten leges (€ 25 / € 27,50 + € 52,50) + gratis onder drempel", () => {
@@ -106,7 +107,8 @@ describe("EN landing copy — eerlijkheid + juridische correctheid", () => {
     expect(EN_FEE_NOTE).toMatch(/€\s?27\.50/);
     expect(EN_FEE_NOTE).toMatch(/€\s?52\.50/);
     expect(EN_FEE_NOTE.toLowerCase()).toMatch(/advance|yourself/);
-    expect(EN_FEE_NOTE).toMatch(/€\s?0/);
+    // v41: geen eigen drempel meer; wel expliciet dat het geld naar hén gaat.
+    expect(EN_FEE_NOTE).toMatch(/not to us/i);
   });
 
   it("noemt expliciet dat de officiële filings Nederlands zijn", () => {

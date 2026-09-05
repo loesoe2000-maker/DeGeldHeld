@@ -32,7 +32,7 @@ export const HUB_TILES: ReadonlyArray<HubTile> = [
     title: "Box 3-rechtsherstel",
     body:
       "Wet tegenbewijsregeling (juli 2025): loont een OWR voor jouw box-3-jaar? " +
-      "Gratis indicatie + DIY-brief; NCNP bij ≥ € 500.",
+      "Gratis indicatie + kant-en-klare brief die je zelf indient.",
     href: "/box3-check",
     flag: "BOX3_CHECK_ENABLED",
     icon: "🏛️",
@@ -68,13 +68,13 @@ export const HUB_TILES: ReadonlyArray<HubTile> = [
     icon: "🚆",
   },
   // v35 Claim-Hub uitbreiding — Huurcommissie + Geschillencommissie Energie.
-  // Beide via officiële instanties (geen relay-mail), drempel € 50 voor NCNP.
+  // Beide via officiële instanties (geen relay-mail). v41: gratis.
   {
     id: "huurcommissie-check",
     title: "Huurcommissie — bezwaar servicekosten",
     body:
       "Klopt je servicekosten-afrekening? Gratis indicatie op rode vlaggen + " +
-      "DIY-brief; NCNP bij ≥ € 50.",
+      "Gratis indicatie + kant-en-klare bezwaarbrief.",
     href: "/huurcommissie-check",
     flag: "HUURCOMMISSIE_CHECK_ENABLED",
     icon: "🏠",
@@ -96,7 +96,7 @@ export const HUB_TILES: ReadonlyArray<HubTile> = [
     title: "Energie-eindafrekening-claim",
     body:
       "Heffingskorting ontbreekt, te-laat-afrekening of meterstand-shift? Gratis " +
-      "indicatie + DIY-klachtbrief; NCNP bij ≥ € 50.",
+      "gratis indicatie + kant-en-klare klachtbrief.",
     href: "/energie-claim-check",
     flag: "ENERGIE_CLAIM_CHECK_ENABLED",
     icon: "⚡",

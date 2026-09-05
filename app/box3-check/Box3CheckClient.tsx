@@ -399,19 +399,18 @@ function Results({
           className="mt-6 rounded-xl border border-brand-300 bg-white p-5"
         >
           <h3 className="text-lg font-semibold text-slate-900">
-            Wij doen het OWR voor je — no cure, no pay
+            Wij doen het OWR voor je — gratis
           </h3>
           <p className="mt-1 text-sm text-slate-700">
-            Bij een verwachte teruggave boven € 500 kunnen we het OWR voor je
-            opstellen tegen <strong>25%</strong> van het teruggehaalde bedrag
-            (gemaximeerd op <strong>€ 500 per claim</strong>) — alléén áls je
-            geld terugkrijgt. Liever zelf doen? Hieronder staat de gratis
-            DIY-brief.
+            We stellen de Opgaaf Werkelijk Rendement voor je op. Dat kost je
+            <strong> niets</strong> — DeGeldHeld is volledig gratis. Het geld
+            gaat rechtstreeks van de Belastingdienst naar jou; wij zitten er
+            niet tussen. Liever zelf doen? Hieronder staat dezelfde brief.
           </p>
 
           <details className="mt-3 rounded-lg border border-brand-100 bg-brand-50/40 p-3 text-sm">
             <summary className="cursor-pointer font-semibold text-slate-800">
-              Wat doen wij precies voor die 25%?
+              Wat doen wij precies voor je?
             </summary>
             <div className="mt-3 space-y-3 text-slate-700">
               <p>
@@ -453,13 +452,10 @@ function Results({
               </p>
               <p className="text-xs text-slate-600">
                 <strong>Eerlijk over de prijs:</strong> belastingadviseurs
-                rekenen € 150-500 per uur (€ 300-2.000 per box-3-zaak).
-                Specialistische no-cure-no-pay-spelers zoals EUclaim rekenen
-                31% + € 33 administratiekosten. Onze 25% met € 500-cap is onder
-                de markt — en je betaalt alléén als je werkelijk geld terug
-                krijgt. Voor grote teruggaves daalt het effectieve percentage
-                omdat de cap kickt in: bij € 5.000 teruggave is onze fee max
-                € 500 (= 10%).
+                rekenen € 150-500 per uur (€ 300-2.000 per box-3-zaak) en
+                claimbureaus houden een fors percentage in. Wij vragen niets.
+                Dat is geen aanbieding maar een keuze: dit is een project, geen
+                bedrijf. Wat je terugkrijgt is helemaal van jou.
               </p>
             </div>
           </details>

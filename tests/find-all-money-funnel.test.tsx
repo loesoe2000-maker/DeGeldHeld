@@ -30,11 +30,11 @@ describe("Hero — claims-first framing (v40 B-verbouwing)", () => {
     expect(screen.getByRole("link", { name: /track record/i })).toHaveAttribute("href", "/proof");
   });
 
-  it("subtitel is claims-first: Box 3 + toeslagen + no-cure-no-pay", () => {
+  it("v41: subtitel is claims-first én noemt gratis, geen fee meer", () => {
     render(<Hero />);
     expect(screen.getByText(/Box 3-belasting/i)).toBeInTheDocument();
     expect(screen.getByText(/toeslagen/i)).toBeInTheDocument();
-    expect(screen.getByText(/no cure, no pay/i)).toBeInTheDocument();
+    expect(screen.getByText(/Alles is gratis/i)).toBeInTheDocument();
   });
 
   it("falls back to the original copy when both flags are off", () => {

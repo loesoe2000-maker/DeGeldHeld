@@ -447,14 +447,14 @@ function Results({
           className="mt-6 rounded-xl border border-brand-300 bg-white p-5"
         >
           <h3 className="text-lg font-semibold text-slate-900">
-            Wij doen de klacht voor je — no cure, no pay
+            Wij doen de klacht voor je — gratis
           </h3>
           <p className="mt-1 text-sm text-slate-700">
-            Bij een verwachte restitutie boven € 50 kunnen we het klachttraject
-            (leverancier → Geschillencommissie) voor je opstellen tegen{" "}
-            <strong>20%</strong> van het werkelijk teruggehaalde bedrag — alléén
-            áls je geld terugkrijgt. Liever zelf doen? Hieronder staat de gratis
-            DIY-brief.
+            We stellen het klachttraject (leverancier → Geschillencommissie)
+            voor je op, <strong>gratis</strong>. Let op: de
+            Geschillencommissie zelf vraagt € 27,50 leges plus € 52,50
+            klachtgeld — dat gaat naar hen en krijg je terug als je wint.
+            Liever zelf doen? Hieronder staat dezelfde brief.
           </p>
           <button
             type="button"

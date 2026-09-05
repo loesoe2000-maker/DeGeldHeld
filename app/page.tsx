@@ -17,7 +17,7 @@ const organisationLd = {
   url: APP_URL,
   email: "hallo@degeldheld.com",
   description:
-    "Haalt geld terug voor Nederlandse consumenten: Box 3-belasting, huur- en servicekosten, energiecorrecties en toeslagen. No cure, no pay.",
+    "Haalt geld terug voor Nederlandse consumenten: Box 3-belasting, huur- en servicekosten, energiecorrecties en toeslagen. Gratis te gebruiken.",
 };
 
 const websiteLd = {

@@ -23,7 +23,7 @@ export const metadata = {
     title: "Vind al je geld — alle checks op één plek",
     description:
       "Toeslagen, Box 3-rechtsherstel, zorgkosten, huurcommissie, energie, " +
-      "NS-vertraging en spookabonnementen — gratis checks, no cure no pay.",
+      "NS-vertraging en spookabonnementen — allemaal gratis.",
     images: [
       { url: "/api/og?title=Vind%20al%20je%20geld", width: 1200, height: 630 },
     ],

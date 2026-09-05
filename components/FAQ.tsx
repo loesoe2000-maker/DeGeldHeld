@@ -6,22 +6,22 @@ const items: { q: string; a: string; category?: string }[] = [
   {
     category: "Prijzen",
     q: "Wat kost het?",
-    a: "Niks vooraf. Je betaalt alleen 20% van de geverifieerde jaarbesparing — en alleen als de provider écht akkoord ging. Geen besparing = geen rekening.",
+    a: "Niets. DeGeldHeld is gratis: geen percentage, geen abonnement, geen betaald vervolg. Wat wél geld kan kosten zijn de officiële procedures zelf — de Huurcommissie vraagt bijvoorbeeld € 25 leges. Dat gaat naar hen, niet naar ons, en dat staat er bij elke check gewoon bij.",
   },
   {
     category: "Prijzen",
     q: "Hoe verdienen jullie geld?",
-    a: "Alleen via die 20% fee op geverifieerde besparing. We krijgen géén commissie van providers, kickbacks of verborgen advertentie-deals. Onze prikkel is jouw besparing, niet ergens anders.",
+    a: "Dat doen we niet. DeGeldHeld is een project, geen bedrijf: het kost je niets en we verdienen er niets aan. Net zo belangrijk: we krijgen géén commissie van providers, geen kickbacks en geen verborgen advertentie-deals. Er is dus niemand wiens belang boven het jouwe gaat.",
   },
   {
     category: "Prijzen",
     q: "Wat als de provider niet reageert?",
-    a: "Geen reactie binnen 14 werkdagen = geen besparing = geen rekening. We sturen wel automatisch een reminder na 7 dagen.",
+    a: "Dan gebeurt er niets — het kost je sowieso niets. We sturen wel automatisch een reminder na 7 dagen.",
   },
   {
     category: "Prijzen",
-    q: "Moet ik bewijzen dat ik écht heb bespaard?",
-    a: "Ja, één keer per onderhandeling. Forward de bevestigingsmail van je provider naar bewijs@degeldheld.com, of upload je nieuwe factuur na 1 maand. Geen bewijs = succes telt niet mee en geen fee.",
+    q: "Moet ik doorgeven of het gelukt is?",
+    a: "Het hoeft niet, maar het helpt. Forward de bevestigingsmail van je provider naar bewijs@degeldheld.com of upload je nieuwe factuur. Dat gebruiken we alleen om ons eigen track record eerlijk bij te houden — er hangt geen rekening aan.",
   },
 
   // HOE HET WERKT
@@ -33,7 +33,7 @@ const items: { q: string; a: string; category?: string }[] = [
   {
     category: "Hoe het werkt",
     q: "Voor welke vaste lasten werkt het?",
-    a: "Energie (stroom, gas), bankpakketten, software-saaS en overige abonnementen — daar onderhandelen we automatisch namens jou tegen 20% no-cure-no-pay op de bewezen jaarbesparing. Telecom (mobiel, internet, tv) loopt sinds 2026 via DeGeldHeld Plus: een vers retentie-belscript per provider; jij voert zelf het gesprek (géén 20%-fee). Streaming, gym en cloud-opslag krijgen advies-tips (downgrade-tier, jaarbetaling) — géén fee. Hypotheek en verzekering bieden we (nog) niet aan — dat zijn financiële producten waarvoor een AFM-vergunning nodig is. Water kun je niet onderhandelen (monopolie), maar we tonen wel verbruiks-bespaartips.",
+    a: "Energie (stroom, gas), bankpakketten, software-saaS en overige abonnementen — daar onderhandelen we gratis namens jou. Bij telecom (mobiel, internet, tv) krijg je een vers retentie-belscript per provider en voer je het gesprek zelf — dat werkt daar aantoonbaar beter. Streaming, gym en cloud-opslag krijgen advies-tips (downgrade-tier, jaarbetaling). Hypotheek en verzekering bieden we (nog) niet aan — dat zijn financiële producten waarvoor een AFM-vergunning nodig is. Water kun je niet onderhandelen (monopolie), maar we tonen wel verbruiks-bespaartips.",
   },
   {
     category: "Hoe het werkt",

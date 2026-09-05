@@ -45,12 +45,13 @@ describe("Hero — claims-first met hub aan", () => {
     expect(screen.getByTestId("hero-link-proof")).toHaveAttribute("href", "/proof");
   });
 
-  it("fee is concreet én eerlijk: 20% / Box 3 25% / max € 500, en 'jij dient in'", () => {
+  it("v41 GRATIS: geen enkel fee-percentage in de hero, wel 'jij dient in'", () => {
     const { container } = render(<Hero />);
     const text = container.textContent ?? "";
-    expect(text).toMatch(/20%/);
-    expect(text).toMatch(/25%/);
-    expect(text).toMatch(/€\s?500/);
+    expect(text).not.toMatch(/20%/);
+    expect(text).not.toMatch(/25%/);
+    expect(text).not.toMatch(/no.?cure/i);
+    expect(text).toMatch(/gratis/i);
     expect(text).toMatch(/zonder DigiD/i);
     // Wij bereiden voor, de klant dient in — nooit "wij dienen in"-overclaim.
     expect(text).toMatch(/jij dient in/i);
@@ -77,9 +78,10 @@ describe("metadata + banner — claims-first bronnen", () => {
   it("site-title en descriptions zijn claims-first (title + og + twitter consistent)", () => {
     expect(layout).toMatch(/haal terug wat van jou is/i);
     expect(layout).not.toMatch(/automatisch onderhandelen op je maandlasten/);
-    // Dezelfde claims-description op alle drie de plekken (metadata/og/twitter).
+    // v41: dezelfde GRATIS-description op alle drie de plekken.
     const desc = layout.match(/Gratis checks voor Box 3-belasting/g) ?? [];
     expect(desc.length).toBe(3);
+    expect(layout).not.toMatch(/No cure, no pay: 20%/);
   });
 
   it("organisation-LD op de homepage beschrijft geld terughalen, niet alleen onderhandelen", () => {

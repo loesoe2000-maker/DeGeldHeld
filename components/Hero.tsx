@@ -8,8 +8,10 @@ import { isEnabled } from "@/lib/feature-flags";
  * opent de site claims-first (Box 3 / huur / energie / toeslagen, CTA naar de
  * hub) en wordt onderhandelen het bijproduct-linkje. Zonder flags blijft de
  * oude onderhandel-hero exact intact — geen dode links in een verse omgeving.
- * Fee-eerlijkheid: "no cure no pay" gaat over ÓNZE fee; leges-voorschot staat
- * op de check-pagina's zelf (zelfde regel als lib/i18n-en COPY-REGELS).
+ * v41 — GRATIS PLATFORM. Er wordt nergens meer een fee genoemd of gevraagd.
+ * Wat WEL blijft staan zijn de leges die de klant aan een DERDE betaalt
+ * (Huurcommissie € 25, Geschillencommissie € 27,50 + € 52,50) — die staan op
+ * de check-pagina's zelf. Die weghalen zou de site minder eerlijk maken.
  */
 export default function Hero() {
   const geldCheckOn = isEnabled("GELD_CHECK_ENABLED");
@@ -37,16 +39,16 @@ export default function Hero() {
               Te veel betaalde <strong>Box 3-belasting</strong>, te hoge{" "}
               <strong>huur- of servicekosten</strong>, een foute{" "}
               <strong>energie-eindafrekening</strong>, gemiste{" "}
-              <strong>toeslagen</strong>: check het gratis, in een minuut,
-              zonder DigiD. Wij bereiden je claim voor — jij dient in en houdt
-              de regie. <strong>No cure, no pay</strong>: onze fee is 20% van
-              wat je terugkrijgt (Box 3: 25%), maximaal € 500 per claim.
+              <strong>toeslagen</strong>: check het in een minuut, zonder
+              DigiD. Wij bereiden je claim voor — jij dient in en houdt de
+              regie. <strong>Alles is gratis</strong>: geen percentage, geen
+              abonnement, geen betaald vervolg.
             </>
           ) : (
             <>
               Upload je energierekening of abonnementsfactuur. DeGeldHeld
-              onderhandelt automatisch met je provider en je betaalt{" "}
-              <strong>alléén bij succes</strong> — no cure, no pay.
+              onderhandelt automatisch met je provider — en het kost je{" "}
+              <strong>niets</strong>.
             </>
           )}
         </p>
@@ -69,13 +71,13 @@ export default function Hero() {
         <p className="mt-6 text-sm text-slate-500">
           {showBranches ? (
             <>
-              Checks gratis en zonder DigiD · Officiële 2026-regels · Niets
-              teruggehaald? Geen fee
+              Gratis en zonder DigiD · Officiële 2026-regels · Geen account
+              nodig om te beginnen
             </>
           ) : (
             <>
-              Geen account of betaling nodig om te proberen · Niet bespaard? Niets te
-              betalen · NL providers ondersteund
+              Geen account nodig om te beginnen · Volledig gratis · NL
+              providers ondersteund
             </>
           )}
         </p>
