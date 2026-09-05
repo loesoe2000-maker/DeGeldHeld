@@ -26,8 +26,8 @@ describe("feature-flags: defaults", () => {
     expect(isEnabled("WHATSAPP_ENABLED")).toBe(false);
   });
 
-  it("PAYWALL_ENABLED defaults to true (live since v6)", () => {
-    expect(isEnabled("PAYWALL_ENABLED")).toBe(true);
+  it("v41 GRATIS: PAYWALL_ENABLED staat default UIT", () => {
+    expect(isEnabled("PAYWALL_ENABLED")).toBe(false);
   });
 
   it("MULTI_ROUND_ENABLED defaults to true", () => {
@@ -51,8 +51,10 @@ describe("feature-flags: env override", () => {
   });
 
   it("invalid values fall back to default (not coerced to true)", () => {
-    process.env.FEATURE_PAYWALL_ENABLED = "yes";
-    expect(isEnabled("PAYWALL_ENABLED")).toBe(true); // default
+    // v41: PAYWALL_ENABLED is niet langer een default-true-voorbeeld
+    // (het platform is gratis), dus hier een flag die wél default aan staat.
+    process.env.FEATURE_MULTI_ROUND_ENABLED = "yes";
+    expect(isEnabled("MULTI_ROUND_ENABLED")).toBe(true); // default
     process.env.FEATURE_PSD2_ENABLED = "1";
     expect(isEnabled("PSD2_ENABLED")).toBe(false); // default
   });

@@ -127,7 +127,7 @@ describe("recordProof — TELECOM-negotiation triggert geen retro-actieve fee (v
     expect(states).not.toContain("FEE_PAID");
   });
 
-  it("ENERGIE + verified saving → FEE_PAID met chargeCall (controle: andere cats blijven werken)", async () => {
+  it("v41 GRATIS: ook ENERGIE levert geen incasso meer op (was: FEE_PAID)", async () => {
     h.neg = {
       userId: "u1",
       billId: "b1",
@@ -140,8 +140,10 @@ describe("recordProof — TELECOM-negotiation triggert geen retro-actieve fee (v
       newAmountCents: 8000, // €80
       oldMonthlyCents: 12000, // €120 (33% drop)
     });
-    expect(h.feeChargeCalls).toBe(1);
+    // Tot v40 werd hier geïncasseerd en de onderhandeling op FEE_PAID gezet.
+    // Het platform is nu gratis: geen enkele categorie triggert nog een charge.
+    expect(h.feeChargeCalls).toBe(0);
     const states = h.negotiationUpdates.map((u) => u.state).filter(Boolean);
-    expect(states).toContain("FEE_PAID");
+    expect(states).not.toContain("FEE_PAID");
   });
 });

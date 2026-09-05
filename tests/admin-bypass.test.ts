@@ -35,12 +35,12 @@ describe("admin-bypass on no-cure-no-pay fee", () => {
     expect(r).toBe(false);
   });
 
-  it("regular user IS charged when flag on + savings ≥ threshold", async () => {
+  it("v41 GRATIS: ook een gewone gebruiker wordt NOOIT gefactureerd", async () => {
     const r = await shouldChargeVerifiedFee({
       userId: "regular_user",
       actualSavingsCents: 100_000,
     });
-    expect(r).toBe(true);
+    expect(r).toBe(false);
   });
 
   it("admin-list is case-insensitive", async () => {

@@ -58,16 +58,11 @@ describe("Stripe legacy success-fee maths (computeSuccessFeeCents)", () => {
 });
 
 describe("Stripe v13 verified-savings fee path", () => {
-  it("€100/year savings → €20 fee (20%)", () => {
-    expect(feeForVerifiedSavings(10_000)).toBe(2000);
-  });
-
-  it("€300/year savings → €60 (20%, under the €500 cap)", () => {
-    expect(feeForVerifiedSavings(30_000)).toBe(6000);
-  });
-
-  it("€3000/year savings → capped at €500 (v19 cap)", () => {
-    // 20% of €3000 = €600 → clamped to the €500 cap.
-    expect(feeForVerifiedSavings(300_000)).toBe(50000);
+  it("v41 GRATIS: geen enkele besparing levert nog een fee op", () => {
+    // Deze drie bedragen leverden tot v40 respectievelijk € 20, € 60 en de
+    // € 500-cap op. Het platform is nu gratis; er komt overal 0 uit.
+    expect(feeForVerifiedSavings(10_000)).toBe(0);
+    expect(feeForVerifiedSavings(30_000)).toBe(0);
+    expect(feeForVerifiedSavings(300_000)).toBe(0);
   });
 });

@@ -259,12 +259,12 @@ describe("Energie-claim — computeEnergieFee (handmatige proof-back)", () => {
     expect(computeEnergieFee(0)).toBe(0);
   });
 
-  it("werkelijk € 200 → fee € 40 (20%)", () => {
-    expect(computeEnergieFee(20_000)).toBe(4_000);
+  it("v41 GRATIS: werkelijk € 200 → fee € 0", () => {
+    expect(computeEnergieFee(20_000)).toBe(0);
   });
 
-  it("werkelijk € 5.000 → fee gecapt op NCNP-cap (€ 500)", () => {
-    expect(computeEnergieFee(500_000)).toBe(50_000);
+  it("v41 GRATIS: ook € 5.000 restitutie levert geen fee op", () => {
+    expect(computeEnergieFee(500_000)).toBe(0);
   });
 });
 

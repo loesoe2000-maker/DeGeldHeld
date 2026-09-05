@@ -51,11 +51,8 @@ export function computeSuccessFeeCents(yearlySavingsCents: number): number {
  * this directly.
  */
 export function feeForVerifiedSavings(actualSavingsCents: number): number {
-  if (actualSavingsCents < NO_CURE_NO_PAY_MIN_SAVINGS_CENTS) return 0;
-  const raw = Math.round(actualSavingsCents * NO_CURE_NO_PAY_FEE_PCT);
-  if (raw < NO_CURE_NO_PAY_FEE_FLOOR_CENTS) return NO_CURE_NO_PAY_FEE_FLOOR_CENTS;
-  if (raw > NO_CURE_NO_PAY_FEE_CAP_CENTS) return NO_CURE_NO_PAY_FEE_CAP_CENTS;
-  return raw;
+  // v41 — GRATIS PLATFORM. DeGeldHeld rekent geen enkele fee meer.
+  return 0;
 }
 
 /**
@@ -69,20 +66,9 @@ export async function shouldChargeVerifiedFee(opts: {
   userId: string;
   actualSavingsCents: number;
 }): Promise<boolean> {
-  if (process.env.FEATURE_NO_CURE_NO_PAY !== "true") return false;
-  if (opts.actualSavingsCents < NO_CURE_NO_PAY_MIN_SAVINGS_CENTS) return false;
-  const adminList = (process.env.ADMIN_EMAILS ?? "").toLowerCase();
-  const u = await prisma.user.findUnique({
-    where: { id: opts.userId },
-    select: { email: true, subscriptionStatus: true },
-  });
-  if (adminList) {
-    const admins = adminList.split(",").map((e) => e.trim()).filter(Boolean);
-    if (u?.email && admins.includes(u.email.toLowerCase())) return false;
-  }
-  // v13: active subscribers bypass the per-saving fee.
-  if (u?.subscriptionStatus === "active") return false;
-  return true;
+  // v41 — GRATIS PLATFORM. DeGeldHeld rekent geen enkele fee meer.
+  // Er wordt nooit meer automatisch geïncasseerd, ongeacht flags of env.
+  return false;
 }
 
 /** Flat monthly subscription price as alternative to the fee. */
@@ -560,47 +546,12 @@ export async function requiresPayment(
   userId: string,
   billId: string,
 ): Promise<boolean> {
-  // Feature-flag escape hatch: setting FEATURE_PAYWALL_ENABLED=false in
-  // Vercel disables the paywall site-wide without a code revert.
-  if (process.env.FEATURE_PAYWALL_ENABLED === "false") return false;
-  // v11: under no-cure-no-pay the analysis phase is always free. The
-  // fee is only triggered after proofVerifiedAt is set + actual
-  // savings >= the €50 threshold (see feeForVerifiedSavings).
-  if (process.env.FEATURE_NO_CURE_NO_PAY === "true") return false;
-
-  // Admin bypass — admins (per ADMIN_EMAILS env var) skip the paywall so we
-  // can test the full flow end-to-end without paying ourselves. The paywall
-  // remains active for everyone else.
-  const adminList = (process.env.ADMIN_EMAILS ?? "").toLowerCase();
-  if (adminList) {
-    const u = await prisma.user.findUnique({ where: { id: userId }, select: { email: true } });
-    const adminEmails = adminList.split(",").map((e) => e.trim()).filter(Boolean);
-    if (u?.email && adminEmails.includes(u.email.toLowerCase())) return false;
-  }
-
-  const bill = await prisma.bill.findFirst({
-    where: { id: billId, userId },
-    select: { position: true, paidAt: true },
-  });
-  if (!bill) return false; // unknown bill — let the calling page decide
-  if (bill.position === 0) return false;
-  if (bill.paidAt != null) return false;
-
-  // v7: each successful referral grants 1 free bill. Count unused
-  // referral-credits (rewardCents>0 + usedAt set) against the number
-  // of paywall-eligible bills the user already used to skip the gate.
-  const earned = await prisma.referral.count({
-    where: { ownerId: userId, usedAt: { not: null }, rewardCents: { gt: 0 } },
-  });
-  if (earned > 0) {
-    const consumed = await prisma.bill.count({
-      where: { userId, position: { gt: 0 }, paidAt: null, id: { not: billId } },
-    });
-    // Referrals cover the *oldest* unpaid bills first — so if there are more
-    // earned credits than already-consumed slots, the current bill is free.
-    if (earned > consumed) return false;
-  }
-  return true;
+  // v41 — GRATIS PLATFORM: er is geen paywall meer. Bewust hier hard
+  // uitgezet in plaats van via een env-var, zodat een verkeerd gezette
+  // Vercel-variabele de paywall niet per ongeluk terugzet.
+  void userId;
+  void billId;
+  return false;
 }
 
 export type PaywallCheckoutInput = {

@@ -247,12 +247,12 @@ describe("Huurcommissie — computeHuurFee (handmatige proof-back)", () => {
     expect(computeHuurFee(-100)).toBe(0);
   });
 
-  it("werkelijk € 200 → fee € 40 (20%)", () => {
-    expect(computeHuurFee(20_000)).toBe(4_000);
+  it("v41 GRATIS: werkelijk € 200 → fee € 0", () => {
+    expect(computeHuurFee(20_000)).toBe(0);
   });
 
-  it("werkelijk € 5.000 → fee € 500 = NCNP-cap (niet 20% × 5_000 = € 1.000)", () => {
-    expect(computeHuurFee(500_000)).toBe(50_000); // NO_CURE_NO_PAY_FEE_CAP_CENTS
+  it("v41 GRATIS: ook € 5.000 restitutie levert geen fee op", () => {
+    expect(computeHuurFee(500_000)).toBe(0);
   });
 });
 

@@ -170,7 +170,8 @@ describe("huurprijs-check — verdict", () => {
     expect(r.maxHuurBasisCents).toBe(104273); // € 1.042,73 (gekalibreerd)
     expect(r.maandVerlagingMinCents).toBeLessThan(r.maandVerlagingBasisCents);
     expect(r.jaarbesparingMinCents).toBe(r.maandVerlagingMinCents * 12);
-    expect(r.feeIndicatieCents).toBeGreaterThan(0);
+    // v41 GRATIS: we tonen de besparing wél, maar rekenen niets.
+    expect(r.feeIndicatieCents).toBe(0);
   });
 
   it("huur tussen basis en ruime grens → twijfelgeval, GEEN fee-indicatie", () => {
@@ -193,9 +194,10 @@ describe("huurprijs-check — verdict", () => {
     expect(r.feeIndicatieCents).toBe(0);
   });
 
-  it("fee: 20% van de CONSERVATIEVE jaarbesparing, gecapt op € 500", () => {
-    const r = checkHuurprijs(basis(300_000)); // extreem hoge huur → cap
-    expect(r.feeIndicatieCents).toBe(50_000);
+  it("v41 GRATIS: zelfs bij een extreem hoge besparing is de fee € 0", () => {
+    const r = checkHuurprijs(basis(300_000));
+    expect(r.maandVerlagingMinCents).toBeGreaterThan(0); // besparing bestaat wél
+    expect(r.feeIndicatieCents).toBe(0);
   });
 
   it("zonder energielabel volgt een waarschuwing (bouwjaar geeft minder punten)", () => {
@@ -376,10 +378,11 @@ describe("huurprijs-check — fee gaat over de NETTO besparing (huurtoeslag)", (
     expect(r.feeIndicatieCents).toBe(0); // dit is de hele fix
   });
 
-  it("zonder huurtoeslag is er in exact hetzelfde geval WEL een fee", () => {
+  it("zonder huurtoeslag is de netto besparing gelijk aan de bruto", () => {
     const zonder = check(45_000, false);
     expect(zonder.nettoMaandVerlagingMinCents).toBe(zonder.maandVerlagingMinCents);
-    expect(zonder.feeIndicatieCents).toBeGreaterThan(0);
+    // v41 GRATIS: ook hier geen fee — het verschil zit in de besparing, niet de rekening.
+    expect(zonder.feeIndicatieCents).toBe(0);
   });
 
   it("gedeeltelijke terugname → fee lager dan bij dezelfde bruto zonder toeslag", () => {
@@ -392,8 +395,11 @@ describe("huurprijs-check — fee gaat over de NETTO besparing (huurtoeslag)", (
     expect(metToeslag.nettoJaarbesparingMinCents).toBeLessThan(
       zonderToeslag.jaarbesparingMinCents,
     );
-    // Beide raken de cap van € 500 niet op dezelfde manier: netto geeft minder.
-    expect(metToeslag.feeIndicatieCents).toBeLessThan(zonderToeslag.feeIndicatieCents);
+    // v41 GRATIS: er wordt niets gerekend, dus beide fees zijn 0. De
+    // netto-berekening blijft wél bestaan — die vertelt de huurder eerlijk
+    // hoeveel hij er echt op vooruitgaat.
+    expect(metToeslag.feeIndicatieCents).toBe(0);
+    expect(zonderToeslag.feeIndicatieCents).toBe(0);
   });
 
   it("waarschuwt de huurder expliciet als de toeslag alles opeet", () => {

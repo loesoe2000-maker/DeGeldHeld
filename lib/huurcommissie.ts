@@ -179,10 +179,8 @@ export function validateHuurClaimIntent(input: HuurClaimIntentInput): HuurClaimI
  *  - anders → 20% × werkelijk, gecapt op de standaard NCNP-cap (€ 500).
  */
 export function computeHuurFee(werkelijkeRestitutieCents: number): number {
-  if (!Number.isFinite(werkelijkeRestitutieCents) || werkelijkeRestitutieCents <= 0) return 0;
-  if (werkelijkeRestitutieCents < HUUR_NCNP_DREMPEL_CENTS) return 0;
-  const raw = Math.round(werkelijkeRestitutieCents * HUUR_NCNP_FEE_PCT);
-  return Math.min(raw, NO_CURE_NO_PAY_FEE_CAP_CENTS);
+  // v41 — GRATIS PLATFORM. DeGeldHeld rekent geen enkele fee meer.
+  return 0;
 }
 
 // ─── Engine — pure indicatie ────────────────────────────────────────────────

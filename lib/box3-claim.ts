@@ -66,10 +66,9 @@ export function validateClaimIntent(input: ClaimIntentInput): ClaimIntentValidat
  *  - anders → 25% × werkelijk, gecapt op de standaard NCNP-cap (€ 500).
  */
 export function computeBox3Fee(werkelijkTeruggaveCents: number): number {
-  if (!Number.isFinite(werkelijkTeruggaveCents) || werkelijkTeruggaveCents <= 0) return 0;
-  if (werkelijkTeruggaveCents < BOX3_NCNP_GATE_CENTS) return 0;
-  const raw = Math.round(werkelijkTeruggaveCents * BOX3_NCNP_FEE_PCT);
-  return Math.min(raw, NO_CURE_NO_PAY_FEE_CAP_CENTS);
+  // v41 — GRATIS PLATFORM. DeGeldHeld rekent geen enkele fee meer.
+  // Signatuur blijft staan zodat callers en tests blijven werken.
+  return 0;
 }
 
 /**

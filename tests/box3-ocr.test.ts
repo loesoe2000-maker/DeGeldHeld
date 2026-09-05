@@ -30,7 +30,7 @@ vi.mock("@sentry/nextjs", () => ({
 const okCharge: ChargeFn = async () => ({ ok: true, paymentIntentId: "pi_synth_test" });
 const failingCharge: ChargeFn = async () => ({ ok: false, reason: "stripe_offline" });
 
-describe("Box 3 OCR — happy path: synth PDF → extract → processProofUpload → CHARGED", () => {
+describe("Box 3 OCR — happy path: synth PDF → extract → processProofUpload", () => {
   it("genereert valide PDF die pdfjs kan lezen, met de verwachte beschikking-tekst", async () => {
     const pdf = buildSyntheticBeschikkingPdf({
       kind: "happy",
@@ -60,7 +60,7 @@ describe("Box 3 OCR — happy path: synth PDF → extract → processProofUpload
     expect(parsed!.amountCents).toBe(123_456);
   });
 
-  it("processProofUpload → 'charged' met fee 25% × werkelijk, gecapt op NCNP-cap", async () => {
+  it("v41 GRATIS: processProofUpload → 'no-fee', bedrag wél uitgelezen", async () => {
     const pdf = buildSyntheticBeschikkingPdf({
       kind: "happy",
       jaar: 2024,
@@ -73,11 +73,11 @@ describe("Box 3 OCR — happy path: synth PDF → extract → processProofUpload
       pdfText: out.text,
       charge: okCharge,
     });
-    expect(result.kind).toBe("charged");
+    expect(result.kind).toBe("no-fee");
     if (result.kind === "charged") {
       expect(result.werkelijkTeruggaveCents).toBe(200_000);
       // 25% × € 2.000 = € 500 = 50_000 cents = de gate, en ook de cap.
-      expect(result.feeCents).toBe(50_000);
+      expect("feeCents" in result ? result.feeCents : 0).toBe(0);
       expect(result.paymentIntentId).toBe("pi_synth_test");
     }
   });
@@ -115,7 +115,7 @@ describe("Box 3 OCR — negative case A: PDF zonder bedrag → FAILED (admin-mai
   });
 });
 
-describe("Box 3 OCR — negative case B: bedrag onder € 500-gate → CHARGED met fee € 0", () => {
+describe("Box 3 OCR — v41: elk bedrag levert 'no-fee' op", () => {
   it("toegekend € 250 → werkelijk < gate → 'no-fee' (geen Stripe-call)", async () => {
     const pdf = buildSyntheticBeschikkingPdf({
       kind: "below-gate",
@@ -143,7 +143,7 @@ describe("Box 3 OCR — negative case B: bedrag onder € 500-gate → CHARGED m
     }
   });
 
-  it("toegekend exact € 500 → CHARGED met fee 25% × € 500 = € 125", async () => {
+  it("v41 GRATIS: toegekend exact € 500 → no-fee", async () => {
     const pdf = buildSyntheticBeschikkingPdf({
       kind: "happy",
       jaar: 2024,
@@ -156,13 +156,13 @@ describe("Box 3 OCR — negative case B: bedrag onder € 500-gate → CHARGED m
       pdfText: out.text,
       charge: okCharge,
     });
-    expect(result.kind).toBe("charged");
+    expect(result.kind).toBe("no-fee");
     if (result.kind === "charged") {
-      expect(result.feeCents).toBe(12_500); // € 125
+      expect("feeCents" in result ? result.feeCents : 0).toBe(0);
     }
   });
 
-  it("Stripe-charge faalt op happy-path → 'charge-failed' (v37: herstelbaar) bevat werkelijk + reden", async () => {
+  it("v41 GRATIS: een falende incasso is onbereikbaar — altijd 'no-fee'", async () => {
     const pdf = buildSyntheticBeschikkingPdf({
       kind: "happy",
       jaar: 2024,
@@ -175,9 +175,10 @@ describe("Box 3 OCR — negative case B: bedrag onder € 500-gate → CHARGED m
       pdfText: out.text,
       charge: failingCharge,
     });
-    expect(result.kind).toBe("charge-failed");
-    if (result.kind === "charge-failed") {
-      expect(result.reason).toMatch(/charge failed/i);
+    // failingCharge zou vroeger 'charge-failed' geven. De pipeline komt nu
+    // niet meer bij de incasso, dus het bedrag wordt gewoon vastgelegd.
+    expect(result.kind).toBe("no-fee");
+    if (result.kind === "no-fee") {
       expect(result.werkelijkTeruggaveCents).toBe(100_000);
     }
   });
@@ -217,10 +218,10 @@ describe("Box 3 OCR — V36 robustness variaties", () => {
       pdfText: out.text,
       charge: okCharge,
     });
-    expect(result.kind).toBe("charged");
+    expect(result.kind).toBe("no-fee");
     if (result.kind === "charged") {
       expect(result.werkelijkTeruggaveCents).toBe(400_000);
-      expect(result.feeCents).toBe(50_000); // NCNP-cap
+      expect("feeCents" in result ? result.feeCents : 0).toBe(0);
     }
   });
 
@@ -253,10 +254,10 @@ describe("Box 3 OCR — V36 robustness variaties", () => {
       pdfText: out.text,
       charge: okCharge,
     });
-    expect(result.kind).toBe("charged");
+    expect(result.kind).toBe("no-fee");
     if (result.kind === "charged") {
       expect(result.werkelijkTeruggaveCents).toBe(75_000);
-      expect(result.feeCents).toBe(18_750); // 25% × € 750
+      expect("feeCents" in result ? result.feeCents : 0).toBe(0);
     }
   });
 
@@ -291,9 +292,9 @@ describe("Box 3 OCR — V36 robustness variaties", () => {
       pdfText: out.text,
       charge: okCharge,
     });
-    expect(result.kind).toBe("charged");
+    expect(result.kind).toBe("no-fee");
     if (result.kind === "charged") {
-      expect(result.feeCents).toBe(50_000); // NCNP-cap
+      expect("feeCents" in result ? result.feeCents : 0).toBe(0);
     }
   });
 });

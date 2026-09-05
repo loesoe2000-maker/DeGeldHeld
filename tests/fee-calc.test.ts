@@ -1,72 +1,58 @@
 import { describe, it, expect } from "vitest";
 import {
   feeForVerifiedSavings,
+  shouldChargeVerifiedFee,
   NO_CURE_NO_PAY_FEE_PCT,
   NO_CURE_NO_PAY_FEE_CAP_CENTS,
-  NO_CURE_NO_PAY_FEE_FLOOR_CENTS,
-  NO_CURE_NO_PAY_MIN_SAVINGS_CENTS,
 } from "@/lib/payments";
+import { computeBox3Fee } from "@/lib/box3-claim";
+import { computeHuurFee } from "@/lib/huurcommissie";
+import { computeEnergieFee } from "@/lib/energie-claim";
 
-describe("feeForVerifiedSavings — rate is exactly 20% (v13 bounds)", () => {
-  it("rate constant matches user spec: 20%, NOT 10%", () => {
-    expect(NO_CURE_NO_PAY_FEE_PCT).toBe(0.20);
+/**
+ * v41 — DeGeldHeld is een GRATIS platform.
+ *
+ * Dit bestand borgde tot v40 dat de fee exact 20% was. Het is bewust
+ * omgedraaid in plaats van verwijderd: het bewijst nu dat er langs geen
+ * enkele rekenroute nog een bedrag bij de gebruiker in rekening komt.
+ * De constanten blijven bestaan (historische rijen en types hangen eraan),
+ * maar geen enkele rekenfunctie gebruikt ze nog.
+ */
+
+const BEDRAGEN = [0, 1, 2_500, 10_000, 25_000, 100_000, 1_000_000, 99_999_999];
+
+describe("v41 — geen enkele fee-berekening geeft nog een bedrag", () => {
+  it("feeForVerifiedSavings is 0, ongeacht de besparing", () => {
+    for (const cents of BEDRAGEN) {
+      expect(feeForVerifiedSavings(cents)).toBe(0);
+    }
   });
 
-  it("v19 bounds: floor €2, cap €500, min savings €25/year", () => {
-    expect(NO_CURE_NO_PAY_FEE_FLOOR_CENTS).toBe(200);
-    expect(NO_CURE_NO_PAY_FEE_CAP_CENTS).toBe(50000); // v19: €50 → €500
-    expect(NO_CURE_NO_PAY_MIN_SAVINGS_CENTS).toBe(2500);
+  it("de drie claim-fees zijn 0, ongeacht de teruggave", () => {
+    for (const cents of BEDRAGEN) {
+      expect(computeBox3Fee(cents)).toBe(0);
+      expect(computeHuurFee(cents)).toBe(0);
+      expect(computeEnergieFee(cents)).toBe(0);
+    }
   });
 
-  it("sub-threshold (<€25 yearly) returns 0", () => {
-    expect(feeForVerifiedSavings(0)).toBe(0);
-    expect(feeForVerifiedSavings(2499)).toBe(0);
+  it("shouldChargeVerifiedFee blijft false, óók met de oude env-vlag aan", async () => {
+    const oud = process.env.FEATURE_NO_CURE_NO_PAY;
+    process.env.FEATURE_NO_CURE_NO_PAY = "true";
+    try {
+      await expect(
+        shouldChargeVerifiedFee({ userId: "u1", actualSavingsCents: 1_000_000 }),
+      ).resolves.toBe(false);
+    } finally {
+      if (oud === undefined) delete process.env.FEATURE_NO_CURE_NO_PAY;
+      else process.env.FEATURE_NO_CURE_NO_PAY = oud;
+    }
   });
 
-  it("exactly at threshold (€25): 20% of €25 = €5", () => {
-    // 2500 * 0.20 = 500 (>floor=200, <cap=5000) → 500
-    expect(feeForVerifiedSavings(NO_CURE_NO_PAY_MIN_SAVINGS_CENTS)).toBe(500);
-  });
-
-  it("€100/year saving: 20% = €20 (between floor and cap)", () => {
-    expect(feeForVerifiedSavings(10000)).toBe(2000);
-  });
-
-  it("€250/year saving: 20% = €50 (under the €500 cap)", () => {
-    expect(feeForVerifiedSavings(25000)).toBe(5000);
-  });
-
-  it("€600/year saving: 20% = €120 (under the €500 cap)", () => {
-    expect(feeForVerifiedSavings(60000)).toBe(12000);
-  });
-
-  it("€3000/year saving: 20% = €600 → capped at €500 (v19)", () => {
-    expect(feeForVerifiedSavings(300000)).toBe(50000);
-  });
-
-  it("clamps to cap for large savings", () => {
-    expect(feeForVerifiedSavings(1_000_000)).toBe(NO_CURE_NO_PAY_FEE_CAP_CENTS);
-  });
-
-  it("never returns less than the floor for amounts >= threshold", () => {
-    // 2500 * 0.20 = 500 — already above floor=200.
-    const fee = feeForVerifiedSavings(2500);
-    expect(fee).toBeGreaterThanOrEqual(NO_CURE_NO_PAY_FEE_FLOOR_CENTS);
-  });
-
-  it("savings of €10 (200 cents fee raw) lands at floor not zero", () => {
-    // €10 = 1000 cents — below new threshold so fee=0. But once the
-    // threshold is met, even a tiny percentage hit floors at €2.
-    // We test the floor-clamp path with a synthetic input above
-    // threshold but below floor-equivalent: threshold=2500, 20% of
-    // threshold=500, which is above floor. So floor-clamping only
-    // bites for sub-threshold values which are zero. Defensive: a
-    // floor exists in the function even if not exercised in the
-    // current configuration.
-    expect(feeForVerifiedSavings(1000)).toBe(0); // sub-threshold
-  });
-
-  it("negative savings input returns 0 defensively", () => {
-    expect(feeForVerifiedSavings(-100)).toBe(0);
+  it("de oude constanten bestaan nog (types/historie), maar sturen niets meer aan", () => {
+    expect(NO_CURE_NO_PAY_FEE_PCT).toBe(0.2);
+    expect(NO_CURE_NO_PAY_FEE_CAP_CENTS).toBe(50000);
+    // Cruciaal: ondanks een percentage van 20% komt er 0 uit.
+    expect(feeForVerifiedSavings(100_000)).toBe(0);
   });
 });

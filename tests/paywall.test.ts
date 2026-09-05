@@ -36,9 +36,9 @@ describe("requiresPayment", () => {
     expect(await requiresPayment("u1", "bill0")).toBe(false);
   });
 
-  it("second bill (position 1) requires payment when not yet paid", async () => {
+  it("v41 GRATIS: tweede rekening vraagt GEEN betaling meer", async () => {
     findFirst.mockResolvedValue({ position: 1, paidAt: null });
-    expect(await requiresPayment("u1", "bill1")).toBe(true);
+    expect(await requiresPayment("u1", "bill1")).toBe(false);
   });
 
   it("second bill that is already paid does NOT require payment", async () => {
@@ -46,9 +46,9 @@ describe("requiresPayment", () => {
     expect(await requiresPayment("u1", "bill1")).toBe(false);
   });
 
-  it("any bill at position >= 1 with no paidAt requires payment", async () => {
+  it("v41 GRATIS: geen enkele rekening vraagt betaling, ongeacht positie", async () => {
     findFirst.mockResolvedValue({ position: 7, paidAt: null });
-    expect(await requiresPayment("u1", "bill7")).toBe(true);
+    expect(await requiresPayment("u1", "bill7")).toBe(false);
   });
 
   it("unknown bill returns false (defensive — let caller redirect)", async () => {

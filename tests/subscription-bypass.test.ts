@@ -55,19 +55,19 @@ describe("subscription bypass (v13 DEEL 7d)", () => {
     expect(r).toBe(false);
   });
 
-  it("past_due subscriber → fee charged (subscription not actively covering)", async () => {
+  it("v41 GRATIS: ook een past_due-abonnee wordt niet gefactureerd", async () => {
     const r = await shouldChargeVerifiedFee({
       userId: "past_due",
       actualSavingsCents: 100_000,
     });
-    expect(r).toBe(true);
+    expect(r).toBe(false);
   });
 
-  it("free user with savings above threshold → fee charged", async () => {
+  it("v41 GRATIS: gratis gebruiker met hoge besparing → nog steeds geen fee", async () => {
     const r = await shouldChargeVerifiedFee({
       userId: "free",
       actualSavingsCents: 100_000,
     });
-    expect(r).toBe(true);
+    expect(r).toBe(false);
   });
 });

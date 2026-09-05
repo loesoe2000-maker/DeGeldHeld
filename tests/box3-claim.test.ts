@@ -123,11 +123,14 @@ describe("computeBox3Fee", () => {
     expect(computeBox3Fee(0)).toBe(0);
     expect(computeBox3Fee(-100)).toBe(0);
   });
-  it("werkelijk = €500 → fee 25%", () => {
-    expect(computeBox3Fee(50_000)).toBe(Math.round(50_000 * BOX3_NCNP_FEE_PCT));
+  it("v41 GRATIS: werkelijk = €500 → nog steeds fee €0", () => {
+    expect(computeBox3Fee(50_000)).toBe(0);
   });
-  it("groot bedrag → gecapt op standaard NCNP-cap", () => {
-    expect(computeBox3Fee(1_000_000_00)).toBe(NO_CURE_NO_PAY_FEE_CAP_CENTS);
+  it("v41 GRATIS: ook een groot bedrag levert geen fee op", () => {
+    expect(computeBox3Fee(1_000_000_00)).toBe(0);
+    // De cap-constante bestaat nog voor historische rijen, maar stuurt niets.
+    expect(NO_CURE_NO_PAY_FEE_CAP_CENTS).toBe(50_000);
+    expect(BOX3_NCNP_FEE_PCT).toBeGreaterThan(0);
   });
 });
 
@@ -155,13 +158,9 @@ describe("decideProofBack", () => {
     const r = decideProofBack(null);
     expect(r.kind).toBe("fail");
   });
-  it("parsed werkelijk ≥ €500 → charge met juiste fee", () => {
+  it("v41 GRATIS: parsed werkelijk ≥ €500 → no-fee, nooit meer 'charge'", () => {
     const r = decideProofBack({ amountCents: 80_000, matchedPhrase: "x" });
-    expect(r.kind).toBe("charge");
-    if (r.kind === "charge") {
-      expect(r.werkelijkTeruggaveCents).toBe(80_000);
-      expect(r.feeCents).toBe(Math.round(80_000 * BOX3_NCNP_FEE_PCT));
-    }
+    expect(r.kind).toBe("no-fee");
   });
   it("parsed werkelijk < €500 → no-fee (eerlijke uitkomst)", () => {
     const r = decideProofBack({ amountCents: 30_000, matchedPhrase: "x" });
@@ -175,7 +174,7 @@ describe("processProofUpload — end-to-end pipeline", () => {
   const okCharge: ChargeFn = async () => ({ ok: true as const, paymentIntentId: "pi_test_123" });
   const failingCharge: ChargeFn = async () => ({ ok: false as const, reason: "card_declined" });
 
-  it("OCR vindt €800 → 'charged' met fee 25% + chargeFn aangeroepen", async () => {
+  it("v41 GRATIS: OCR vindt €800 → 'no-fee' en de incasso wordt NOOIT aangeroepen", async () => {
     const calls: unknown[] = [];
     const charge: ChargeFn = async (o) => {
       calls.push(o);
@@ -187,13 +186,13 @@ describe("processProofUpload — end-to-end pipeline", () => {
       pdfText: "Toegekend bedrag € 800,00",
       charge,
     });
-    expect(r.kind).toBe("charged");
-    if (r.kind === "charged") {
+    expect(r.kind).toBe("no-fee");
+    // Het bedrag wordt nog steeds uitgelezen — dat blijft nuttig voor /proof.
+    if (r.kind === "no-fee") {
       expect(r.werkelijkTeruggaveCents).toBe(80_000);
-      expect(r.feeCents).toBe(Math.round(80_000 * BOX3_NCNP_FEE_PCT));
-      expect(r.paymentIntentId).toBe("pi_x");
     }
-    expect(calls).toHaveLength(1);
+    // Dit is de kern van de gratis-belofte: geen enkele incasso-aanroep.
+    expect(calls).toHaveLength(0);
   });
 
   it("OCR vindt €300 → 'no-fee' (eerlijke uitkomst, géén charge-call)", async () => {
@@ -231,19 +230,17 @@ describe("processProofUpload — end-to-end pipeline", () => {
   // v37 — charge-fail is een APART, niet-terminaal kind. Vóór deze fix werd
   // dit 'failed' → de route zette de claim op FAILED (terminaal, 409 op elke
   // retry) terwijl de klant alleen een kaart hoefde toe te voegen.
-  it("Stripe-charge faalt → 'charge-failed' (herstelbaar) met reason + werkelijk bewaard", async () => {
+  it("v41 GRATIS: een falende incasso is onbereikbaar geworden", async () => {
+    // failingCharge zou vroeger 'charge-failed' opleveren. Nu komt de pipeline
+    // niet eens bij de incasso, dus het resultaat is gewoon 'no-fee'.
     const r = await processProofUpload({
       userId: "u1",
       claimId: "c1",
       pdfText: "Toegekend bedrag € 800,00",
       charge: failingCharge,
     });
-    expect(r.kind).toBe("charge-failed");
-    if (r.kind === "charge-failed") {
-      expect(r.reason).toMatch(/card_declined/);
-      expect(r.werkelijkTeruggaveCents).toBe(80_000);
-    }
-    // Borg: charge-fail mag NOOIT samenvallen met de terminale parse-fail.
+    expect(r.kind).toBe("no-fee");
+    expect(r.kind).not.toBe("charge-failed");
     expect(r.kind).not.toBe("failed");
   });
 

@@ -132,20 +132,13 @@ describe("admin-claims pure helpers", () => {
     expect(isClaimType(null)).toBe(false);
   });
 
-  it("feeForClaim past de juiste per-type drempel + percentage toe", () => {
-    // Box 3: drempel € 500 (50_000), 25%
-    expect(feeForClaim("Box3Claim", 49_999)).toBe(0);
-    expect(feeForClaim("Box3Claim", 50_000)).toBe(12_500); // 25% × € 500
-    expect(feeForClaim("Box3Claim", 200_000)).toBe(50_000); // 25% × € 2.000 = NCNP-cap
-
-    // Huurcommissie: drempel € 50 (5_000), 20%
-    expect(feeForClaim("HuurServicekostenClaim", 4_999)).toBe(0);
-    expect(feeForClaim("HuurServicekostenClaim", 5_000)).toBe(1_000); // 20% × € 50
-    expect(feeForClaim("HuurServicekostenClaim", 20_000)).toBe(4_000); // 20% × € 200
-
-    // Energie: drempel € 50 (5_000), 20%
-    expect(feeForClaim("EnergieEindafrekeningClaim", 4_999)).toBe(0);
-    expect(feeForClaim("EnergieEindafrekeningClaim", 5_000)).toBe(1_000);
+  it("v41 GRATIS: feeForClaim geeft voor élk type en bedrag 0", () => {
+    // Tot v40: Box 3 25% boven € 500, huur/energie 20% boven € 50.
+    for (const bedrag of [0, 4_999, 5_000, 49_999, 50_000, 200_000, 1_000_000]) {
+      expect(feeForClaim("Box3Claim", bedrag)).toBe(0);
+      expect(feeForClaim("HuurServicekostenClaim", bedrag)).toBe(0);
+      expect(feeForClaim("EnergieEindafrekeningClaim", bedrag)).toBe(0);
+    }
   });
 
   it("feeForClaim 0/negatief/null → 0", () => {
@@ -179,149 +172,59 @@ describe("admin-claims pure helpers", () => {
 
 // ─── Route gating ───────────────────────────────────────────────────────────
 
-describe("/api/admin/claims/charge — gating", () => {
-  it("401 zonder sessie", async () => {
+describe("/api/admin/claims/charge — v41: route is UITGEZET (410 Gone)", () => {
+  /**
+   * De incassoroute bestaat nog als bestand, maar incasseert niets meer.
+   * Deze suite borgt drie dingen: de auth-gate staat er nog vóór het 410
+   * (geen informatielek), er komt nooit een 200, en Stripe wordt niet geraakt.
+   */
+
+  it("401 zonder sessie — auth blijft vóór de 410", async () => {
     h.sessionUserId = null;
     const r = await chargePOST(jsonReq({ type: "Box3Claim", claimId: "c1" }));
     expect(r.status).toBe(401);
   });
 
-  it("403 voor niet-admin user", async () => {
+  it("403 voor niet-admin — ook zonder incasso blijft de route afgeschermd", async () => {
     h.sessionEmail = "regular@user.com";
     const r = await chargePOST(jsonReq({ type: "Box3Claim", claimId: "c1" }));
     expect(r.status).toBe(403);
-    // AdminAction NIET geschreven — auth-fail komt vóór audit-log.
     expect(h.adminActions).toHaveLength(0);
   });
 
-  it("400 bij invalid input (type onbekend)", async () => {
-    const r = await chargePOST(jsonReq({ type: "Bogus", claimId: "c1" }));
-    expect(r.status).toBe(400);
+  it("admin krijgt 410 Gone met reden 'fee-disabled'", async () => {
+    const r = await chargePOST(jsonReq({ type: "Box3Claim", claimId: "c_box3_1" }));
+    expect(r.status).toBe(410);
+    const data = await r.json();
+    expect(data.reason).toBe("fee-disabled");
   });
 
-  it("400 bij invalid input (claimId leeg)", async () => {
-    const r = await chargePOST(jsonReq({ type: "Box3Claim", claimId: "" }));
-    expect(r.status).toBe(400);
-  });
-});
-
-// ─── Route happy path + audit-log ───────────────────────────────────────────
-
-describe("/api/admin/claims/charge — Box3Claim charge", () => {
-  beforeEach(() => {
+  it("410 ongeacht de invoer — ook bij onzin of een rijpe claim", async () => {
     h.box3Claim = {
       userId: "u1",
       status: "PROOF_RECEIVED",
-      werkelijkTeruggaveCents: 200_000, // € 2.000 → fee € 500 (cap)
+      werkelijkTeruggaveCents: 200_000,
     };
+    for (const body of [
+      { type: "Box3Claim", claimId: "c_box3_1" },
+      { type: "HuurServicekostenClaim", claimId: "c_huur_1" },
+      { type: "Bogus", claimId: "c1" },
+      { type: "Box3Claim", claimId: "" },
+    ]) {
+      const r = await chargePOST(jsonReq(body));
+      expect(r.status).toBe(410);
+    }
   });
 
-  it("happy: 200 + Prisma update CHARGED + AdminAction ok=true", async () => {
-    const r = await chargePOST(jsonReq({ type: "Box3Claim", claimId: "c_box3_1" }));
-    expect(r.status).toBe(200);
-    const data = await r.json();
-    expect(data.ok).toBe(true);
-    expect(data.feeCents).toBe(50_000); // NCNP-cap
-    expect(data.paymentIntentId).toBe("pi_admin_1");
-
-    // Claim is CHARGED met fee + paymentIntent.
-    expect(h.updates).toHaveLength(1);
-    expect(h.updates[0].model).toBe("Box3Claim");
-    expect(h.updates[0].data).toMatchObject({
-      status: "CHARGED",
-      feeCents: 50_000,
-      stripePaymentIntentId: "pi_admin_1",
-    });
-
-    // AdminAction-row geschreven.
-    expect(h.adminActions).toHaveLength(1);
-    expect(h.adminActions[0]).toMatchObject({
-      adminEmail: "owner@degeldheld.com",
-      action: "charge-box3",
-      targetType: "Box3Claim",
-      targetId: "c_box3_1",
-      ok: true,
-    });
-  });
-
-  it("404 als claim niet bestaat", async () => {
-    h.box3Claim = null;
-    const r = await chargePOST(jsonReq({ type: "Box3Claim", claimId: "missing" }));
-    expect(r.status).toBe(404);
-    // Audit-log noteert óók niet-gevonden.
-    expect(h.adminActions[0]).toMatchObject({ ok: false, errorMessage: expect.stringContaining("not found") });
-  });
-
-  it("422 zonder werkelijke-bedrag (claim niet rijp)", async () => {
-    h.box3Claim = { userId: "u1", status: "AWAITING_PROOF", werkelijkTeruggaveCents: null };
-    const r = await chargePOST(jsonReq({ type: "Box3Claim", claimId: "c1" }));
-    expect(r.status).toBe(422);
-    expect(h.adminActions[0]).toMatchObject({
-      ok: false,
-      errorMessage: expect.stringContaining("werkelijk"),
-    });
-  });
-
-  it("409 als claim al CHARGED is", async () => {
-    h.box3Claim = { userId: "u1", status: "CHARGED", werkelijkTeruggaveCents: 200_000 };
-    const r = await chargePOST(jsonReq({ type: "Box3Claim", claimId: "c1" }));
-    expect(r.status).toBe(409);
-    expect(h.updates).toHaveLength(0); // géén dubbele charge
-    expect(h.adminActions[0]).toMatchObject({ ok: false });
-  });
-
-  it("Stripe-charge fail → 502 + claim NIET ge-CHARGED + audit-fail gelogd", async () => {
-    h.chargeResult = { ok: false, paymentIntentId: "", reason: "card_declined" };
-    const r = await chargePOST(jsonReq({ type: "Box3Claim", claimId: "c1" }));
-    expect(r.status).toBe(502);
+  it("de kern: Stripe wordt nooit aangeroepen en niets wordt CHARGED", async () => {
+    h.box3Claim = {
+      userId: "u1",
+      status: "PROOF_RECEIVED",
+      werkelijkTeruggaveCents: 200_000,
+    };
+    await chargePOST(jsonReq({ type: "Box3Claim", claimId: "c_box3_1" }));
+    // Geen Prisma-update en geen AdminAction: de route komt nergens.
     expect(h.updates).toHaveLength(0);
-    expect(h.adminActions[0]).toMatchObject({
-      ok: false,
-      errorMessage: "card_declined",
-    });
-  });
-
-  it("werkelijk onder Box 3-drempel (€ 250) → fee € 0, claim CHARGED, géén Stripe-call", async () => {
-    h.box3Claim = { userId: "u1", status: "PROOF_RECEIVED", werkelijkTeruggaveCents: 25_000 };
-    const r = await chargePOST(jsonReq({ type: "Box3Claim", claimId: "c1" }));
-    expect(r.status).toBe(200);
-    const data = await r.json();
-    expect(data.kind).toBe("no-fee");
-    expect(data.feeCents).toBe(0);
-    expect(h.updates[0].data).toMatchObject({ status: "CHARGED", feeCents: 0 });
-    expect(h.adminActions[0]).toMatchObject({ ok: true });
-  });
-});
-
-describe("/api/admin/claims/charge — Huur/Energie charge", () => {
-  it("HuurServicekostenClaim € 200 → fee € 40 (20%)", async () => {
-    h.huurClaim = { userId: "u1", status: "UITSPRAAK", werkelijkeRestitutieCents: 20_000 };
-    const r = await chargePOST(jsonReq({ type: "HuurServicekostenClaim", claimId: "c_huur_1" }));
-    expect(r.status).toBe(200);
-    const data = await r.json();
-    expect(data.feeCents).toBe(4_000);
-    expect(h.updates[0].model).toBe("HuurServicekostenClaim");
-    expect(h.updates[0].data).toMatchObject({ status: "CHARGED", feeCents: 4_000 });
-    expect(h.adminActions[0]).toMatchObject({ action: "charge-huur" });
-  });
-
-  it("EnergieEindafrekeningClaim € 5.250 → fee € 1.050 (20%, niet gecapped)", async () => {
-    h.energieClaim = { userId: "u1", status: "UITSPRAAK", werkelijkeRestitutieCents: 525_000 };
-    const r = await chargePOST(jsonReq({ type: "EnergieEindafrekeningClaim", claimId: "c_e_1" }));
-    expect(r.status).toBe(200);
-    const data = await r.json();
-    // 20% × € 5.250 = € 1.050 boven cap (€ 500) → cap toegepast.
-    expect(data.feeCents).toBe(50_000);
-    expect(h.updates[0].model).toBe("EnergieEindafrekeningClaim");
-    expect(h.adminActions[0]).toMatchObject({ action: "charge-energie" });
-  });
-
-  it("HuurServicekostenClaim onder drempel (€ 30) → fee € 0", async () => {
-    h.huurClaim = { userId: "u1", status: "UITSPRAAK", werkelijkeRestitutieCents: 3_000 };
-    const r = await chargePOST(jsonReq({ type: "HuurServicekostenClaim", claimId: "c_huur_2" }));
-    expect(r.status).toBe(200);
-    const data = await r.json();
-    expect(data.feeCents).toBe(0);
-    expect(data.kind).toBe("no-fee");
+    expect(h.adminActions).toHaveLength(0);
   });
 });

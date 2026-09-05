@@ -18,7 +18,9 @@ const FLAG_DEFAULTS = {
   // On by default — PDF text extraction via pdfjs proven on prod (v7)
   PDF_OCR_ENABLED: true,
   // On by default — €4.99 paywall after first free bill
-  PAYWALL_ENABLED: true,
+  // v41: het platform is volledig GRATIS. De paywall staat permanent uit;
+  // zet deze nooit terug op true zonder de hele gratis-belofte te herzien.
+  PAYWALL_ENABLED: false,
   // On by default — Resend inbound mail-forward (v8)
   EMAIL_INBOUND_ENABLED: true,
   // On by default — referral viral loop (v7)

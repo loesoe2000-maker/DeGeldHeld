@@ -179,10 +179,8 @@ export function validateEnergieClaimIntent(
 // ─── Fee-berekening (handmatige proof-back; geen OCR in V35) ────────────────
 
 export function computeEnergieFee(werkelijkeRestitutieCents: number): number {
-  if (!Number.isFinite(werkelijkeRestitutieCents) || werkelijkeRestitutieCents <= 0) return 0;
-  if (werkelijkeRestitutieCents < ENERGIE_NCNP_DREMPEL_CENTS) return 0;
-  const raw = Math.round(werkelijkeRestitutieCents * ENERGIE_NCNP_FEE_PCT);
-  return Math.min(raw, NO_CURE_NO_PAY_FEE_CAP_CENTS);
+  // v41 — GRATIS PLATFORM. DeGeldHeld rekent geen enkele fee meer.
+  return 0;
 }
 
 // ─── Engine — pure indicatie ────────────────────────────────────────────────
