@@ -172,9 +172,7 @@ function ProviderPage({ record: p }: { record: NonNullable<ReturnType<typeof fin
             </summary>
             <p className="mt-2 text-slate-700">
               Ja. Je uploadt je {p.name}-rekening en wij genereren een retentie-mail die je zelf
-              verstuurt. De eerste drie onderhandelingen zijn gratis; daarna betaal je alleen 20% van
-              je bewezen besparing (no cure, no pay).
-            </p>
+              verstuurt. Alle onderhandelingen zijn gratis.</p>
           </details>
         </div>
       </section>
@@ -183,9 +181,7 @@ function ProviderPage({ record: p }: { record: NonNullable<ReturnType<typeof fin
         <h2 className="text-lg font-semibold text-brand-900">DeGeldHeld doet dit voor je</h2>
         <p className="mt-2 text-brand-900">
           Upload je {p.name}-rekening, en wij genereren een retentie-mail met {p.retentionAngle}.
-          Eerste drie onderhandelingen gratis — daarna alleen 20% van je bewezen besparing (no cure,
-          no pay).
-        </p>
+          Gratis, altijd.</p>
         <Link href="/onderhandel" className="mt-4 inline-block rounded-lg bg-brand-600 px-5 py-3 font-semibold text-white hover:bg-brand-700">
           Start gratis →
         </Link>
@@ -302,9 +298,7 @@ function CategoryPage({ record: c }: { record: NonNullable<ReturnType<typeof fin
               Wat kost DeGeldHeld?
             </summary>
             <p className="mt-2 text-slate-700">
-              De eerste drie onderhandelingen zijn gratis. Daarna betaal je alleen 20% van je bewezen
-              besparing (no cure, no pay) — dus nooit kosten zonder resultaat.
-            </p>
+              Alle onderhandelingen zijn gratis.</p>
           </details>
         </div>
       </section>

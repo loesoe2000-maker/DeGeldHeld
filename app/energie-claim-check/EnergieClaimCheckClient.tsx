@@ -8,7 +8,7 @@
  * en heffingen-vlaggen verlaten de browser NIET. PostHog krijgt alleen
  * booleans/counts (geen PII).
  *
- * Revenue-gate (guardrail V35): NCNP-aanbod alléén bij verwachte restitutie
+ * Revenue-gate (guardrail V35): v41: gratis, dus geen drempel meer.
  * ≥ € 50 — anders DIY-klachtbrief gratis.
  *
  * Energiebelasting-vermindering 2026: we hardcoderen GEEN bedrag (verandert
@@ -470,7 +470,7 @@ function Results({
               ? "Bezig…"
               : ncnpState.kind === "ok"
                 ? "Verstuurd ✓"
-                : "Start NCNP — wij regelen de klacht →"}
+                : "Start — wij regelen de klacht →"}
           </button>
           {ncnpState.kind === "ok" ? (
             <p data-testid="energie-ncnp-ok" className="mt-2 text-sm text-brand-800">
@@ -502,10 +502,7 @@ function Results({
               Doe 't lekker zelf — gratis
             </h3>
             <p className="mt-1 text-sm text-slate-700">
-              Onder € 50 verwachte restitutie is een no-cure-no-pay fee niet
-              eerlijk — we leveren je de gratis DIY-klachtbrief en je dient
-              zelf in bij je leverancier. Geen fee, geen lock-in.
-            </p>
+              Alles wat we doen is gratis, ongeacht het bedrag.</p>
           </div>
         ) : null
       )}

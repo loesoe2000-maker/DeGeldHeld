@@ -57,7 +57,7 @@ export default async function EnergieUitspraakPage({
       <p className="mt-3 text-slate-600">
         Indicatieve verwachte restitutie:{" "}
         <strong>{formatEurCents(claim.verwachteRestitutieCents)}</strong>. Werkelijk
-        teruggehaalde bedrag bepaalt onze fee — onder € 50 = € 0.
+        teruggehaalde bedrag leggen we vast voor ons track record.
       </p>
 
       <ClaimStateBlock claim={claim} />
@@ -71,7 +71,7 @@ export default async function EnergieUitspraakPage({
       <div className="mt-12 rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs leading-relaxed text-slate-600">
         <strong className="font-semibold text-slate-900">AVG-grondslag:</strong>{" "}
         We slaan deze claim + de geüploade uitspraak op zolang dat nodig is om
-        de no-cure-no-pay-fee uit te voeren en onze administratie te verantwoorden.
+        onze administratie te verantwoorden.
         Grondslag: uitvoering van de overeenkomst (AVG art. 6 lid 1b) +
         wettelijke bewaarplicht financiële administratie. Je kunt deze gegevens
         later in <Link href="/account" className="underline">je account</Link>
@@ -102,7 +102,7 @@ function ClaimStateBlock({
         <h2 className="text-lg font-semibold text-slate-900">Klaar ✓</h2>
         <p className="mt-1 text-sm text-slate-700">
           Werkelijk teruggehaald:{" "}
-          <strong>{formatEurCents(werkelijk)}</strong>. Onze fee:{" "}
+          <strong>{formatEurCents(werkelijk)}</strong>. Kosten voor jou:{" "}
           <strong>{fee > 0 ? `${formatEurCents(fee)} (20%)` : "€ 0 (werkelijk < € 50)"}</strong>.
         </p>
       </section>
@@ -151,10 +151,10 @@ function ClaimStateBlock({
         >
           {isAfwijzing
             ? "De Geschillencommissie/leverancier kende geen restitutie toe. " +
-              "No cure, no pay: onze fee is € 0. Wij sluiten je claim verder " +
+              "Dit kost je niets. Wij sluiten je claim verder " +
               "netjes af — je hoeft niets meer te doen."
             : "We hebben je uitspraak ontvangen. Iemand van ons reviewt 'm en " +
-              "schrijft de no-cure-no-pay-fee binnen 1-2 werkdagen af (alléén " +
+              "rondt je claim binnen 1-2 werkdagen af (" +
               "áls werkelijk teruggehaald ≥ € 50)."}
         </p>
       </section>

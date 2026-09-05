@@ -31,8 +31,11 @@ describe("email_templates/welcomeBrandedHtml", () => {
     expect(welcomeBrandedHtml("a@b.nl")).toMatch(/^<!doctype html>/i);
   });
 
-  it("includes 20% fee messaging", () => {
-    expect(welcomeBrandedHtml("a@b.nl")).toMatch(/20\s*%/);
+  it("v41 GRATIS: de welkomstmail belooft geen fee meer, wel gratis", () => {
+    const html = welcomeBrandedHtml("bas@example.nl");
+    expect(html).not.toMatch(/20\s*%/);
+    expect(html).not.toMatch(/no.?cure/i);
+    expect(html).toMatch(/gratis/i);
   });
 
   it("includes copyright footer with current year", () => {

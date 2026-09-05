@@ -50,8 +50,7 @@ export function welcomeBrandedHtml(email: string): string {
       <h1 style="margin:0 0 16px;color:${BRAND_GREEN_DARK};font-size:24px">Welkom bij DeGeldHeld 🌱</h1>
       <p style="margin:0 0 16px;line-height:1.5">Hoi ${escapeHtml(email)},</p>
       <p style="margin:0 0 16px;line-height:1.5">Je staat op de wachtlijst. Zodra we openen sturen we je een uitnodiging om je
-      eerste rekening te uploaden — wij onderhandelen voor je en je betaalt alleen <strong>20% van wat we besparen</strong>.</p>
-      <p style="margin:0 0 24px;line-height:1.5">Tot snel,<br/>Team DeGeldHeld</p>
+      eerste rekening te uploaden — wij onderhandelen gratis voor je."margin:0 0 24px;line-height:1.5">Tot snel,<br/>Team DeGeldHeld</p>
       <a href="${APP_URL}" style="display:inline-block;background:${BRAND_GREEN};color:white;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600">Bekijk de website</a>
     `,
   });

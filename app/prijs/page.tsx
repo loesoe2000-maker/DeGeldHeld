@@ -10,8 +10,8 @@ export const metadata = {
 };
 
 /**
- * v41 — deze pagina toonde tot v40 een prijstabel (20% NCNP, Plus-abonnement,
- * € 4,99-paywall). Bewust GEEN redirect: /prijs is een URL waar mensen bewust
+ * v41 — deze pagina toonde tot v40 een prijstabel met percentages en een
+ * maandbedrag. Bewust GEEN redirect: /prijs is een URL waar mensen bewust
  * naartoe gaan met een concrete vraag, en die vraag verdient een antwoord in
  * plaats van een sprong naar de homepage.
  */

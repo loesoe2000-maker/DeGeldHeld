@@ -37,8 +37,8 @@ export default function Examples() {
           resultaten van vóór de V30-reframe. Sinds 2026 lopen telecom-besparingen via
           een vers retentie-belscript in{" "}
           <a href="/plus" className="underline">DeGeldHeld Plus</a> i.p.v. een
-          20%-NCNP — omdat jij zelf het retentie-gesprek voert. Energie-cases blijven
-          via de NCNP-route (20% van de bewezen jaarbesparing).
+          een belscript — omdat jij zelf het retentie-gesprek voert. Energie-cases
+            lopen via onze eigen onderhandel-route. Allebei gratis.
         </p>
         <div className="mt-10 grid gap-6 sm:grid-cols-3">
           {cases.map((c) => (

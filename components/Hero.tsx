@@ -2,7 +2,7 @@ import Link from "next/link";
 import { isEnabled } from "@/lib/feature-flags";
 
 /**
- * v28 — "vind al je geld" framing; v32 — fee-integriteit (geen telecom-NCNP).
+ * v28 — "vind al je geld" framing.
  *
  * v40 F1 — B-verbouwing: claims zijn het hart. Met de check-flags aan (prod)
  * opent de site claims-first (Box 3 / huur / energie / toeslagen, CTA naar de

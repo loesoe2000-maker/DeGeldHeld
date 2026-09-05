@@ -32,7 +32,7 @@ const PRESS_TEMPLATE_NL = `Trim, de Amerikaanse AI-onderhandelaar die in 2021 vo
 
 In de afgelopen 90 dagen hebben 27 Nederlandse en Belgische huishoudens via DeGeldHeld €5.988 per jaar bespaard op telecom, energie en verzekeringen. Gemiddeld €222 per huishouden, slaag-percentage rond de 70%. De volledige cijfers per categorie staan live op https://degeldheld.com/proof — geen PR-cijfers maar een directe database-uitvoer.
 
-Drie verschillen met Trim. Eén: 20% éénmalige fee op de verifieerde besparing in plaats van 33% recurring. Twee: geen bank-koppeling nodig — wij genereren een onderhandel-mail die de gebruiker zélf verstuurt, AVG-conform vanaf dag één. Drie: tot drie counter-mails per onderhandeling, met AI die het provider-antwoord analyseert.
+Drie verschillen met Trim. Eén: DeGeldHeld is volledig gratis, waar Trim 33% recurring rekent. Twee: geen bank-koppeling nodig — wij genereren een onderhandel-mail die de gebruiker zélf verstuurt, AVG-conform vanaf dag één. Drie: tot drie counter-mails per onderhandeling, met AI die het provider-antwoord analyseert.
 
 Achtergrond: ik ben Bas Heling, en ben drie maanden geleden begonnen met DeGeldHeld nadat ik bij mijn eigen KPN-rekening had gezien hoeveel ruimte er zat. Geen funding, geen team — wel een werkend product en gebruikers die elke week meer worden.
 
@@ -50,7 +50,7 @@ const PRESS_TEMPLATE_EN = `Trim, the AI bill-negotiator Capital One acquired for
 
 In the past 90 days, 27 Dutch and Belgian households have used DeGeldHeld to cut €5,988 a year off their telecom, energy and insurance bills. Average €222 per household, success rate around 70%. The complete numbers per category are live at https://degeldheld.com/proof — not PR figures but a direct database dump.
 
-Three differences from Trim. First: 20% one-off fee on verified savings instead of 33% recurring. Second: no bank linking required — we generate the negotiation email and the user sends it themselves, GDPR-compliant from day one. Third: up to three counter-emails per negotiation, with AI analyzing each provider response.
+Three differences from Trim. First: DeGeldHeld is completely free, where Trim charges 33% recurring. Second: no bank linking required — we generate the negotiation email and the user sends it themselves, GDPR-compliant from day one. Third: up to three counter-emails per negotiation, with AI analyzing each provider response.
 
 Background: I'm Bas Heling, founder of DeGeldHeld. I started three months ago after seeing how much room sat in my own KPN bill. No funding, no team — just a working product and a growing user base.
 
@@ -238,7 +238,7 @@ const CONTACTS: Contact[] = [
     outlet: "Consumentenbond",
     greeting: "Beste Consumentenbond-team,",
     outletHook:
-      "De Consumentenbond is dé belangenbehartiger in NL voor consumenten richting providers. DeGeldHeld kan een gratis tool zijn die jullie leden actief inzetten — wij rekenen 20% van verifieerde besparing, jullie leden houden de rest.",
+      "De Consumentenbond is dé belangenbehartiger in NL voor consumenten richting providers. DeGeldHeld kan een gratis tool zijn die jullie leden actief inzetten — het is volledig gratis, jullie leden houden alles.",
   },
   {
     kind: "partnership",

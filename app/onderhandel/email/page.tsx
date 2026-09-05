@@ -40,7 +40,7 @@ export default async function EmailPage({
     await reconcileFeeSetupFromSession(params.session_id, userId);
   }
 
-  // v19: has the user already linked a card for the no-cure-no-pay fee?
+  // v41: geen kaart meer nodig — alles is gratis.
   const userRow = await prisma.user.findUnique({
     where: { id: userId },
     select: { feePaymentMethodId: true },

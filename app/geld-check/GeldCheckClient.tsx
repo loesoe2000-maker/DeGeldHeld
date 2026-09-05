@@ -429,7 +429,7 @@ function CrossCTA({ result }: { result: GeldCheckResult }) {
           <>
             Een gemiddeld huishouden bespaart €350–€800 per jaar op vaste lasten
             zoals telefoon, internet en energie. Upload je rekening — we
-            onderhandelen automatisch en je betaalt alleen 20% van wat we
+            onderhandelen gratis met je provider en houden je op de hoogte van wat we
             besparen.
           </>
         )}

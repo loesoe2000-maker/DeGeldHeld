@@ -137,7 +137,7 @@ export default function PrivacyPage() {
                   alleen mailen áls er iets verandert
                 </td>
                 <td className="py-1">
-                  Uitvoering overeenkomst (Plus-abonnement)
+                  Uitvoering overeenkomst
                 </td>
               </tr>
               <tr>
@@ -228,7 +228,7 @@ export default function PrivacyPage() {
               (art. 52 lid 4 AWR). Daarna onomkeerbaar verwijderd.
             </li>
             <li>
-              <strong>Plus her-scan snapshots:</strong> zolang je Plus-abonnement
+              <strong>Her-scan snapshots:</strong> zolang je account
               actief is — voor de diff-berekening tussen maandelijkse runs.
               Verwijderd binnen 30 dagen na opzegging.
             </li>

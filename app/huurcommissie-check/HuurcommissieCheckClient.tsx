@@ -204,7 +204,7 @@ export default function HuurcommissieCheckClient() {
             className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 sm:w-1/2"
           />
           <span className="mt-1 block text-xs text-slate-500">
-            Alleen voor de DIY-brief-aanhef. Niet opgeslagen tenzij je voor NCNP kiest.
+            Alleen voor de DIY-brief-aanhef. Niet opgeslagen tenzij je onze hulp inschakelt.
           </span>
         </label>
 
@@ -410,7 +410,7 @@ function Results({
               ? "Bezig…"
               : ncnpState.kind === "ok"
                 ? "Verstuurd ✓"
-                : "Start NCNP — wij regelen het bezwaar →"}
+                : "Start — wij regelen het bezwaar →"}
           </button>
           {ncnpState.kind === "ok" ? (
             <p data-testid="huur-ncnp-ok" className="mt-2 text-sm text-brand-800">
@@ -442,10 +442,7 @@ function Results({
               Doe 't lekker zelf — gratis
             </h3>
             <p className="mt-1 text-sm text-slate-700">
-              Onder € 50 verwachte restitutie is een no-cure-no-pay fee niet
-              eerlijk — we leveren je de gratis DIY-brief en je dient zelf
-              bezwaar in bij je verhuurder. Geen fee, geen lock-in.
-            </p>
+              Alles wat we doen is gratis, ongeacht het bedrag.</p>
           </div>
         ) : null
       )}

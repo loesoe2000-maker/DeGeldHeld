@@ -188,8 +188,7 @@ async function renderReferralSection(userId: string) {
     <section data-testid="referral-block" className="mt-10 rounded-xl border border-brand-200 bg-brand-50 p-6">
       <h2 className="text-xl font-semibold text-brand-900">Verdien gratis onderhandelingen</h2>
       <p className="mt-1 text-sm text-brand-800">
-        Voor élke vriend die aansluit via jouw link krijg je 1 gratis onderhandeling (paywall wordt overgeslagen).
-      </p>
+        Deel DeGeldHeld met iemand die er iets aan heeft — het is voor iedereen gratis.</p>
       <ReferralBlock url={url} count={used} />
     </section>
   );

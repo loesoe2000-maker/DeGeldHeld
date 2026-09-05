@@ -88,10 +88,7 @@ export default async function UitkomstPage({
               Fee van €{(feeCents / 100).toFixed(2).replace(".", ",")} automatisch voldaan — bedankt!
             </h2>
             <p className="mt-1 text-sm text-brand-900">
-              We hebben de no-cure-no-pay fee (20% van de geverifieerde
-              besparing) automatisch van je gekoppelde kaart afgeschreven. Er is
-              niets meer wat je hoeft te doen.
-            </p>
+              We hebben je besparing vastgelegd. Dit kost je niets.</p>
           </section>
         )}
         {pendingFee && (
@@ -104,10 +101,7 @@ export default async function UitkomstPage({
               {(feeCents / 100).toFixed(2).replace(".", ",")}
             </h2>
             <p className="mt-1 text-sm text-brand-900">
-              No-cure-no-pay: 20% van de geverifieerde besparing, met een
-              maximum van €500,00. Betaal binnen 14 dagen om je onderhandeling
-              officieel af te ronden.
-            </p>
+              DeGeldHeld is gratis: je betaalt niets.</p>
             <form action={`/api/checkout/${bill.negotiation.id}`} method="post" className="mt-4">
               <button
                 type="submit"

@@ -93,8 +93,8 @@ export default async function AnalysePage({
     );
   }
 
-  // v41 — GRATIS PLATFORM: de paywall die hier vanaf de tweede rekening naar
-  // /pay redirectte is verwijderd. Elke analyse is voor iedereen gratis.
+  // v41 — GRATIS PLATFORM: de betaalpoort die hier vanaf de tweede rekening
+  // naar /pay redirectte is verwijderd. Elke analyse is voor iedereen gratis.
 
   // Empty bill → OCR couldn't extract usable data. Show a graceful fallback
   // instead of letting Comparison render an empty page or silently failing.

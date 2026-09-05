@@ -707,8 +707,7 @@ export default function HuurprijsCheckClient({ isAdmin = false }: { isAdmin?: bo
                     Je ontvangt huurtoeslag, dus die daalt mee. Je houdt er netto{" "}
                     <strong>ten minste{" "}
                     {formatEurCents(resultaat.nettoMaandVerlagingMinCents)}</strong> per
-                    maand aan over. Onze fee gaat over dát bedrag, niet over de
-                    verlaging op papier.
+                    maand aan over — dat is het bedrag dat telt, niet de verlaging op papier.
                   </p>
                 ) : null}
               </div>

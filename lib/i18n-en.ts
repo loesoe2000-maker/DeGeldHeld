@@ -130,7 +130,7 @@ export const EN_HOW_IT_WORKS = [
 
 /**
  * Eerlijke kosten-noot — rendert onder de how-it-works. Zonder deze noot zou
- * "no cure, no pay" verzwijgen dat de klant bij twee routes zelf leges
+ * een kale "free" verzwijgen dat de klant bij twee routes zelf leges
  * voorschiet. Bedragen uit lib/huurcommissie.ts + lib/energie-claim.ts.
  */
 export const EN_FEE_NOTE =

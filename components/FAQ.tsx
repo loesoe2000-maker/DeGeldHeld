@@ -72,7 +72,7 @@ const items: { q: string; a: string; category?: string }[] = [
   {
     category: "Twijfels",
     q: "Wat als ik niet bespaar maar de provider belt me terug?",
-    a: "Geen probleem. Onze fee triggert pas bij bevestigde besparing op papier — niet bij telefonisch contact zonder uitkomst. Als provider belt met een aanbod, kun je dat zelf aannemen of weigeren.",
+    a: "Geen probleem, het kost je toch niets. We tellen een besparing pas mee als die op papier bevestigd is — niet bij telefonisch contact zonder uitkomst. Als provider belt met een aanbod, kun je dat zelf aannemen of weigeren.",
   },
   {
     category: "Twijfels",

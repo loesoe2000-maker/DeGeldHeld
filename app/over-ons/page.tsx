@@ -52,7 +52,7 @@ export default function OverOnsPage() {
             </li>
             <li>
               <strong>Transparant over kosten</strong>: eerste onderhandeling
-              gratis, daarna € 4,99 per dossier. Geen verborgen abonnement.
+              gratis — en dat blijft zo. Geen fee, geen abonnement, geen addertje.
             </li>
           </ul>
 

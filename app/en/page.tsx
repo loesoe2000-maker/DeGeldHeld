@@ -15,7 +15,7 @@ export const metadata = {
   title: "DeGeldHeld — claim the Dutch money you're owed",
   description:
     "For internationals in the Netherlands: reclaim Box 3 tax, rent service-cost " +
-    "refunds, energy corrections and missed allowances. Free check, no cure no pay.",
+    "refunds, energy corrections and missed allowances. Completely free.",
   // Bewust index:false zolang de EN-lancering niet af is (soft launch via
   // directe link; LinkedIn heeft geen Google-indexering nodig). follow:true
   // WÉL: anders blokkeren we zonder reden linkwaarde naar de NL-checks.
@@ -135,7 +135,7 @@ export default function EnglishLandingPage() {
         </ol>
       </section>
 
-      {/* Eerlijke kosten-noot — hoort direct onder no-cure-no-pay */}
+      {/* Eerlijke kosten-noot: de leges van derden */}
       <p
         data-testid="en-fee-note"
         className="mt-6 rounded-xl border border-amber-200 bg-amber-50/60 p-5 text-sm leading-relaxed text-amber-900"

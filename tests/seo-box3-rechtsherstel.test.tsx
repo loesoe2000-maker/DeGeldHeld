@@ -85,14 +85,12 @@ describe("SEO /box3-rechtsherstel-aanvragen-2026 — page content", () => {
     expect(text).toContain("31 december 2025"); // 2020-deadline verstreken
   });
 
-  it("interne link naar /box3-check + uitleg HARDE €500-gate", () => {
+  it("v41 GRATIS: interne link naar /box3-check, zonder fee-drempel", () => {
     const { container } = r();
-    const link = container.querySelector('a[href="/box3-check"]');
-    expect(link).not.toBeNull();
     const text = container.textContent ?? "";
-    expect(text).toMatch(/€ 500/); // €500-drempel ergens
-    expect(text).toMatch(/25%/); // NCNP-tarief
-    expect(text).toMatch(/DIY-brief|DIY|zelf/i); // DIY-pad eerlijk
+    expect(container.querySelector('a[href="/box3-check"]')).not.toBeNull();
+    expect(text).not.toMatch(/NCNP|no.?cure/i);
+    expect(text).toMatch(/gratis/i);
   });
 
   it("JSON-LD FAQPage met ≥ 3 Q&A's", () => {

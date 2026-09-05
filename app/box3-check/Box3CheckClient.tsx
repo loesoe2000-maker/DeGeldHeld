@@ -7,7 +7,7 @@
  * Banktegoeden / overige bezittingen / schulden / werkelijk rendement verlaten de
  * browser NIET. PostHog krijgt alleen booleans/counts (geen PII).
  *
- * Revenue-gate (uit guardrail 5 v29-sprint): NCNP-aanbod alléén bij verwachte
+ * Revenue-gate (uit guardrail 5 v29-sprint): v41: gratis, dus geen drempel meer.
  * teruggave ≥ € 500 — anders DIY-brief gratis.
  */
 import { useEffect, useState } from "react";
@@ -23,9 +23,9 @@ import {
   type Box3Input,
   type Box3Result,
 } from "@/lib/box3";
-// NCNP-aanvraag (OWR via DeGeldHeld) kan alléén voor reeds definitief
+// Aanvraag (OWR via DeGeldHeld) kan alléén voor reeds definitief
 // aangeslagen jaren (t/m BOX3_MAX_JAAR). 2025/2026 wél indicatie tonen, maar
-// géén NCNP-knop — de API zou die afwijzen met reason:invalid-jaar.
+// géén aanvraagknop — de API zou die afwijzen met reason:invalid-jaar.
 import { BOX3_MAX_JAAR } from "@/lib/box3-claim";
 import { track } from "@/lib/analytics";
 import PostCheckCta from "@/components/PostCheckCta";
@@ -298,7 +298,7 @@ function Results({
     result.verwachteTeruggaveCents > 0
       ? formatEurCents(result.verwachteTeruggaveCents)
       : null;
-  // NCNP alléén voor jaren die we daadwerkelijk kunnen aanvragen (≤ MAX_JAAR).
+  // Alléén voor jaren die we daadwerkelijk kunnen aanvragen (≤ MAX_JAAR).
   // 2025/2026 zijn nog niet definitief aangeslagen → wel indicatie, geen knop.
   const ncnpBeschikbaarVoorJaar = result.jaar <= BOX3_MAX_JAAR;
   const jaarNogNietAanvraagbaar = result.biedNcnpAan && !ncnpBeschikbaarVoorJaar;
@@ -435,7 +435,7 @@ function Results({
                 <li>
                   <strong>OCR + auto-charge:</strong> zodra je beschikking
                   binnen is en je 'm uploadt, detecteren we automatisch het
-                  toegekende bedrag en charge'n we onze fee — alleen op het
+                  toegekende bedrag vast voor ons track record — alleen op het
                   werkelijk uitbetaalde bedrag.
                 </li>
                 <li>
@@ -473,7 +473,7 @@ function Results({
               ? "Bezig…"
               : ncnpState.kind === "ok"
                 ? "Verstuurd ✓"
-                : "Start NCNP — wij doen het OWR voor je →"}
+                : "Start — wij doen het OWR voor je →"}
           </button>
           {ncnpState.kind === "ok" ? (
             <p data-testid="box3-ncnp-ok" className="mt-2 text-sm text-brand-800">
@@ -505,10 +505,7 @@ function Results({
               Doe 't lekker zelf — gratis
             </h3>
             <p className="mt-1 text-sm text-slate-700">
-              Onder € 500 verwachte teruggave is een no-cure-no-pay fee niet
-              eerlijk — we leveren je de gratis DIY-brief en je dient zelf
-              in via MijnBelastingdienst. Geen fee, geen lock-in.
-            </p>
+              Alles wat we doen is gratis, ongeacht het bedrag.</p>
           </div>
         ) : null
       )}

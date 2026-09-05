@@ -52,7 +52,7 @@ export const HUB_TILES: ReadonlyArray<HubTile> = [
     title: "Vluchtclaim (EU261)",
     body:
       "Was je vlucht ≥ 3 u vertraagd? Check je recht op € 250-€ 600 via EU261. " +
-      "No cure, no pay op het teruggehaalde bedrag.",
+      "Gratis, net als al onze checks.",
     href: "/vluchtclaim",
     flag: "CLAIMS",
     icon: "✈️",

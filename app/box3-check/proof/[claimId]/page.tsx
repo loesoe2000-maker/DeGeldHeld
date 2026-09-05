@@ -11,7 +11,7 @@ export const metadata = {
   title: "Upload je Box 3-beschikking — DeGeldHeld",
   description:
     "Upload de Belastingdienst-beschikking. We lezen het toegekende bedrag " +
-    "automatisch uit en schrijven de no-cure-no-pay fee af — eerlijke uitkomst.",
+    "automatisch uit — je hoeft verder niets te doen.",
 };
 
 /** v30 DEEL 1 — owner-scoped proof-back upload pagina. */
@@ -42,7 +42,7 @@ export default async function Box3ProofPage({
       <p className="mt-3 text-slate-600">
         Indicatieve verwachte teruggave:{" "}
         <strong>{formatEurCents(claim.verwachteTeruggaveCents)}</strong>. Werkelijk
-        teruggehaalde bedrag bepaalt onze fee — onder € 500 = € 0.
+        teruggehaalde bedrag leggen we vast voor ons track record.
       </p>
 
       <ClaimStateBlock claim={claim} />
@@ -59,8 +59,7 @@ export default async function Box3ProofPage({
       <div className="mt-12 rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs leading-relaxed text-slate-600">
         <strong className="font-semibold text-slate-900">AVG-grondslag:</strong>{" "}
         We slaan deze claim + de geüploade beschikking op zolang dat nodig is om
-        de no-cure-no-pay-fee uit te voeren en onze administratie te
-        verantwoorden. Grondslag: uitvoering van de overeenkomst (AVG art. 6 lid
+        onze administratie te verantwoorden. Grondslag: uitvoering van de overeenkomst (AVG art. 6 lid
         1b) + wettelijke bewaarplicht financiële administratie. Je kunt deze
         gegevens later in <Link href="/account" className="underline">je account</Link>
         {" "}terugvinden of verwijderen na afronding.
@@ -81,7 +80,7 @@ function ClaimStateBlock({ claim }: { claim: { status: string; werkelijkTeruggav
         <h2 className="text-lg font-semibold text-slate-900">Klaar ✓</h2>
         <p className="mt-1 text-sm text-slate-700">
           Werkelijk teruggehaald:{" "}
-          <strong>{formatEurCents(werkelijk)}</strong>. Onze fee:{" "}
+          <strong>{formatEurCents(werkelijk)}</strong>. Kosten voor jou:{" "}
           <strong>
             {fee > 0
               ? `${formatEurCents(fee)} (25%)`

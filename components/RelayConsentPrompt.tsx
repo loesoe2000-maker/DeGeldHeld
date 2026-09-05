@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { track } from "@/lib/analytics";
-import FeeMandatePrompt from "@/components/FeeMandatePrompt";
 import type { RelayChannel } from "@/lib/relay-providers";
 
 /**

@@ -49,7 +49,7 @@ const faqs = [
   },
   {
     q: "Wat als de OCR mijn beschikking niet goed leest?",
-    a: "Dan markeren we de claim als FAILED en nemen we handmatig contact op voor verificatie — er gaat nooit stilletjes een fee af op een onleesbare beschikking. Bij een mislukte Stripe-afschrijving (kaart geweigerd, geen kaart op file) ook geen dunning: handmatig contact en de claim blijft FAILED tot het is opgelost.",
+    a: "Dan markeren we de claim als FAILED en nemen we handmatig contact op voor verificatie — je hoort dan van ons. Er gaat sowieso nooit geld af: DeGeldHeld is gratis.",
   },
 ];
 
@@ -186,11 +186,9 @@ export default function Box3RechtsherstelPage() {
             <strong>ruim boven</strong> het heffingsvrij vermogen, een
             jaar met fors lager werkelijk rendement dan het forfait, en een
             bewerkbaar bewijsspoor (jaaroverzichten bank, dividend- en
-            koers-resultaat-overzichten). Wij hanteren een{" "}
-            <strong>harde drempel van € 500 verwachte teruggave</strong>{" "}
-            voor onze NCNP-claim — onder die drempel is een 25%-fee niet
-            eerlijk en krijg je van ons een gratis DIY-brief. Geen verzonnen
-            cijfers, geen valse hoop.
+            koers-resultaat-overzichten). Wij helpen bij elk bedrag, ook een klein. Alles is gratis, dus er is
+            geen reden om iemand af te wijzen. Geen verzonnen cijfers, geen
+            valse hoop.
           </p>
         </section>
 

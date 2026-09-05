@@ -120,9 +120,8 @@ export default function VindAlJeGeldPage() {
           Eén abonnement = elke maand opnieuw checken
         </h2>
         <p className="mt-1 text-sm text-slate-700">
-          DeGeldHeld Plus scant je vaste lasten + her-checkt toeslagen/Box 3/
-          zorgkosten + claimt automatisch je NS-vertragingen. Vanaf € 4,99/mnd,
-          opzegbaar elk moment.
+          Regels en grenzen veranderen elk jaar. Kom gerust terug om opnieuw te
+          checken — het blijft gratis.
         </p>
         <Link
           href="/plus"
