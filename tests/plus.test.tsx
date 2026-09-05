@@ -1,4 +1,6 @@
 import { describe, it, expect } from "vitest";
+import { readFileSync } from "fs";
+import path from "path";
 import { render, screen } from "@testing-library/react";
 import {
   PLUS_PILLARS,
@@ -9,7 +11,6 @@ import {
   crossesYearBoundary,
   nextRecheckDue,
 } from "@/lib/plus";
-import PlusPage from "@/app/plus/page";
 
 /**
  * v28 DEEL 3 — DeGeldHeld Plus. We testen de pure her-check-cadence (zodat
@@ -88,20 +89,14 @@ describe("plus — value-propositie", () => {
   });
 });
 
-describe("plus — /plus pagina", () => {
-  it("toont de 3 pijlers, de prijsband en de wachtlijst-CTA", () => {
-    render(<PlusPage />);
-    expect(screen.getByTestId("plus-pillars")).toBeInTheDocument();
-    for (const p of PLUS_PILLARS) {
-      expect(screen.getByTestId(`plus-pillar-${p.id}`)).toHaveTextContent(p.title);
-    }
-    expect(screen.getByTestId("plus-price")).toHaveTextContent(/Vanaf € 4,99/);
-    const waitlist = screen.getByTestId("plus-waitlist") as HTMLAnchorElement;
-    expect(waitlist.getAttribute("href")).toMatch(/^mailto:hallo@degeldheld\.com/);
-  });
-
-  it("de gratis toeslagen-/geld-check wordt expliciet als gratis benoemd (ethiek)", () => {
-    render(<PlusPage />);
-    expect(screen.getByTestId("plus-price")).toHaveTextContent(/gratis/i);
+describe("plus — v41: /plus bestaat niet meer als betaald product", () => {
+  it("de pagina redirect in plaats van een abonnement aan te bieden", () => {
+    const src = readFileSync(
+      path.join(__dirname, "../app/plus/page.tsx"),
+      "utf8",
+    );
+    expect(src).toMatch(/redirect\("\/prijs"\)/);
+    // Geen enkele UI meer: geen knop, geen link, geen prijskaart.
+    expect(src).not.toMatch(/<Link|<button|className=/);
   });
 });

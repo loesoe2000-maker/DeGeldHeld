@@ -3,7 +3,7 @@ import Footer from "@/components/Footer";
 export const metadata = {
   title: "Algemene voorwaarden",
   description:
-    "De voorwaarden van DeGeldHeld: hoe het werkt, no-cure-no-pay fees, klant-aligned model, indicatie ≠ advies, AFM-uitsluiting, aansprakelijkheid en jurisdictie.",
+    "De voorwaarden van DeGeldHeld: hoe het werkt, waarom het gratis is, kosten van derden, indicatie ≠ advies, AFM-uitsluiting, aansprakelijkheid en jurisdictie.",
 };
 
 export default function VoorwaardenPage() {
@@ -58,168 +58,59 @@ export default function VoorwaardenPage() {
             1c. Klant-aligned — geen providergeld (model B)
           </h2>
           <p>
-            We ontvangen <strong>geen vergoeding van providers</strong>: geen
-            kickbacks, geen affiliate, geen advertentiedeals, geen "voorkeurs-
-            tarieven" in ruil voor verkeer. Onze omzet komt uitsluitend uit
-            (a) <strong>klant-betaalde no-cure-no-pay-fees</strong> op bewezen
-            besparing of teruggehaald geld, en (b) het <strong>Plus-
-            abonnement</strong> dat je vrijwillig afsluit. Daarmee zijn onze
-            belangen 100% aan jouw kant: minder kosten voor jou =
-            meer omzet voor ons. We benoemen dit expliciet zodat je weet waarom
-            een aanbeveling van ons komt.
+            DeGeldHeld is <strong>gratis</strong>. We brengen je niets in
+            rekening: geen fee, geen percentage, geen abonnement. En we
+            ontvangen <strong>geen vergoeding van providers</strong>: geen
+            kickbacks, geen affiliate, geen advertentiedeals, geen
+            &quot;voorkeurstarieven&quot; in ruil voor verkeer. Er is dus
+            niemand wiens belang boven het jouwe gaat. We benoemen dit
+            expliciet zodat je weet waarom een aanbeveling van ons komt.
           </p>
 
           <h2 className="text-2xl font-semibold text-slate-900">
-            2. No-cure-no-pay fee &amp; mandaat — onderhandeling
+            2. Kosten — van ons niets, van derden soms wel
           </h2>
           <p>
-            Onze vergoeding op onderhandeling werkt op basis van{" "}
-            <strong>no-cure-no-pay</strong>: je betaalt alleen wanneer een
-            besparing is <strong>bewezen</strong> via een verifieerbaar
-            bewijsstuk (forwarded e-mail, nieuwe factuur of screenshot).
+            Het gebruik van DeGeldHeld kost je <strong>niets</strong>. Er is
+            geen fee, geen percentage over wat je terugkrijgt, geen abonnement
+            en geen betaald vervolg. Geld dat je terugkrijgt gaat rechtstreeks
+            van de instantie of je provider naar jou; wij zitten daar niet
+            tussen en beheren nooit jouw geld.
           </p>
-          <ul className="list-disc pl-6">
-            <li>De fee is <strong>20% van de bewezen besparing op jaarbasis</strong>.</li>
-            <li>We brengen pas iets in rekening boven een drempel van{" "}
-              <strong>€ 25</strong> bewezen jaarbesparing.</li>
-            <li>De fee is <strong>minimaal € 2</strong> en{" "}
-              <strong>maximaal € 500</strong> per onderhandeling.</li>
-            <li>Geen besparing = <strong>geen fee</strong>.</li>
+          <p>
+            <strong>Wat wél geld kan kosten, zijn de officiële procedures
+            zelf.</strong> Die kosten betaal je aan die instantie, niet aan
+            ons:
+          </p>
+          <ul className="list-disc space-y-1 pl-6">
             <li>
-              <strong>Telecom (mobiel / internet / tv) — fee-integriteit:</strong>{" "}
-              omdat NL-telecom retentie via de telefoon afhandelt en jij zelf
-              het gesprek voert, brengen wij <strong>geen 20%-fee</strong> in
-              rekening voor telecom-besparingen. Telecom is sinds versie 2.0
-              een Plus-onderdeel (een jaarlijks vers retentie-belscript) i.p.v.
-              een NCNP-categorie. Zie §3a.
+              <strong>Huurcommissie</strong> — € 25 leges per procedure. Je
+              krijgt dit terug als je in het gelijk wordt gesteld.
+            </li>
+            <li>
+              <strong>Geschillencommissie Energie</strong> — € 27,50 leges plus
+              € 52,50 klachtgeld. Ook dit krijg je bij winst terug.
             </li>
           </ul>
           <p>
-            <strong>Betaalmandaat (off-session).</strong> Door akkoord te gaan
-            machtig je DeGeldHeld om, via onze betaaldienstverlener (Stripe), de
-            verschuldigde fee automatisch af te schrijven van je gekozen
-            betaalmethode zodra een besparing is bevestigd. Je ontvangt vooraf
-            een bevestiging met het bedrag. Je kunt dit mandaat op elk moment
-            intrekken via je account of door een mail te sturen; intrekking laat
-            reeds verschuldigde fees onverlet.
+            Deze bedragen worden door de betreffende instantie vastgesteld en
+            kunnen wijzigen. We noemen ze bij de betreffende check, zodat je
+            vooraf weet waar je aan begint.
           </p>
 
           <h2 className="text-2xl font-semibold text-slate-900">
-            2b. Onderhandelen namens jou (volmacht)
+            3. Wat je van ons mag verwachten
           </h2>
           <p>
-            Optioneel kun je DeGeldHeld <strong>machtigen</strong> om{" "}
-            <strong>namens jou</strong> met je provider te onderhandelen
-            (volmacht, art. 3:60 BW). Deze machtiging is{" "}
-            <strong>strikt beperkt tot onderhandelen en corresponderen</strong>:
-            DeGeldHeld mag <strong>geen</strong> nieuw of gewijzigd contract
-            namens jou accepteren of afsluiten — <strong>elk concreet aanbod of
-            definitieve stap keur jij zelf goed</strong>. Je kunt de machtiging{" "}
-            <strong>altijd intrekken</strong> (pauzeren/stoppen, art. 3:72 BW);
-            daarna sturen we geen e-mails meer namens jou. Zonder machtiging
-            blijft de gewone handmatige flow (jij verstuurt zelf) gelden. De
-            volledige tekst staat in <em>docs/MACHTIGING.md</em> (concept — wordt
-            juridisch getoetst).
+            We bereiden je claim of bezwaar voor en leveren een brief die je
+            zelf indient. <strong>Jij dient in en houdt de regie</strong> — wij
+            treden niet namens jou op bij een instantie, tenzij je daar apart
+            en uitdrukkelijk toestemming voor geeft. Omdat de dienst gratis is,
+            geldt er geen resultaatsverplichting: we doen ons best, maar
+            garanderen geen uitkomst.
           </p>
 
-          <h2 className="text-2xl font-semibold text-slate-900">
-            2c. Aanvullende NCNP — Box 3-rechtsherstel (25%)
-          </h2>
-          <p>
-            Voor het indienen van een Opgaaf Werkelijk Rendement (OWR) in het
-            kader van de <strong>Wet tegenbewijsregeling Box 3</strong> bieden
-            wij optioneel een aparte no-cure-no-pay-claim aan met de volgende
-            voorwaarden:
-          </p>
-          <ul className="list-disc pl-6">
-            <li>
-              <strong>Drempel:</strong> we accepteren een Box 3-claim alléén als
-              de <strong>verwachte teruggave ≥ € 500</strong>. Onder die
-              drempel krijg je het <strong>DIY-pad gratis</strong>{" "}
-              (concept-brief + checklist).
-            </li>
-            <li>
-              <strong>Fee:</strong> <strong>25% van het werkelijk teruggehaalde
-              bedrag</strong> (niet van de indicatie), <strong>gecapt op € 500
-              per claim</strong>.
-            </li>
-            <li>
-              <strong>Eerlijke uitkomst.</strong> Werkelijk teruggehaald
-              bedrag &lt; € 500 → <strong>fee € 0</strong>, ook al was de
-              indicatie hoger. We berekenen onze fee op wat er écht terug komt,
-              niet op een schatting.
-            </li>
-            <li>
-              <strong>Bewijs is leidend.</strong> Je uploadt de Belastingdienst-
-              beschikking; we lezen het toegekende bedrag automatisch uit met
-              OCR. Bij mislukte OCR doen we handmatige review — nooit een
-              stille uitkering.
-            </li>
-            <li>
-              <strong>Géén dunning.</strong> Lukt de Stripe-afschrijving niet
-              (geen kaart op file, declined), dan zetten we de claim op FAILED
-              en nemen we handmatig contact op — we draaien geen aanmaningen.
-            </li>
-            <li>
-              <strong>2020-deadline al verstreken (31 dec 2025).</strong> Voor
-              jaren 2017-2020 wijst de check je actief op het feit dat actie
-              voor 2020 te laat is. Voor 2021-2024 geldt 1 mei 2026
-              (zelf-indiener) / 1 oktober 2026 (via belastingadviseur).
-            </li>
-          </ul>
-
-          <h2 className="text-2xl font-semibold text-slate-900">
-            3. Plus — abonnement
-          </h2>
-          <p>
-            DeGeldHeld Plus is een optioneel maandabonnement (€ 4,99 – € 9,99
-            per maand, opzegbaar elk moment) dat de gratis-checks aanvult met:
-          </p>
-          <ul className="list-disc pl-6">
-            <li>
-              <strong>Maandelijkse her-scan</strong> van geüploade rekeningen
-              op nieuwe spookabonnementen of dubbele afschrijvingen (Vercel
-              Cron, 1e van de maand).
-            </li>
-            <li>
-              <strong>Status-tracking</strong> voor open Box 3-claims tot de
-              Belastingdienst-beschikking binnen is.
-            </li>
-            <li>
-              <strong>Kwartaal-reminders</strong> voor de toeslagen- en
-              zorgkosten-checks (vragenlijst — je inkomensdata blijft
-              client-side).
-            </li>
-            <li>
-              <strong>Alerts</strong>: contract-einde, prijsstijging, grens-
-              wijziging.
-            </li>
-            <li>
-              <strong>NS-deadline-reminders</strong> voor compensatie-claims
-              (claim zelf dien je in via Mijn NS).
-            </li>
-            <li>
-              <strong>Telecom-belscript</strong> (zie §3a): jaarlijks vers
-              retentie-belscript per provider.
-            </li>
-          </ul>
-
-          <h2 className="text-2xl font-semibold text-slate-900">
-            3a. Telecom-belscript (Plus)
-          </h2>
-          <p>
-            NL-telecom (KPN / Vodafone / Odido / Ziggo) doet retentie
-            standaard <strong>via de telefoon</strong> en niet via een
-            onderhandel-mail. Een 20%-NCNP-fee op een gesprek dat jij zelf
-            voert is ethisch niet zuiver; daarom is telecom géén NCNP-categorie
-            (zie §2 laatste opsommingsregel). In plaats daarvan leveren we via
-            Plus elk jaar een vers, op jouw situatie afgestemd retentie-
-            belscript — als concept-script + actuele alternatieve
-            aanbiedingen. Of het gesprek slaagt hangt af van jouw inzet en de
-            provider; wij geven geen besparingsgarantie en sturen geen fee na.
-          </p>
-
-          <h2 className="text-2xl font-semibold text-slate-900">
+                    <h2 className="text-2xl font-semibold text-slate-900">
             4. Jouw verantwoordelijkheden
           </h2>
           <ul className="list-disc pl-6">
@@ -233,10 +124,15 @@ export default function VoorwaardenPage() {
             5. Aansprakelijkheid
           </h2>
           <p>
-            We doen ons best om accurate analyses en goede onderhandeltekst te
-            leveren, maar kunnen niet garanderen dat je provider akkoord gaat.
-            Onze aansprakelijkheid is beperkt tot het door jou betaalde bedrag
-            in de afgelopen 12 maanden. We zijn niet aansprakelijk voor
+            We doen ons best om accurate analyses en goede brieven te leveren,
+            maar kunnen niet garanderen dat een instantie of provider akkoord
+            gaat. Omdat de dienst gratis is, is onze aansprakelijkheid beperkt
+            tot <strong>€ 500 per gebeurtenis</strong>. We kiezen bewust voor
+            een bedrag en niet voor &quot;het door jou betaalde bedrag&quot;:
+            dat laatste zou bij een gratis dienst neerkomen op een volledige
+            uitsluiting, en een volledige uitsluiting is naar Nederlands recht
+            vaak niet houdbaar. Deze beperking geldt niet bij opzet of bewuste
+            roekeloosheid van onze kant. We zijn niet aansprakelijk voor
             indirecte schade (gemiste besparing, bedrijfsschade, gevolgschade).
           </p>
 
@@ -339,7 +235,7 @@ export default function VoorwaardenPage() {
               <tr>
                 <td className="py-1 pr-3"><strong>EU261-vluchtcompensatie</strong></td>
                 <td className="py-1 pr-3">Indicatie € 250 / € 400 / € 600 op basis van afstand + vertraging (Verordening 261/2004)</td>
-                <td className="py-1">Luchtvaartmaatschappij — claim via hun formulier of via no-cure-no-pay-bureau</td>
+                <td className="py-1">Luchtvaartmaatschappij — claim via hun formulier, of via een extern claimbureau (niet DeGeldHeld; die rekenen wél een percentage)</td>
               </tr>
             </tbody>
           </table>

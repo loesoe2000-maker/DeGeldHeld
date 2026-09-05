@@ -17,8 +17,11 @@ describe("trust pages render", () => {
   it("/voorwaarden renders algemene voorwaarden", () => {
     render(<VoorwaardenPage />);
     expect(screen.getByRole("heading", { level: 1, name: /Algemene voorwaarden/i })).toBeTruthy();
-    // v22: "no-cure-no-pay" now appears in both the heading and the body.
-    expect(screen.getAllByText(/no-cure-no-pay/i).length).toBeGreaterThanOrEqual(1);
+    // v41: de voorwaarden regelen geen fee meer. Ze moeten juist expliciet
+    // zeggen dat het gratis is, én de kosten van derden benoemen — anders is
+    // "gratis" misleidend.
+    expect(screen.getAllByText(/gratis/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/Kosten/i).length).toBeGreaterThanOrEqual(1);
   });
 
   it("/over-ons renders the founder story", () => {

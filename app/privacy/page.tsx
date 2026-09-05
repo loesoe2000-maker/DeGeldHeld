@@ -26,7 +26,7 @@ export default function PrivacyPage() {
             bieden we sinds 2026 een aantal <strong>gratis indicatie-checks</strong>{" "}
             (toeslagen + gemeente-regelingen, Box 3-rechtsherstel, NS Geld-Terug
             bij Vertraging, zorgkostenaftrek, vluchtclaim, spookabonnementen) plus
-            optioneel een no-cure-no-pay-claim voor Box 3-rechtsherstel. Voor al
+            optioneel hulp bij een Box 3-claim. Voor al
             deze functies houden we ons aan de Algemene Verordening
             Gegevensbescherming (AVG). Hieronder lees je precies wat we
             verwerken, waarom, op welke grondslag, met wie we delen, hoe lang we
@@ -63,7 +63,7 @@ export default function PrivacyPage() {
             <li>
               <strong>Box 3-check</strong> (op <em>/box3-check</em>) — banktegoeden,
               overige bezittingen, schulden en werkelijk rendement blijven
-              client-side. Pas wanneer je expliciet kiest voor de no-cure-no-pay
+              client-side. Pas wanneer je expliciet kiest voor de begeleide
               vervolg-claim slaan we een <em>Box3Claim</em>-record op (zie §3 en §5).
             </li>
             <li>
@@ -108,7 +108,7 @@ export default function PrivacyPage() {
               </tr>
               <tr>
                 <td className="py-1 pr-3"><strong>Onderhandel-data</strong> (gegenereerde mail, status, bespaarde bedragen, bewijs)</td>
-                <td className="py-1 pr-3">De dienst leveren + (bij no-cure-no-pay) de fee bepalen</td>
+                <td className="py-1 pr-3">De dienst leveren</td>
                 <td className="py-1">Uitvoering overeenkomst</td>
               </tr>
               <tr>
@@ -118,7 +118,7 @@ export default function PrivacyPage() {
                   werkelijk teruggehaald bedrag uit OCR, fee-bedrag, Stripe-payment-id)
                 </td>
                 <td className="py-1 pr-3">
-                  De NCNP-fee deterministisch berekenen + uitvoeren via OCR van je
+                  Het teruggehaalde bedrag vastleggen via OCR van je
                   Belastingdienst-beschikking; financiële administratie voeren
                 </td>
                 <td className="py-1">
@@ -175,7 +175,7 @@ export default function PrivacyPage() {
             je kunt 'm altijd intrekken.
           </p>
           <p className="text-sm text-slate-600">
-            <strong>Box 3-claim — toelichting.</strong> Voor de no-cure-no-pay-
+            <strong>Box 3-claim — toelichting.</strong> Voor de begeleide 
             fee op Box 3-rechtsherstel verwerken wij <strong>wel</strong> jouw
             <em> Box3Claim</em>-record en de geüploade Belastingdienst-
             beschikking (PDF). Dit is noodzakelijk voor (a) het deterministisch
@@ -183,7 +183,7 @@ export default function PrivacyPage() {
             wettelijke bewaarplicht voor financiële administratie. De grondslag
             is <strong>artikel 6 lid 1b AVG</strong> (<em>noodzakelijk voor de
             uitvoering van de overeenkomst</em>). Andere check-inputs (vermogen,
-            inkomen, forfaits) blijven uitsluitend client-side. Zonder NCNP-
+            inkomen, forfaits) blijven uitsluitend client-side. Zonder begeleide 
             keuze (DIY-pad) slaan we niets op.
           </p>
 
@@ -201,8 +201,8 @@ export default function PrivacyPage() {
               <tr><td className="py-1 pr-3"><strong>Vercel</strong></td><td className="py-1 pr-3">Hosting van de applicatie + Vercel Cron (Plus maandelijkse her-scan) + opslag geüploade Box 3-beschikking</td><td className="py-1">EU (fra1) / VS-moederbedrijf</td></tr>
               <tr><td className="py-1 pr-3"><strong>Neon</strong></td><td className="py-1 pr-3">Database (account, facturen, onderhandelingen, Box 3-claims, Plus-her-scan-snapshots)</td><td className="py-1">EU (Frankfurt)</td></tr>
               <tr><td className="py-1 pr-3"><strong>Resend</strong></td><td className="py-1 pr-3">Transactionele + retentie-e-mail + maandelijkse Plus-her-scan-mail</td><td className="py-1">EU / VS</td></tr>
-              <tr><td className="py-1 pr-3"><strong>Groq</strong></td><td className="py-1 pr-3">AI/OCR-analyse van je factuur en (bij Box 3 NCNP-flow) van de Belastingdienst-beschikking</td><td className="py-1">VS</td></tr>
-              <tr><td className="py-1 pr-3"><strong>Stripe</strong></td><td className="py-1 pr-3">Betalingen + off-session no-cure-no-pay-charge (onderhandel-fee + Box 3-fee)</td><td className="py-1">EU / VS</td></tr>
+              <tr><td className="py-1 pr-3"><strong>Groq</strong></td><td className="py-1 pr-3">AI/OCR-analyse van je factuur en (bij een Box 3-claim) van de Belastingdienst-beschikking</td><td className="py-1">VS</td></tr>
+              <tr><td className="py-1 pr-3"><strong>Stripe</strong></td><td className="py-1 pr-3">Historische betaalgegevens. Sinds v41 is DeGeldHeld gratis en vinden er geen betalingen meer plaats; de koppeling blijft alleen bestaan voor oude records.</td><td className="py-1">EU / VS</td></tr>
               <tr><td className="py-1 pr-3"><strong>Aviation Edge / AviationStack</strong> (alleen bij vluchtclaim, achter <em>FEATURE_CLAIMS</em>)</td><td className="py-1 pr-3">Vluchtnummer + datum opzoeken om EU261-vertraging te bepalen</td><td className="py-1">EU / VS — afhankelijk van gekozen provider</td></tr>
               <tr><td className="py-1 pr-3"><strong>Cloudflare</strong></td><td className="py-1 pr-3">DNS, CDN, bot-bescherming (Turnstile)</td><td className="py-1">EU / VS (edge)</td></tr>
               <tr><td className="py-1 pr-3"><strong>Sentry</strong></td><td className="py-1 pr-3">Foutmonitoring (PII gestript)</td><td className="py-1">EU / VS</td></tr>
