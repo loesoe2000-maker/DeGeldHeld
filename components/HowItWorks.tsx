@@ -20,9 +20,9 @@ export default function HowItWorks() {
     },
     {
       nr: "4",
-      titel: "Jij houdt alles",
+      titel: "Geen kosten",
       tekst:
-        "Het geld dat je terugkrijgt gaat rechtstreeks naar jou. Wij rekenen geen percentage en geen abonnement — DeGeldHeld is gratis.",
+        "Het bedrag dat je terugkrijgt gaat rechtstreeks naar jou. DeGeldHeld brengt geen fee, percentage of abonnement in rekening.",
     },
   ];
   return (

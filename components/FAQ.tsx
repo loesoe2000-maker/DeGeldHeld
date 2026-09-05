@@ -6,17 +6,17 @@ const items: { q: string; a: string; category?: string }[] = [
   {
     category: "Prijzen",
     q: "Wat kost het?",
-    a: "Niets. DeGeldHeld is gratis: geen percentage, geen abonnement, geen betaald vervolg. Wat wél geld kan kosten zijn de officiële procedures zelf — de Huurcommissie vraagt bijvoorbeeld € 25 leges. Dat gaat naar hen, niet naar ons, en dat staat er bij elke check gewoon bij.",
+    a: "Het gebruik van DeGeldHeld is kosteloos. Wij brengen geen fee, percentage of abonnement in rekening. De officiële procedures zelf kunnen wel kosten met zich meebrengen: de Huurcommissie hanteert bijvoorbeeld € 25 aan leges. Die betaal je aan die instantie, niet aan ons, en we vermelden ze bij de betreffende check.",
   },
   {
     category: "Prijzen",
     q: "Hoe verdienen jullie geld?",
-    a: "Dat doen we niet. DeGeldHeld is een project, geen bedrijf: het kost je niets en we verdienen er niets aan. Net zo belangrijk: we krijgen géén commissie van providers, geen kickbacks en geen verborgen advertentie-deals. Er is dus niemand wiens belang boven het jouwe gaat.",
+    a: "Dat doen we niet. DeGeldHeld is een niet-commercieel project: er staat geen verdienmodel achter. Even belangrijk: we ontvangen geen commissie van providers, geen kickbacks en geen advertentievergoedingen. Er is dus geen belang dat boven het jouwe gaat.",
   },
   {
     category: "Prijzen",
     q: "Wat als de provider niet reageert?",
-    a: "Dan gebeurt er niets — het kost je sowieso niets. We sturen wel automatisch een reminder na 7 dagen.",
+    a: "Dan blijft het bij de verstuurde brief; er zijn voor jou geen kosten. Na 7 dagen sturen we automatisch een herinnering.",
   },
   {
     category: "Prijzen",
@@ -72,7 +72,7 @@ const items: { q: string; a: string; category?: string }[] = [
   {
     category: "Twijfels",
     q: "Wat als ik niet bespaar maar de provider belt me terug?",
-    a: "Geen probleem, het kost je toch niets. We tellen een besparing pas mee als die op papier bevestigd is — niet bij telefonisch contact zonder uitkomst. Als provider belt met een aanbod, kun je dat zelf aannemen of weigeren.",
+    a: "Geen probleem. We tellen een besparing pas mee als die schriftelijk is bevestigd — niet bij telefonisch contact zonder uitkomst. Als provider belt met een aanbod, kun je dat zelf aannemen of weigeren.",
   },
   {
     category: "Twijfels",

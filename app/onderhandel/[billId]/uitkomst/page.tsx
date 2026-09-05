@@ -88,7 +88,7 @@ export default async function UitkomstPage({
               Fee van €{(feeCents / 100).toFixed(2).replace(".", ",")} automatisch voldaan — bedankt!
             </h2>
             <p className="mt-1 text-sm text-brand-900">
-              We hebben je besparing vastgelegd. Dit kost je niets.</p>
+              We hebben je besparing vastgelegd. Aan onze dienst zijn geen kosten verbonden.</p>
           </section>
         )}
         {pendingFee && (

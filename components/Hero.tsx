@@ -41,14 +41,15 @@ export default function Hero() {
               <strong>energie-eindafrekening</strong>, gemiste{" "}
               <strong>toeslagen</strong>: check het in een minuut, zonder
               DigiD. Wij bereiden je claim voor — jij dient in en houdt de
-              regie. <strong>Alles is gratis</strong>: geen percentage, geen
-              abonnement, geen betaald vervolg.
+              regie. Het gebruik is <strong>kosteloos</strong>: wij brengen
+              geen fee, geen percentage over je teruggave en geen abonnement in
+              rekening.
             </>
           ) : (
             <>
               Upload je energierekening of abonnementsfactuur. DeGeldHeld
-              onderhandelt automatisch met je provider — en het kost je{" "}
-              <strong>niets</strong>.
+              onderhandelt met je provider. Aan het gebruik zijn{" "}
+              <strong>geen kosten</strong> verbonden.
             </>
           )}
         </p>

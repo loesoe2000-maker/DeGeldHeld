@@ -447,11 +447,11 @@ function Results({
           className="mt-6 rounded-xl border border-brand-300 bg-white p-5"
         >
           <h3 className="text-lg font-semibold text-slate-900">
-            Wij doen de klacht voor je — gratis
+            Wij stellen de klacht voor je op
           </h3>
           <p className="mt-1 text-sm text-slate-700">
             We stellen het klachttraject (leverancier → Geschillencommissie)
-            voor je op, <strong>gratis</strong>. Let op: de
+            voor je op. Daar zijn geen kosten aan verbonden. Let op: de
             Geschillencommissie zelf vraagt € 27,50 leges plus € 52,50
             klachtgeld — dat gaat naar hen en krijg je terug als je wint.
             Liever zelf doen? Hieronder staat dezelfde brief.

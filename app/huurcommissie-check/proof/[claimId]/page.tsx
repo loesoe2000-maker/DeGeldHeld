@@ -147,7 +147,7 @@ function ClaimStateBlock({
           }`}
         >
           {isAfwijzing
-            ? "De Huurcommissie kende geen restitutie toe. Dit kost je niets: " +
+            ? "De Huurcommissie kende geen restitutie toe. Er zijn voor jou geen kosten. " +
               "Wij sluiten je claim verder netjes af — je " +
               "hoeft niets meer te doen."
             : "We hebben je uitspraak ontvangen. Iemand van ons reviewt 'm en " +

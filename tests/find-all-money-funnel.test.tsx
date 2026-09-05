@@ -34,7 +34,7 @@ describe("Hero — claims-first framing (v40 B-verbouwing)", () => {
     render(<Hero />);
     expect(screen.getByText(/Box 3-belasting/i)).toBeInTheDocument();
     expect(screen.getByText(/toeslagen/i)).toBeInTheDocument();
-    expect(screen.getByText(/Alles is gratis/i)).toBeInTheDocument();
+    expect(screen.getByText(/kosteloos/i)).toBeInTheDocument();
   });
 
   it("falls back to the original copy when both flags are off", () => {

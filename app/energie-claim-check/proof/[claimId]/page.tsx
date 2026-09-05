@@ -151,7 +151,7 @@ function ClaimStateBlock({
         >
           {isAfwijzing
             ? "De Geschillencommissie/leverancier kende geen restitutie toe. " +
-              "Dit kost je niets. Wij sluiten je claim verder " +
+              "Er zijn voor jou geen kosten. Wij sluiten je claim verder " +
               "netjes af — je hoeft niets meer te doen."
             : "We hebben je uitspraak ontvangen. Iemand van ons reviewt 'm en " +
               "rondt je claim binnen 1-2 werkdagen af (" +

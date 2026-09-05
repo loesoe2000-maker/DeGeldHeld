@@ -218,7 +218,7 @@ export default function EnergieUitspraakUpload({
               <p className="font-semibold">Afwijzing verwerkt ✓</p>
               <p className="mt-1">
                 De Geschillencommissie/leverancier kende geen restitutie toe.
-                Dit kost je niets — wij sluiten je claim verder
+                Er zijn voor jou geen kosten — wij sluiten je claim verder
                 netjes af, je hoeft niets meer te doen.
               </p>
             </>

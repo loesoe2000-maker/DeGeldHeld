@@ -399,11 +399,11 @@ function Results({
           className="mt-6 rounded-xl border border-brand-300 bg-white p-5"
         >
           <h3 className="text-lg font-semibold text-slate-900">
-            Wij doen het OWR voor je — gratis
+            Wij stellen het OWR voor je op
           </h3>
           <p className="mt-1 text-sm text-slate-700">
             We stellen de Opgaaf Werkelijk Rendement voor je op. Dat kost je
-            <strong> niets</strong> — DeGeldHeld is volledig gratis. Het geld
+            <strong> geen kosten</strong>. Het geld
             gaat rechtstreeks van de Belastingdienst naar jou; wij zitten er
             niet tussen. Liever zelf doen? Hieronder staat dezelfde brief.
           </p>
@@ -453,9 +453,9 @@ function Results({
               <p className="text-xs text-slate-600">
                 <strong>Eerlijk over de prijs:</strong> belastingadviseurs
                 rekenen € 150-500 per uur (€ 300-2.000 per box-3-zaak) en
-                claimbureaus houden een fors percentage in. Wij vragen niets.
-                Dat is geen aanbieding maar een keuze: dit is een project, geen
-                bedrijf. Wat je terugkrijgt is helemaal van jou.
+                claimbureaus houden een fors percentage in. Wij brengen niets in rekening. Dat is geen actie maar een
+                uitgangspunt: DeGeldHeld is een niet-commercieel project. Wat je
+                terugkrijgt, is volledig van jou.
               </p>
             </div>
           </details>

@@ -218,7 +218,7 @@ export default function HuurUitspraakUpload({
             <>
               <p className="font-semibold">Afwijzing verwerkt ✓</p>
               <p className="mt-1">
-                De Huurcommissie kende geen restitutie toe. Het kost je niets
+                De Huurcommissie kende geen restitutie toe. Er zijn voor jou geen kosten
                 — wij sluiten je claim verder netjes af, je
                 hoeft niets meer te doen.
               </p>

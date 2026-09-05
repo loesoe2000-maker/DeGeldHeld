@@ -186,8 +186,8 @@ export default function Box3RechtsherstelPage() {
             <strong>ruim boven</strong> het heffingsvrij vermogen, een
             jaar met fors lager werkelijk rendement dan het forfait, en een
             bewerkbaar bewijsspoor (jaaroverzichten bank, dividend- en
-            koers-resultaat-overzichten). Wij helpen bij elk bedrag, ook een klein. Alles is gratis, dus er is
-            geen reden om iemand af te wijzen. Geen verzonnen cijfers, geen
+            koers-resultaat-overzichten). Wij helpen ongeacht de hoogte van het bedrag: omdat er geen kosten aan
+            verbonden zijn, is er geen reden een verzoek af te wijzen. Geen verzonnen cijfers, geen
             valse hoop.
           </p>
         </section>
@@ -277,7 +277,7 @@ export default function Box3RechtsherstelPage() {
             in. We tonen een indicatie van de verwachte vermindering plus,
             áls je dat wilt, een gratis DIY-OWR-brief die je in
             MijnBelastingdienst kunt plakken. Wil je liever dat wij het
-            opstellen? Dat kan ook, en het is net zo gratis.
+            opstellen? Ook daaraan zijn geen kosten verbonden.
           </p>
           <Link
             href="/box3-check"

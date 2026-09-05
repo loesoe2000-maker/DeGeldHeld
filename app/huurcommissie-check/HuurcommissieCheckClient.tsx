@@ -388,11 +388,11 @@ function Results({
           className="mt-6 rounded-xl border border-brand-300 bg-white p-5"
         >
           <h3 className="text-lg font-semibold text-slate-900">
-            Wij doen het bezwaar voor je — gratis
+            Wij stellen het bezwaar voor je op
           </h3>
           <p className="mt-1 text-sm text-slate-700">
-            We stellen het bezwaartraject voor je op. Dat kost je niets: het
-            hele platform is gratis. Let op: de Huurcommissie zelf vraagt
+            We stellen het bezwaartraject voor je op. Aan onze hulp zijn geen
+            kosten verbonden. Let op: de Huurcommissie zelf vraagt
             € 25 leges — dat bedrag gaat naar hen en krijg je terug als je wint.
             Liever zelf doen? Hieronder staat dezelfde brief om zelf te sturen.
           </p>

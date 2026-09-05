@@ -24,13 +24,12 @@ export default function PrijsPage() {
             Wat het kost
           </p>
           <h1 className="mt-2 text-4xl font-bold text-slate-900 sm:text-5xl">
-            Niets.
+            Het gebruik is kosteloos
           </h1>
           <p className="mt-4 text-lg text-slate-600">
-            DeGeldHeld is gratis. Geen fee over wat je terugkrijgt, geen
-            percentage, geen abonnement en geen betaald vervolg. Het geld dat je
-            terugkrijgt gaat rechtstreeks naar jou — wij zitten er niet tussen
-            en beheren nooit jouw geld.
+            DeGeldHeld brengt geen fee, percentage of abonnement in rekening.
+            Het bedrag dat je terugkrijgt gaat rechtstreeks van de instantie of
+            je provider naar jou; wij beheren op geen enkel moment jouw geld.
           </p>
         </header>
 
@@ -63,11 +62,12 @@ export default function PrijsPage() {
             Waarom is het gratis?
           </h2>
           <p className="mt-2 text-slate-700">
-            Omdat dit een project is en geen bedrijf. De mensen die dit het
-            hardst nodig hebben, zijn precies de mensen voor wie een percentage
-            van hun teruggave het zwaarst weegt. En we krijgen niets van
-            providers: geen commissie, geen kickbacks, geen advertentiedeals.
-            Er is dus niemand wiens belang boven het jouwe gaat.
+            DeGeldHeld is een niet-commercieel project. Een percentage over
+            een teruggave weegt het zwaarst bij de mensen die deze hulp het
+            hardst nodig hebben; dat vinden wij niet passen bij het doel. We
+            ontvangen daarnaast geen vergoeding van providers: geen commissie,
+            geen kickbacks en geen advertentiedeals. Er is dus geen belang dat
+            boven het jouwe gaat.
           </p>
         </section>
 

@@ -51,10 +51,10 @@ export default function OverOnsPage() {
               Geen marketing-cijfers — directe live data.
             </li>
             <li>
-              <strong>Gratis, en dat blijft zo</strong>: geen fee, geen
-              percentage over wat je terugkrijgt, geen abonnement. Dit is een
-              niet-commercieel project — we verdienen er niets aan, en we
-              krijgen ook geen commissie van providers.
+              <strong>Kosteloos</strong>: geen fee, geen percentage over wat
+              je terugkrijgt en geen abonnement. DeGeldHeld is een
+              niet-commercieel project; we ontvangen ook geen vergoeding van
+              providers.
             </li>
           </ul>
 
