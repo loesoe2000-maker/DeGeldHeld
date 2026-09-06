@@ -34,11 +34,19 @@ describe("v23 anti-abuse — source-level invariants", () => {
       expect(read(p)).toMatch(/isEnabled\(["']RELAY_ENABLED["']\)/);
     }
   });
-  it("relay-authorize requires a fee-card + accepted mandate (GUARDRAIL 4)", () => {
+  it("v41: relay-authorize eist GEEN betaalkaart meer (GUARDRAIL 4 vervallen)", () => {
+    const src = read("app/api/negotiations/[id]/relay-authorize/route.ts")
+      // commentaar telt niet mee: daar mag de geschiedenis blijven staan
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/\/\/.*$/gm, "");
+    expect(src).not.toMatch(/feePaymentMethodId/);
+    expect(src).not.toMatch(/feeMandateAcceptedAt/);
+    expect(src).not.toMatch(/card-required/);
+  });
+  it("de inhoudelijke guardrails blijven wél staan (adres + categorie)", () => {
     const src = read("app/api/negotiations/[id]/relay-authorize/route.ts");
-    expect(src).toMatch(/feePaymentMethodId/);
-    expect(src).toMatch(/feeMandateAcceptedAt/);
-    expect(src).toMatch(/card-required/);
+    expect(src).toMatch(/address-required/);
+    expect(src).toMatch(/category-no-fee/);
   });
   it("inbound relay routes ONLY by the unique relay token (token-scoped)", () => {
     const src = read("lib/relay-inbound.ts");

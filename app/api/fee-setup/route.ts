@@ -9,7 +9,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { createFeeSetupSession, detachFeePaymentMethod } from "@/lib/payments";
+import { detachFeePaymentMethod } from "@/lib/payments";
 import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
@@ -28,37 +28,21 @@ export async function POST(req: Request) {
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  const userId = (session.user as { id: string }).id;
-  const email = session.user.email ?? "";
-
-  const rl = rateLimit({ key: `fee-setup:${userId}`, max: 10, windowSec: 3600 });
-  if (!rl.ok) return rateLimitResponse(rl);
-
-  let returnTo = "/dashboard";
-  let mandateText: string | null = null;
-  try {
-    const body = (await req.json()) as { returnTo?: unknown; mandateText?: unknown };
-    returnTo = safeReturnTo(body.returnTo);
-    if (typeof body.mandateText === "string") mandateText = body.mandateText.slice(0, 1000);
-  } catch {
-    /* no body → defaults */
-  }
-
-  // Record the consent text now (audit). The webhook stamps
-  // feeMandateAcceptedAt + the payment method once the card is attached.
-  if (mandateText) {
-    try {
-      await prisma.user.update({ where: { id: userId }, data: { feeMandateText: mandateText } });
-    } catch {
-      /* never block checkout on the audit write */
-    }
-  }
-
-  const setup = await createFeeSetupSession({ userId, userEmail: email, appUrl: APP_URL, returnTo });
-  if (!setup.url) {
-    return NextResponse.json({ error: "Could not create setup session" }, { status: 502 });
-  }
-  return NextResponse.json({ ok: true, url: setup.url, test: setup.test });
+  // v41 — GRATIS PLATFORM: hier werd een Stripe SetupIntent gestart om een
+  // doorlopend incasso-mandaat op de kaart van de gebruiker vast te leggen.
+  // Er valt niets meer te incasseren, dus dat mandaat mag niet meer ontstaan.
+  // DELETE hieronder blijft WEL bestaan: bestaande mandaten moeten
+  // ingetrokken kunnen worden.
+  return NextResponse.json(
+    {
+      error: "Gone",
+      reason: "fee-disabled",
+      uitleg:
+        "DeGeldHeld brengt geen kosten in rekening; een betaalmandaat is niet " +
+        "meer nodig. Een bestaand mandaat kun je intrekken via DELETE.",
+    },
+    { status: 410 },
+  );
 }
 
 /**

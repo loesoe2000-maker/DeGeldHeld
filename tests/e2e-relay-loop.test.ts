@@ -160,12 +160,15 @@ describe("v25 e2e relay loop (simulated mailbox)", () => {
     expect(toProvider()).toHaveLength(0); // consent gate held — nothing to provider
   });
 
-  it("GUARDRAIL 4 — no fee-card on file → authorize 409, nothing sent", async () => {
+  it("v41 — GUARDRAIL 4 vervallen: zonder betaalkaart loopt de relay gewoon", async () => {
+    // De kaart-eis bestond om een besparing incasseerbaar te houden. Niets
+    // wordt meer geïncasseerd, dus de eis is weg. De rest van de keten
+    // (consent, adres, categorie, flag) doet onveranderd zijn werk.
     store.user = { feePaymentMethodId: null, feeMandateAcceptedAt: null };
     const a = await authorizePOST(authReq({ providerEmail: "retentie@kpn.nl" }), ctx);
-    expect(a.status).toBe(409);
-    expect(store.mailbox).toHaveLength(0);
-    expect((store.neg as { relayState: string | null }).relayState).toBeNull();
+    expect(a.status).toBe(200);
+    expect(store.mailbox).toHaveLength(1);
+    expect((store.neg as { relayState: string | null }).relayState).toBe("RELAY_ACTIVE");
   });
 
   it("GUARDRAIL 7 — flag off → authorize 404 disabled, nothing sent", async () => {

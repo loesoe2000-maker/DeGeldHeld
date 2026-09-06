@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 /**
  * v25 DEEL 0 — relay-authorize is double-gated:
  *   1. FEATURE_RELAY_ENABLED off → 404 disabled (relay doesn't exist).
- *   2. on, but no fee-card + accepted mandate → 409 card-required
+ *   2. v41: de fee-card-eis is vervallen (gratis platform)
  *      (GUARDRAIL 4: "wij doen het werk" → a proven saving must be chargeable).
  *   3. on + card on file → authorized; with a providerEmail the first mail
  *      goes out on behalf (consent-gated inside sendFirstRelayMail).
@@ -72,19 +72,23 @@ describe("v25 relay-authorize gate", () => {
     expect((await POST(req({}), ctx)).status).toBe(404);
   });
 
-  it("409 card-required when no fee payment method", async () => {
-    h.user = { feePaymentMethodId: null, feeMandateAcceptedAt: new Date() };
-    const res = await POST(req({}), ctx);
-    expect(res.status).toBe(409);
-    expect((await res.json()).reason).toBe("card-required");
-    expect(h.updates).toHaveLength(0);
+  // v41 — GRATIS PLATFORM. GUARDRAIL 4 (kaart + mandaat verplicht) is
+  // vervallen: hij bestond alleen om een bewezen besparing incasseerbaar te
+  // maken. Er wordt niets meer geïncasseerd, dus een betaalkaart eisen zou een
+  // drempel zijn zonder doel. Deze twee tests bewaken nu dat de eis ECHT weg
+  // is — anders sluipt hij er bij een refactor zo weer in.
+  it("v41: zonder betaalkaart mag de relay gewoon door (geen 409 card-required)", async () => {
+    h.user = { feePaymentMethodId: null, feeMandateAcceptedAt: null };
+    const res = await POST(req({ providerEmail: "retentie@vattenfall.nl" }), ctx);
+    expect(res.status).toBe(200);
+    expect(h.firstSends).toBe(1);
   });
 
-  it("409 card-required when the mandate wasn't accepted", async () => {
-    h.user = { feePaymentMethodId: "pm_123", feeMandateAcceptedAt: null };
+  it("v41: geen enkel antwoord is nog 'card-required'", async () => {
+    h.user = { feePaymentMethodId: null, feeMandateAcceptedAt: null };
     const res = await POST(req({}), ctx);
-    expect(res.status).toBe(409);
-    expect((await res.json()).reason).toBe("card-required");
+    // Wél nog steeds geblokkeerd — maar op het adres, niet op de kaart.
+    expect((await res.json()).reason).toBe("address-required");
   });
 
   it("409 address-required when no provider address is supplied (v26 confirm-before-send)", async () => {
@@ -139,14 +143,14 @@ describe("v25 relay-authorize gate", () => {
     expect(h.firstSends).toBe(0);
   });
 
-  it("403 category-no-fee for STREAMING + the gate fires before the card-check", async () => {
+  it("403 category-no-fee for STREAMING (gate vuurt ongeacht kaartstatus)", async () => {
     h.neg = {
       id: "neg_1",
       billId: "bill_1",
       relayToken: null,
       bill: { provider: "Netflix", category: "STREAMING" },
     };
-    // Zelfs zonder fee-card → categorie-gate (403) vuurt eerst, niet 409.
+    // Categorie-gate blokkeert hard, los van welke kaartstatus dan ook.
     h.user = { feePaymentMethodId: null, feeMandateAcceptedAt: null };
     const res = await POST(req({ providerEmail: "retentie@netflix.com" }), ctx);
     expect(res.status).toBe(403);

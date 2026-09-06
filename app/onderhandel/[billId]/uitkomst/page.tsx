@@ -85,32 +85,28 @@ export default async function UitkomstPage({
             className="mt-8 rounded-xl border border-brand-200 bg-brand-50 p-5"
           >
             <h2 className="text-lg font-semibold text-brand-900">
-              Fee van €{(feeCents / 100).toFixed(2).replace(".", ",")} automatisch voldaan — bedankt!
+              Je besparing is vastgelegd
             </h2>
             <p className="mt-1 text-sm text-brand-900">
-              We hebben je besparing vastgelegd. Aan onze dienst zijn geen kosten verbonden.</p>
+              Deze onderhandeling stamt uit de periode waarin wij een
+              succesbijdrage in rekening brachten. Dat doen we niet meer: aan
+              het gebruik van DeGeldHeld zijn geen kosten verbonden.
+            </p>
           </section>
         )}
         {pendingFee && (
           <section
             data-testid="fee-cta"
-            className="mt-8 rounded-xl border border-brand-200 bg-brand-50 p-5"
+            className="mt-8 rounded-xl border border-slate-200 bg-slate-50 p-5"
           >
-            <h2 className="text-lg font-semibold text-brand-900">
-              Je bespaarde €{(yearly / 100).toFixed(0)} — onze bijdrage is €
-              {(feeCents / 100).toFixed(2).replace(".", ",")}
+            <h2 className="text-lg font-semibold text-slate-900">
+              Je bespaarde €{(yearly / 100).toFixed(0)} per jaar
             </h2>
-            <p className="mt-1 text-sm text-brand-900">
-              DeGeldHeld is gratis: je betaalt niets.</p>
-            <form action={`/api/checkout/${bill.negotiation.id}`} method="post" className="mt-4">
-              <button
-                type="submit"
-                data-testid="pay-fee-btn"
-                className="rounded-lg bg-brand-600 px-5 py-3 font-semibold text-white hover:bg-brand-700"
-              >
-                Betaal €{(feeCents / 100).toFixed(2).replace(".", ",")} via Stripe
-              </button>
-            </form>
+            <p className="mt-1 text-sm text-slate-700">
+              Er stond nog een succesbijdrage open uit onze oude
+              voorwaarden. Die is komen te vervallen — je hoeft niets te
+              betalen en er wordt niets geïncasseerd.
+            </p>
           </section>
         )}
         {isSuccess && (

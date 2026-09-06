@@ -3,7 +3,8 @@
  *
  * Upload van een Belastingdienst-beschikking (PDF). OCR (pdfjs) → regex-parse
  * van het toegekende bedrag → deterministisch CHARGED / FAILED via
- * chargeFeeOffSession. Werkelijk < € 500 → CHARGED met fee € 0.
+ * v41: er wordt niets meer geïncasseerd — de beschikking wordt nog wél
+ * gelezen en vastgelegd, alleen de fee is altijd € 0.
  *
  * AVG-grondslag voor opslag van Box3Claim + storageUrl: noodzakelijk voor de
  * uitvoering van de NCNP-overeenkomst (zie V30_REPORT.md).
@@ -13,7 +14,6 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { isEnabled } from "@/lib/feature-flags";
 import { extractPdfText } from "@/lib/pdf_extract";
-import { chargeFeeOffSession } from "@/lib/payments";
 import { sendEmail } from "@/lib/email";
 import * as Sentry from "@sentry/nextjs";
 import { notifyOwner } from "@/lib/owner-alerts";
@@ -129,7 +129,10 @@ export async function POST(req: Request) {
     userId,
     claimId: claim.id,
     pdfText,
-    charge: chargeFeeOffSession,
+    // v41 — GRATIS PLATFORM. Stripe krijgt deze route niet meer in handen.
+    // De pipeline stopt al bij fee € 0; dit is de tweede sluiting, zodat er
+    // ook geen incasso-functie meer ligt om per ongeluk te activeren.
+    charge: async () => ({ ok: false as const, reason: "fee-disabled" }),
   });
 
   // v37 — charge-fail is NIET terminaal. De beschikking is gelezen; alleen het

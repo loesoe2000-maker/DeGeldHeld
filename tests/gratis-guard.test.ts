@@ -35,7 +35,7 @@ function copyBestanden(): string[] {
     for (const naam of readdirSync(dir)) {
       const p = path.join(dir, naam);
       if (statSync(p).isDirectory()) {
-        if (naam === "api" || naam === "node_modules" || naam === ".next") continue;
+        if (naam === "node_modules" || naam === ".next") continue;
         loop(p);
       } else if (naam.endsWith(".tsx")) {
         uit.push(p);
@@ -156,5 +156,65 @@ describe("v41 — de leges van DERDEN blijven zichtbaar", () => {
     const v = readFileSync(path.join(WORTEL, "app/voorwaarden/page.tsx"), "utf8");
     expect(v).not.toMatch(/beperkt tot het door jou betaalde bedrag/);
     expect(v).toMatch(/€ 500 per gebeurtenis/);
+  });
+});
+
+/**
+ * v41 — DE POORT, NIET DE REKENSOM.
+ *
+ * De eerste versie van deze guard sloeg `app/api/**` over, precies de map waar
+ * de echte Stripe-aanroepen stonden. De suite was groen terwijl /api/checkout
+ * en /api/fee-setup nog live betaalsessies aanmaakten. Copy controleren zegt
+ * niets als de betaalpoort openstaat; daarom scant dit blok de routes zelf.
+ */
+describe("v41 — geen enkele route kan nog een betaling starten", () => {
+  const VERBODEN = [
+    "createCheckoutSession",
+    "createPaywallCheckoutSession",
+    "createFeeSetupSession",
+    "chargeFeeOffSession",
+  ];
+
+  function routes(dir: string, out: string[] = []): string[] {
+    for (const naam of readdirSync(dir)) {
+      const p = path.join(dir, naam);
+      if (statSync(p).isDirectory()) {
+        if (naam === "node_modules" || naam === ".next") continue;
+        routes(p, out);
+      } else if (naam === "route.ts" || naam === "route.tsx") {
+        out.push(p);
+      }
+    }
+    return out;
+  }
+
+  const apiRoutes = routes(path.join(__dirname, "..", "app", "api"));
+
+  it("vindt überhaupt API-routes (anders is deze test zinloos groen)", () => {
+    expect(apiRoutes.length).toBeGreaterThan(20);
+  });
+
+  it.each(VERBODEN)("geen route roept %s aan", (fn) => {
+    const daders = apiRoutes.filter((p) => {
+      const src = readFileSync(p, "utf8");
+      // Alleen echte aanroepen/imports tellen — niet het woord in commentaar.
+      return new RegExp(`(?<!//.*)\\b${fn}\\s*[({]|import[^;]*\\b${fn}\\b`, "m").test(
+        src.replace(/^\s*\*.*$/gm, "").replace(/\/\/.*$/gm, ""),
+      );
+    });
+    expect(daders.map((p) => p.split("/app/")[1])).toEqual([]);
+  });
+
+  it("de opgeheven betaalroutes antwoorden 410, en bestaan dus nog bewust", () => {
+    for (const r of ["checkout/route.ts", "fee-setup/route.ts"]) {
+      const src = readFileSync(path.join(__dirname, "..", "app", "api", r), "utf8");
+      expect(src).toMatch(/status: 410/);
+    }
+  });
+
+  it("het mandaat kan nog wél ingetrokken worden (DELETE blijft bestaan)", () => {
+    const src = readFileSync(path.join(__dirname, "..", "app", "api", "fee-setup", "route.ts"), "utf8");
+    expect(src).toMatch(/export async function DELETE/);
+    expect(src).toMatch(/detachFeePaymentMethod/);
   });
 });

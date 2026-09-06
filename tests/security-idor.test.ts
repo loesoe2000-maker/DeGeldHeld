@@ -98,10 +98,26 @@ const OWNER_SCOPED_ROUTES = [
   "app/api/outbound/whatsapp/route.ts",
 ];
 
+/**
+ * v41 — een route die voor ELKE beller onvoorwaardelijk 410 teruggeeft en
+ * geen enkele DB-query doet, heeft geen resource om aan de beller te koppelen.
+ * Die overslaan mag, maar alleen als dat bewijsbaar is: 410 aanwezig ÉN geen
+ * prisma-aanroep in het bestand. Zodra iemand er weer data uit haalt, valt de
+ * route vanzelf terug in de audit.
+ */
+function isOpgeheven(s: string): boolean {
+  return /status:\s*410/.test(s) && !/prisma\./.test(s);
+}
+
 describe("v20 IDOR — every owner-scoped route checks ownership", () => {
   for (const route of OWNER_SCOPED_ROUTES) {
     it(`${route} scopes by caller (userId / anonymousSessionId / token)`, () => {
       const s = src(route);
+      if (isOpgeheven(s)) {
+        // Opgeheven route: wél nog achter auth, maar er valt niets te lekken.
+        expect(s).toMatch(/Unauthorized/);
+        return;
+      }
       const scoped =
         /where:\s*\{[^}]*userId/.test(s) || // findFirst({ where: { id, userId } })
         /\{[^{}]*\buserId\b[^{}]*\}/.test(s) || // a where-object literal carrying userId

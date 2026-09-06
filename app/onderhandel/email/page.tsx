@@ -11,7 +11,6 @@ import { relayProviderEmail, relayProviderChannel, relayNoEmailNote } from "@/li
 import { isEnabled } from "@/lib/feature-flags";
 import TrackEvent from "@/components/TrackEvent";
 import EmailDisplay from "@/components/EmailDisplay";
-import { reconcileFeeSetupFromSession } from "@/lib/payments";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Onderhandel-email — DeGeldHeld" };
@@ -36,9 +35,6 @@ export default async function EmailPage({
   // Reconcile the card directly with Stripe so the unlock is immediate and
   // never has to wait for the async webhook (or for it to be subscribed).
   // Owner-scoped + idempotent; a no-op in test-dummy mode.
-  if (params.card === "ok" && params.session_id) {
-    await reconcileFeeSetupFromSession(params.session_id, userId);
-  }
 
   // v41: geen kaart meer nodig — alles is gratis.
   const userRow = await prisma.user.findUnique({
@@ -113,7 +109,6 @@ export default async function EmailPage({
   return (
     <main className="mx-auto max-w-3xl px-6 py-12">
       <TrackEvent event="email_generated" props={{ category: bill.category }} />
-      {params.card === "ok" && <TrackEvent event="fee_card_linked" />}
       <h1 className="text-3xl font-bold text-slate-900">Onderhandel-email</h1>
       <p className="mt-2 text-slate-600">
         Kopieer de tekst hieronder en stuur via je eigen e-mailadres naar je

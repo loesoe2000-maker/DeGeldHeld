@@ -197,6 +197,18 @@ export async function processProofUpload(opts: {
     return { kind: "no-fee", werkelijkTeruggaveCents: decision.werkelijkTeruggaveCents };
   }
   // decision.kind === "charge"
+  // v41 — GRATIS PLATFORM. computeBox3Fee geeft altijd 0 terug, maar dat is een
+  // eigenschap van een ANDERE functie. Deze harde poort staat er zodat er nooit
+  // een Stripe-aanroep vertrekt zonder te incasseren bedrag, ook niet als
+  // iemand de fee-berekening later per ongeluk terugzet. Nul is geen incasso.
+  if (decision.feeCents <= 0) {
+    return {
+      kind: "charged",
+      werkelijkTeruggaveCents: decision.werkelijkTeruggaveCents,
+      feeCents: 0,
+      paymentIntentId: null,
+    };
+  }
   const result = await opts.charge({
     userId: opts.userId,
     negotiationId: `box3-${opts.claimId}`,
