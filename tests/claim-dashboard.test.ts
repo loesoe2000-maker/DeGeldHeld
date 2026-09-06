@@ -101,10 +101,13 @@ describe("mapBox3Claim", () => {
     expect(m.hasUploadedDoc).toBe(true);
   });
 
-  it("FAILED → closed maar GEEN fee (no cure no pay)", () => {
+  it("FAILED → closed, en de tekst rept niet meer van een fee (v41)", () => {
     const m = mapBox3Claim(B({ status: "FAILED" }));
     expect(m.closed).toBe(true);
-    expect(m.nextStep).toMatch(/no cure, no pay|geen fee/i);
+    // "geen fee verschuldigd" was geruststellend toen er een fee bestond; nu
+    // roept het juist de vraag op wélke fee. De tekst wijst nu naar de reden.
+    expect(m.nextStep).not.toMatch(/fee|no cure|NCNP/i);
+    expect(m.nextStep).toMatch(/opnieuw indienen/i);
   });
 
   it("unknown status → fallback zonder crash", () => {
@@ -139,10 +142,10 @@ describe("mapHuurClaim", () => {
     expect(m.nextStep).toMatch(/5 maanden/);
   });
 
-  it("UITSPRAAK → 20% NCNP genoemd", () => {
+  it("v41 UITSPRAAK → volledige restitutie is voor de klant, geen fee", () => {
     const m = mapHuurClaim(H({ status: "UITSPRAAK" }));
-    expect(m.nextStep).toMatch(/20%/);
-    expect(m.nextStep).toMatch(/NCNP/);
+    expect(m.nextStep).not.toMatch(/20%|NCNP|fee/i);
+    expect(m.nextStep).toMatch(/volledige bedrag is voor jou/i);
   });
 
   it("hasUploadedDoc reflects uitspraakStorageUrl", () => {

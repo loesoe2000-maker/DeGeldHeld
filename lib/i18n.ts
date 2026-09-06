@@ -154,10 +154,10 @@ const EN: Dict = {
 
 const DE: Dict = {
   hero_title: "Sparen Sie bei Ihren Fixkosten",
-  hero_subtitle: "Wir verhandeln mit Ihrem Anbieter für Sie. Sie zahlen 20% der Ersparnis.",
+  hero_subtitle: "Wir verhandeln für Sie mit Ihrem Anbieter. Die Nutzung ist kostenlos.",
   hero_cta: "Rechnung hochladen",
   hero_secondary_cta: "Track Record ansehen",
-  fee_disclaimer: "Keine Ersparnis = keine Gebühr",
+  fee_disclaimer: "Kostenlos — wir berechnen keine Gebühr",
   nav_dashboard: "Dashboard",
   nav_proof: "Track Record",
   nav_faq: "FAQ",

@@ -73,10 +73,10 @@ export const PLUS_PILLARS: ReadonlyArray<PlusPillar> = [
     body:
       "Telecom-providers (KPN/Vodafone/Odido/Ziggo) reageren niet op " +
       "onderhandel-mails — retentie loopt bij hen alléén via de telefoon. " +
-      "Daarom doen we voor telecom géén no-cure-no-pay. Plus levert elk " +
-      "jaar een vers retentie-belscript op maat: de exacte zinnen + actuele " +
-      "alternatieve aanbiedingen die je inzet bij het gesprek. Jij belt, " +
-      "wij leveren de munitie — geen losse fee, gewoon onderdeel van Plus.",
+      "Daarom leveren we voor telecom een vers retentie-belscript op maat: " +
+      "de exacte zinnen + actuele alternatieve aanbiedingen die je inzet bij " +
+      "het gesprek. Jij belt, wij leveren de munitie. Kosteloos, net als al " +
+      "het andere.",
   },
   {
     // v35 — Huurcommissie + Geschillencommissie Energie auto-monitor.
@@ -87,8 +87,8 @@ export const PLUS_PILLARS: ReadonlyArray<PlusPillar> = [
     body:
       "Servicekosten-jaarafrekeningen + energie-eindafrekeningen krijg je elk " +
       "jaar opnieuw — Plus seint je rond de verwachte verzenddata zodat je de " +
-      "gratis check direct kunt doen. Géén losse fee per check; bij een NCNP-" +
-      "waardige bevinding loopt de fee identiek aan de Box 3-/standalone-flow.",
+      "gratis check direct kunt doen. Aan geen enkele check zijn kosten " +
+      "verbonden.",
   },
 ];
 

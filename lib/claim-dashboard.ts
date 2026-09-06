@@ -139,23 +139,23 @@ const BOX3_STATUS: Record<string, { label: string; next: string }> = {
     next:
       "Wacht op de beschikking van de Belastingdienst. Dit kan 6 maanden " +
       "of langer duren. Zodra de beschikking binnen is: upload de PDF, " +
-      "dan verrekenen wij de fee.",
+      "dan leggen wij de uitkomst vast bij je claim.",
   },
   PROOF_RECEIVED: {
     label: "Beschikking ontvangen",
     next:
-      "Fee wordt verrekend op basis van het werkelijke teruggave-bedrag. " +
-      "Je krijgt een bevestiging zodra Stripe de betaling heeft verwerkt.",
+      "Wij lezen het werkelijk toegekende bedrag uit en leggen het vast. " +
+      "Je hoeft niets te betalen: aan het gebruik zijn geen kosten verbonden.",
   },
   CHARGED: {
-    label: "Afgerond — restitutie + fee verrekend",
+    label: "Afgerond — restitutie verwerkt",
     next: "Klaar. Bewaar de beschikking + factuur voor je administratie.",
   },
   FAILED: {
     label: "Niet gelukt",
     next:
-      "Geen fee verschuldigd (no cure, no pay). Reden staat op je " +
-      "claim-detail; je kunt opnieuw indienen als de situatie wijzigt.",
+      "De reden staat op je claim-detail; je kunt opnieuw indienen als " +
+      "de situatie wijzigt.",
   },
 };
 
@@ -180,17 +180,16 @@ const HUUR_STATUS: Record<string, { label: string; next: string }> = {
     label: "Uitspraak ontvangen",
     next:
       "Verhuurder verrekent de restitutie via de servicekosten of een " +
-      "directe terugbetaling. Daarna verrekenen wij de fee (20% NCNP).",
+      "directe terugbetaling. Het volledige bedrag is voor jou.",
   },
   CHARGED: {
-    label: "Afgerond — restitutie + fee verrekend",
+    label: "Afgerond — restitutie verwerkt",
     next: "Klaar. Bewaar de uitspraak + factuur voor je administratie.",
   },
   FAILED: {
     label: "Niet gelukt",
     next:
-      "Geen fee verschuldigd (no cure, no pay). Je kunt opnieuw bezwaar " +
-      "maken bij een volgende jaarafrekening.",
+      "Je kunt opnieuw bezwaar maken bij een volgende jaarafrekening.",
   },
 };
 
@@ -218,17 +217,17 @@ const ENERGIE_STATUS: Record<string, { label: string; next: string }> = {
     label: "Uitspraak ontvangen",
     next:
       "Leverancier verrekent het bedrag via je volgende factuur of een " +
-      "directe terugbetaling. Daarna verrekenen wij de fee (20% NCNP).",
+      "directe terugbetaling. Het volledige bedrag is voor jou.",
   },
   CHARGED: {
-    label: "Afgerond — restitutie + fee verrekend",
+    label: "Afgerond — restitutie verwerkt",
     next: "Klaar. Bewaar de uitspraak + factuur voor je administratie.",
   },
   FAILED: {
     label: "Niet gelukt",
     next:
-      "Geen fee verschuldigd (no cure, no pay). Je kunt opnieuw klagen " +
-      "bij een volgende eindafrekening die afwijkt.",
+      "Je kunt opnieuw klagen bij een volgende eindafrekening die " +
+      "afwijkt.",
   },
 };
 

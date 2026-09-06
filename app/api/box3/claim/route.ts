@@ -69,18 +69,18 @@ export async function POST(req: Request) {
           `Je hebt aangegeven dat een OWR voor belastingjaar ${validation.jaar} mogelijk ` +
           `€ ${eur} oplevert. Zodra de Belastingdienst-beschikking binnen is, upload je 'm hier:\n\n` +
           `${link}\n\n` +
-          `Wij lezen het toegekende bedrag automatisch uit en schrijven dan onze ` +
-          `no-cure-no-pay fee van 25% van het werkelijk teruggehaalde bedrag af. Werkelijke ` +
-          `teruggave onder € 500? Dan kost je deze claim € 0 — eerlijke uitkomst.\n\n` +
+          `Wij lezen het toegekende bedrag automatisch uit en leggen het vast bij je claim. ` +
+          `Aan het gebruik van DeGeldHeld zijn geen kosten verbonden: wij brengen geen ` +
+          `vergoeding en geen percentage over je teruggave in rekening.\n\n` +
           `— DeGeldHeld`,
         html: `<p>Hoi,</p>
 <p>Je hebt aangegeven dat een OWR voor belastingjaar <strong>${validation.jaar}</strong>
 mogelijk <strong>€ ${escapeHtml(eur)}</strong> oplevert.</p>
 <p>Zodra de Belastingdienst-beschikking binnen is, upload je 'm hier:</p>
 <p><a href="${link}" style="display:inline-block;background:#059669;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600">Upload beschikking</a></p>
-<p>Wij lezen het toegekende bedrag automatisch uit en schrijven dan onze
-no-cure-no-pay fee van 25% van het werkelijk teruggehaalde bedrag af. Werkelijke
-teruggave onder € 500? Dan kost je deze claim € 0 — eerlijke uitkomst.</p>
+<p>Wij lezen het toegekende bedrag automatisch uit en leggen het vast bij je claim.
+Aan het gebruik van DeGeldHeld zijn geen kosten verbonden: wij brengen geen
+vergoeding en geen percentage over je teruggave in rekening.</p>
 <p>— DeGeldHeld</p>`,
       });
     } catch {

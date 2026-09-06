@@ -29,6 +29,20 @@ import { EN_FEE_NOTE } from "@/lib/i18n-en";
 const WORTEL = path.join(__dirname, "..");
 
 /** Bestanden met publieke tekst. API-routes en tests vallen erbuiten. */
+/**
+ * Bestanden in lib/ die de fee-woorden legitiem bevatten. Elke regel heeft een
+ * reden; zonder reden hoort een bestand hier niet te staan. Dit is bewust een
+ * KORTE lijst — groeit hij, dan is dat een signaal, geen oplossing.
+ */
+const LIB_UITZONDERINGEN = new Set([
+  "lib/payments.ts", // de Stripe-definities zelf; ongebruikt maar bewaard
+  "lib/feature-flags.ts", // vlagnamen (PAYWALL_ENABLED) staan uit
+  "lib/box3-claim.ts", // computeBox3Fee → 0, plus de nul-poort
+  "lib/huurcommissie.ts", // computeHuurFee → 0 + leges van de Huurcommissie
+  "lib/energie-claim.ts", // computeEnergieFee → 0 + leges Geschillencommissie
+  "lib/outcome-proof.ts", // incasso achter de nul-poort feeCents > 0
+]);
+
 function copyBestanden(): string[] {
   const uit: string[] = [];
   const loop = (dir: string) => {
@@ -37,17 +51,20 @@ function copyBestanden(): string[] {
       if (statSync(p).isDirectory()) {
         if (naam === "node_modules" || naam === ".next") continue;
         loop(p);
-      } else if (naam.endsWith(".tsx")) {
+      } else if (naam.endsWith(".tsx") || naam.endsWith(".ts")) {
         uit.push(p);
       }
     }
   };
   loop(path.join(WORTEL, "app"));
   loop(path.join(WORTEL, "components"));
-  uit.push(path.join(WORTEL, "lib/i18n-en.ts"));
-  uit.push(path.join(WORTEL, "lib/moneyfinder-hub.ts"));
-  uit.push(path.join(WORTEL, "lib/email_templates.ts"));
-  return uit;
+  // v41 — OPT-OUT, NIET OPT-IN. Hier stond een handmatig lijstje van drie
+  // lib-bestanden. lib/i18n.ts stond er niet bij, en juist daar overleefde
+  // "Sie zahlen 20% der Ersparnis" de hele opschoning. Een opt-in-lijst zwijgt
+  // over wat hij niet dekt; deze lijst valt om zodra er een nieuw
+  // tekstbestand bijkomt. Uitzonderingen staan hieronder mét reden.
+  loop(path.join(WORTEL, "lib"));
+  return uit.filter((f) => !LIB_UITZONDERINGEN.has(path.relative(WORTEL, f)));
 }
 
 /**
@@ -86,7 +103,12 @@ describe("v41 — geen fee-copy in publieke teksten", () => {
       for (const bestand of bestanden) {
         const rel = path.relative(WORTEL, bestand);
         if (EXTERNE_PARTIJ.some((e) => rel.includes(e))) continue;
-        const inhoud = readFileSync(bestand, "utf8");
+        // Commentaar mag de geschiedenis beschrijven — een bezoeker leest het
+        // nooit. Alleen echte tekst telt. Regelnummers blijven kloppen omdat
+        // we per regel blanken in plaats van te verwijderen.
+        const inhoud = readFileSync(bestand, "utf8")
+          .replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, " "))
+          .replace(/(^|[^:])\/\/.*$/gm, (m, p1) => p1 + " ".repeat(m.length - p1.length));
         inhoud.split("\n").forEach((regel, i) => {
           if (re.test(regel)) treffers.push(`${rel}:${i + 1} → ${regel.trim().slice(0, 90)}`);
         });

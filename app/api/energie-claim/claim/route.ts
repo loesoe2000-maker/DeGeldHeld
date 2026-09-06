@@ -77,8 +77,8 @@ export async function POST(req: Request) {
           `Energie (leges € 27,50, klachtgeld € 52,50 terug bij winst).\n` +
           `3. Zodra de uitspraak binnen is, upload je 'm hier:\n\n` +
           `${link}\n\n` +
-          `Onze fee = 20% van het werkelijk teruggehaalde bedrag, alleen áls je geld terugkrijgt. ` +
-          `Onder € 50 werkelijk → fee € 0.\n\n` +
+          `Aan het gebruik van DeGeldHeld zijn geen kosten verbonden. De hierboven ` +
+          `genoemde leges betaal je aan de instantie zelf, niet aan ons.\n\n` +
           `— DeGeldHeld`,
         html: `<p>Hoi,</p>
 <p>Je hebt aangegeven dat een klacht over je <strong>${provider}</strong>-eindafrekening
@@ -90,8 +90,8 @@ aangemaakt — volgende stappen:</p>
   <li>Zodra de uitspraak binnen is, upload je 'm hier:</li>
 </ol>
 <p><a href="${link}" style="display:inline-block;background:#059669;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600">Upload uitspraak</a></p>
-<p>Onze fee = 20% van het werkelijk teruggehaalde bedrag, alleen áls je geld terugkrijgt.
-Onder € 50 werkelijk → fee € 0.</p>
+<p>Aan het gebruik van DeGeldHeld zijn geen kosten verbonden. De hierboven genoemde
+leges betaal je aan de instantie zelf, niet aan ons.</p>
 <p>— DeGeldHeld</p>`,
       });
     } catch {

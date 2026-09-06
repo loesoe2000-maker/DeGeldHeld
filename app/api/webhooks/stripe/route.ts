@@ -196,42 +196,22 @@ async function handleEvent(event: WebhookEvent): Promise<void> {
     return;
   }
 
-  // --- DEEL 10 paywall flow: mark the Bill as paid ---
-  if (kind === "paywall" && billId) {
-    if (shouldMarkPaid(type)) {
-      await prisma.bill.update({
-        where: { id: billId },
-        data: { paidAt: new Date() },
-      });
-    }
-    return;
-  }
-
-  // --- Success-fee / no-cure-no-pay flow ---
-  if (!negotiationId) return; // unknown metadata → ack, no-op
-
-  if (shouldMarkPaid(type)) {
-    await prisma.payment.update({
-      where: { negotiationId },
-      data: {
-        status: "PAID",
-        stripePaymentId: paymentIntentId ?? sessionId,
-        stripeEventId: eventId,
-      },
-    });
-    await prisma.negotiation.update({
-      where: { id: negotiationId },
-      data: { state: "BILLED" },
-    });
-  } else if (shouldMarkRefunded(type)) {
-    await prisma.payment.update({
-      where: { negotiationId },
-      data: { status: "REFUNDED", refundedAt: new Date(), stripeEventId: eventId },
-    });
-  } else if (shouldMarkFailed(type)) {
-    await prisma.payment.update({
-      where: { negotiationId },
-      data: { status: "FAILED", stripeEventId: eventId },
-    });
-  }
+  // --- v41: BETALINGSVERWERKING OPGEHEVEN ---
+  //
+  // Hieronder stonden twee schrijfpaden: de paywall (Bill.paidAt) en de
+  // success-fee (Payment.PAID + Negotiation.BILLED). Sinds v41 kan er geen
+  // enkele Checkout-sessie meer ontstaan — /api/checkout en /api/fee-setup
+  // geven 410 — dus er kunnen ook geen bijbehorende events meer binnenkomen.
+  //
+  // Het endpoint blijft wél bestaan en blijft events bevestigen: een webhook
+  // die niets teruggeeft laat Stripe eindeloos opnieuw proberen. De
+  // handtekeningcontrole en de idempotentie-registratie hierboven blijven
+  // daarom staan; alleen het muteren van betaalstatus is eruit. Abonnements-
+  // events worden hierboven nog wel verwerkt, zodat het opzeggen van een oud
+  // abonnement correct wordt vastgelegd.
+  void billId;
+  void negotiationId;
+  void paymentIntentId;
+  void sessionId;
+  return;
 }

@@ -173,5 +173,4 @@ export const HUURTOESLAG_UITLEG =
   "Krijg je huurtoeslag, dan daalt die mee als je huur omlaag gaat. Over het " +
   "deel van je huur onder € 498,20 levert een verlaging je zelfs helemaal " +
   "niets op: de toeslag daalt dan euro voor euro mee. We rekenen daarom met " +
-  "wat je er netto op vooruitgaat, en onze fee gaat over dat bedrag — niet " +
-  "over de verlaging op papier.";
+  "wat je er netto op vooruitgaat, niet met de verlaging op papier.";

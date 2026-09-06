@@ -40,14 +40,14 @@ export const CATEGORY_STRATEGY: Record<Category, CategoryStrategyEntry> = {
     fee: false,
     strategy: "TYPE_B_ADVIES",
     note:
-      "Belscript-flow betekent dat de klant zelf met retentie belt. NCNP daarop " +
+      "Belscript-flow betekent dat de klant zelf met retentie belt. Relay daarop " +
       "is grijs; we leveren in plaats daarvan een jaarlijks vernieuwd " +
       "retentie-belscript via Plus.",
   },
   ENERGIE: {
     fee: true,
     strategy: "TYPE_A_NCNP",
-    note: "E-mail-onderhandeling werkt — we mailen je provider en 20% NCNP op bewezen besparing.",
+    note: "E-mail-onderhandeling werkt — we mailen je provider; relay toegestaan.",
   },
   // Monopolies / no-fee categories.
   WATER: {
@@ -76,12 +76,12 @@ export const CATEGORY_STRATEGY: Record<Category, CategoryStrategyEntry> = {
   BANK: {
     fee: true,
     strategy: "TYPE_A_NCNP",
-    note: "E-mail-onderhandeling op betaalpakket-fees werkt — NCNP-flow toegestaan.",
+    note: "E-mail-onderhandeling op betaalpakket-kosten werkt — relay toegestaan.",
   },
   ABONNEMENT: {
     fee: true,
     strategy: "TYPE_A_NCNP",
-    note: "Generieke abonnementen — e-mail-onderhandeling werkt vaak; NCNP toegestaan.",
+    note: "Generieke abonnementen — e-mail-onderhandeling werkt vaak; relay toegestaan.",
   },
   STREAMING: {
     fee: false,
@@ -91,7 +91,7 @@ export const CATEGORY_STRATEGY: Record<Category, CategoryStrategyEntry> = {
   GYM: {
     fee: false,
     strategy: "TYPE_B_ADVIES",
-    note: "Gym = jaarbetaling/pause-advies; geen e-mail-onderhandeling die NCNP rechtvaardigt.",
+    note: "Gym = jaarbetaling/pause-advies; geen e-mail-onderhandeling die relay rechtvaardigt.",
   },
   OV: {
     fee: false,
@@ -101,7 +101,7 @@ export const CATEGORY_STRATEGY: Record<Category, CategoryStrategyEntry> = {
   SOFTWARE: {
     fee: true,
     strategy: "TYPE_A_NCNP",
-    note: "Software-saaS — retentie-mail werkt (Adobe e.d.); NCNP toegestaan.",
+    note: "Software-saaS — retentie-mail werkt (Adobe e.d.); relay toegestaan.",
   },
   OPSLAG: {
     fee: false,
