@@ -218,3 +218,69 @@ describe("v41 — geen enkele route kan nog een betaling starten", () => {
     expect(src).toMatch(/detachFeePaymentMethod/);
   });
 });
+
+/**
+ * v41 — DE VOLLEDIGE AANROEPKAART.
+ *
+ * Het api-blok hierboven dekt de routes. Maar `chargeFeeOffSession` wordt ook
+ * vanuit `lib/` aangeroepen, en dat viel buiten beeld. Deze test legt de
+ * VOLLEDIGE verzameling aanroepers vast: elke nieuwe plek die een
+ * betaalfunctie aanraakt laat deze test omvallen, waar hij ook staat.
+ *
+ * Voor de toegestane plekken geldt bovendien een harde nul-poort: de aanroep
+ * moet achter `feeCents > 0` zitten. Alle fee-berekeningen geven 0 terug, dus
+ * de aanroep is onbereikbaar — en blijft dat ook als iemand een berekening
+ * later per ongeluk terugzet.
+ */
+describe("v41 — alle aanroepers van een betaalfunctie liggen vast", () => {
+  const BETAALFUNCTIES = /createCheckoutSession|createPaywallCheckoutSession|createFeeSetupSession|chargeFeeOffSession/;
+
+  // Definitie zelf + het dev-script (dat al hard weigert op sk_live_) + de
+  // plek die achter de nul-poort zit. Meer mag het niet worden.
+  const TOEGESTAAN = new Set([
+    "lib/payments.ts", // hier staan de definities
+    "lib/outcome-proof.ts", // achter `feeCents > 0` — zie nul-poort-test
+    "scripts/test-stripe-flow.ts", // weigert bij sk_live_, alleen sk_test_
+  ]);
+
+  function bronnen(dir: string, out: string[] = []): string[] {
+    for (const naam of readdirSync(dir)) {
+      const volledig = path.join(dir, naam);
+      if (statSync(volledig).isDirectory()) {
+        if (["node_modules", ".next", "tests", ".git"].includes(naam)) continue;
+        bronnen(volledig, out);
+      } else if (/\.tsx?$/.test(naam)) {
+        out.push(volledig);
+      }
+    }
+    return out;
+  }
+
+  const wortel = path.join(__dirname, "..");
+
+  it("geen enkele onverwachte plek raakt een betaalfunctie aan", () => {
+    const rakers = bronnen(wortel)
+      .filter((f) => {
+        const src = readFileSync(f, "utf8")
+          .replace(/\/\*[\s\S]*?\*\//g, "")
+          .replace(/\/\/.*$/gm, "");
+        return BETAALFUNCTIES.test(src);
+      })
+      .map((f) => f.slice(wortel.length + 1))
+      .filter((f) => !TOEGESTAAN.has(f));
+    expect(rakers).toEqual([]);
+  });
+
+  it("de nul-poort staat vóór elke incasso-aanroep", () => {
+    for (const f of ["lib/outcome-proof.ts", "lib/box3-claim.ts"]) {
+      expect(readFileSync(path.join(wortel, f), "utf8")).toMatch(/feeCents\s*[<>]=?\s*0/);
+    }
+  });
+
+  it("het dev-script weigert een LIVE-sleutel", () => {
+    const src = readFileSync(path.join(wortel, "scripts/test-stripe-flow.ts"), "utf8");
+    expect(src).toMatch(/sk_live_/);
+    expect(src).toMatch(/process\.exit\(3\)/);
+  });
+});
+
