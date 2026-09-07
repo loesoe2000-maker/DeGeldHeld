@@ -115,11 +115,12 @@ export default function PrivacyPage() {
                 <td className="py-1 pr-3">
                   <strong>Box 3-claim + geüploade Belastingdienst-beschikking</strong>
                   {" "}(belastingjaar, indicatieve verwachte teruggave, status-historie,
-                  werkelijk teruggehaald bedrag uit OCR, fee-bedrag, Stripe-payment-id)
+                  werkelijk teruggehaald bedrag uit OCR)
                 </td>
                 <td className="py-1 pr-3">
                   Het teruggehaalde bedrag vastleggen via OCR van je
-                  Belastingdienst-beschikking; financiële administratie voeren
+                  Belastingdienst-beschikking, zodat je claimdossier compleet is
+                  en je de uitkomst kunt terugzien
                 </td>
                 <td className="py-1">
                   Uitvoering overeenkomst (art. 6 lid 1b AVG) + wettelijke
@@ -141,9 +142,13 @@ export default function PrivacyPage() {
                 </td>
               </tr>
               <tr>
-                <td className="py-1 pr-3"><strong>Betaalgegevens</strong> (via Stripe; wij zien status + laatste 4 cijfers)</td>
-                <td className="py-1 pr-3">Betaling van de fee / abonnement afhandelen</td>
-                <td className="py-1">Uitvoering overeenkomst + wettelijke plicht (fiscaal)</td>
+                <td className="py-1 pr-3"><strong>Historische betaalgegevens</strong> (via Stripe; wij zien status + laatste 4 cijfers)</td>
+                <td className="py-1 pr-3">
+                  Uitsluitend oude records uit de periode waarin wij een
+                  vergoeding in rekening brachten. Sinds v41 is DeGeldHeld
+                  kosteloos: er komen geen nieuwe betaalgegevens meer bij.
+                </td>
+                <td className="py-1">Wettelijke plicht (fiscaal) — alleen voor die oude records</td>
               </tr>
               <tr>
                 <td className="py-1 pr-3"><strong>Technische gegevens</strong> (IP, browser, foutmeldingen — cookies/auth-headers gestript)</td>
@@ -175,16 +180,17 @@ export default function PrivacyPage() {
             je kunt 'm altijd intrekken.
           </p>
           <p className="text-sm text-slate-600">
-            <strong>Box 3-claim — toelichting.</strong> Voor de begeleide 
-            fee op Box 3-rechtsherstel verwerken wij <strong>wel</strong> jouw
+            <strong>Box 3-claim — toelichting.</strong> Kies je voor het
+            begeleide pad, dan verwerken wij <strong>wel</strong> jouw
             <em> Box3Claim</em>-record en de geüploade Belastingdienst-
-            beschikking (PDF). Dit is noodzakelijk voor (a) het deterministisch
-            berekenen + afschrijven van onze 25%-fee via Stripe en (b) de
-            wettelijke bewaarplicht voor financiële administratie. De grondslag
-            is <strong>artikel 6 lid 1b AVG</strong> (<em>noodzakelijk voor de
-            uitvoering van de overeenkomst</em>). Andere check-inputs (vermogen,
-            inkomen, forfaits) blijven uitsluitend client-side. Zonder begeleide 
-            keuze (DIY-pad) slaan we niets op.
+            beschikking (PDF). Dat is nodig om je claim te kunnen volgen en om
+            het werkelijk toegekende bedrag vast te leggen. De grondslag is
+            <strong> artikel 6 lid 1b AVG</strong> (<em>noodzakelijk voor de
+            uitvoering van de overeenkomst</em>) — een kosteloze dienst is ook
+            een overeenkomst. Er wordt <strong>niets</strong> in rekening
+            gebracht en er vindt geen betaling plaats. Andere check-inputs
+            (vermogen, inkomen, forfaits) blijven uitsluitend client-side.
+            Zonder begeleide keuze (DIY-pad) slaan we niets op.
           </p>
 
           <h2 className="text-2xl font-semibold text-slate-900">4. Met wie we delen (sub-verwerkers)</h2>
