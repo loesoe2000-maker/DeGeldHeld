@@ -227,6 +227,21 @@ export default function PrivacyPage() {
             <li>Accountgegevens: zolang je account bestaat.</li>
             <li>Facturen + analyses: zolang je account actief is; je kunt ze zelf verwijderen via <strong>/account</strong>.</li>
             <li><strong>Anonieme uploads</strong> (vóór signup): automatisch verwijderd na <strong>24 uur</strong> als ze niet aan een account gekoppeld worden (dagelijkse opschoon-cron).</li>
+            {/*
+              OPENSTAAND PUNT (v41, bewust uitgesteld door de eigenaar op
+              2026-09-07). De onderstaande 7 jaar steunt op art. 52 lid 4 AWR:
+              de fiscale bewaarplicht voor de financiële administratie. Die
+              plicht hangt aan transacties. Sinds v41 brengt DeGeldHeld niets
+              meer in rekening, dus voor claims zonder betaling is die
+              grondslag twijfelachtig geworden.
+
+              De eigenaar is hierover geïnformeerd en heeft besloten de termijn
+              en de motivering voorlopig ongewijzigd te laten. Wijzig dit niet
+              eenzijdig: het inkorten van een bewaartermijn is onomkeerbaar.
+              Alternatieven die op tafel lagen: 6 maanden voor de PDF met
+              behoud van het claim-record, 5 jaar op gerechtvaardigd belang,
+              of 7 jaar houden met "gerechtvaardigd belang" als motivering.
+            */}
             <li>
               <strong>Box 3-claim + geüploade Belastingdienst-beschikking:</strong>{" "}
               <strong>7 jaar</strong> vanaf de afronding van de claim — vereist
